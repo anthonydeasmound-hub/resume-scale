@@ -28,7 +28,7 @@ interface LinkedInData {
   skills: string[];
 }
 
-type Step = "connect" | "import" | "review" | "saving";
+type Step = "connect" | "import" | "work-experience" | "achievements" | "skills" | "saving";
 
 function OnboardingContent() {
   const { data: session, status } = useSession();
@@ -39,8 +39,10 @@ function OnboardingContent() {
   const [token, setToken] = useState("");
   const [tokenCopied, setTokenCopied] = useState(false);
   const [linkedinData, setLinkedinData] = useState<LinkedInData | null>(null);
+  const [editableData, setEditableData] = useState<LinkedInData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [newSkill, setNewSkill] = useState("");
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -89,7 +91,8 @@ function OnboardingContent() {
       if (response.ok) {
         const result = await response.json();
         setLinkedinData(result.data);
-        setStep("review");
+        setEditableData(JSON.parse(JSON.stringify(result.data))); // Deep copy for editing
+        setStep("work-experience");
       } else if (response.status === 404) {
         setError("No imported data found. Please try importing again.");
         setStep("import");
@@ -122,7 +125,7 @@ function OnboardingContent() {
   };
 
   const handleSave = async () => {
-    if (!linkedinData) return;
+    if (!editableData) return;
 
     setStep("saving");
     setError("");
@@ -131,7 +134,7 @@ function OnboardingContent() {
       const response = await fetch("/api/resume/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(linkedinData),
+        body: JSON.stringify(editableData),
       });
 
       if (!response.ok) throw new Error("Failed to save");
@@ -139,7 +142,7 @@ function OnboardingContent() {
       router.push("/dashboard");
     } catch (err) {
       setError("Failed to save profile. Please try again.");
-      setStep("review");
+      setStep("skills");
       console.error(err);
     }
   };
@@ -159,12 +162,16 @@ function OnboardingContent() {
   const getStepNumber = () => {
     switch (step) {
       case "connect": return 1;
-      case "import": return 2;
-      case "review": return 3;
-      case "saving": return 4;
+      case "import": return 1;
+      case "work-experience": return 2;
+      case "achievements": return 3;
+      case "skills": return 4;
+      case "saving": return 5;
       default: return 1;
     }
   };
+
+  const stepLabels = ["Import", "Experience", "Achievements", "Skills", "Complete"];
 
   return (
     <div className="min-h-screen bg-gray-50 py-12">
@@ -178,22 +185,25 @@ function OnboardingContent() {
 
         {/* Progress indicator */}
         <div className="flex items-center mb-8">
-          {[1, 2, 3].map((num, idx) => (
+          {[1, 2, 3, 4, 5].map((num, idx) => (
             <div key={num} className="flex items-center flex-1">
-              <div
-                className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${
-                  getStepNumber() > num
-                    ? "bg-green-500 text-white"
-                    : getStepNumber() === num
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-200 text-gray-500"
-                }`}
-              >
-                {getStepNumber() > num ? "✓" : num}
-              </div>
-              {idx < 2 && (
+              <div className="flex flex-col items-center">
                 <div
-                  className={`flex-1 h-1 mx-2 ${
+                  className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${
+                    getStepNumber() > num
+                      ? "bg-green-500 text-white"
+                      : getStepNumber() === num
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-200 text-gray-500"
+                  }`}
+                >
+                  {getStepNumber() > num ? "✓" : num}
+                </div>
+                <span className="text-xs text-gray-500 mt-1 whitespace-nowrap">{stepLabels[idx]}</span>
+              </div>
+              {idx < 4 && (
+                <div
+                  className={`flex-1 h-1 mx-2 mb-5 ${
                     getStepNumber() > num ? "bg-green-500" : "bg-gray-200"
                   }`}
                 />
@@ -349,101 +359,278 @@ function OnboardingContent() {
           </div>
         )}
 
-        {/* Step 3: Review Imported Data */}
-        {step === "review" && linkedinData && (
+        {/* Step 2: Work Experience */}
+        {step === "work-experience" && editableData && (
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-gray-800">Work Experience</h2>
+                <p className="text-gray-600 text-sm">Review and edit your job history</p>
+              </div>
+            </div>
+
+            {editableData.work_experience.length > 0 ? (
+              <div className="space-y-4 mb-6">
+                {editableData.work_experience.map((exp, idx) => (
+                  <div key={idx} className="p-4 bg-gray-50 rounded-lg relative">
+                    <button
+                      onClick={() => {
+                        const updated = { ...editableData };
+                        updated.work_experience = updated.work_experience.filter((_, i) => i !== idx);
+                        setEditableData(updated);
+                      }}
+                      className="absolute top-2 right-2 text-gray-400 hover:text-red-500 transition-colors"
+                      title="Remove job"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">Job Title</label>
+                        <input
+                          type="text"
+                          value={exp.title}
+                          onChange={(e) => {
+                            const updated = { ...editableData };
+                            updated.work_experience[idx].title = e.target.value;
+                            setEditableData(updated);
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">Company</label>
+                        <input
+                          type="text"
+                          value={exp.company}
+                          onChange={(e) => {
+                            const updated = { ...editableData };
+                            updated.work_experience[idx].company = e.target.value;
+                            setEditableData(updated);
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">Start Date</label>
+                        <input
+                          type="text"
+                          value={exp.start_date}
+                          onChange={(e) => {
+                            const updated = { ...editableData };
+                            updated.work_experience[idx].start_date = e.target.value;
+                            setEditableData(updated);
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="e.g., Jan 2020"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">End Date</label>
+                        <input
+                          type="text"
+                          value={exp.end_date}
+                          onChange={(e) => {
+                            const updated = { ...editableData };
+                            updated.work_experience[idx].end_date = e.target.value;
+                            setEditableData(updated);
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="e.g., Present"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-400 mb-6 text-center py-8">No work experience found</p>
+            )}
+
+            <div className="flex gap-4">
+              <button
+                onClick={() => setStep("import")}
+                className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+              >
+                Back
+              </button>
+              <button
+                onClick={() => setStep("achievements")}
+                className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+              >
+                Continue
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 3: Achievements */}
+        {step === "achievements" && editableData && (
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-gray-800">Achievements</h2>
+                <p className="text-gray-600 text-sm">Edit bullet points from your work experience</p>
+              </div>
+            </div>
+
+            <div className="space-y-6 mb-6 max-h-96 overflow-y-auto">
+              {editableData.work_experience.map((exp, jobIdx) => (
+                <div key={jobIdx} className="p-4 bg-gray-50 rounded-lg">
+                  <h3 className="font-medium text-gray-800 mb-3">
+                    {exp.title} at {exp.company}
+                  </h3>
+                  <div className="space-y-2">
+                    {exp.description.map((bullet, bulletIdx) => (
+                      <div key={bulletIdx} className="flex gap-2">
+                        <span className="text-gray-400 mt-2">•</span>
+                        <input
+                          type="text"
+                          value={bullet}
+                          onChange={(e) => {
+                            const updated = { ...editableData };
+                            updated.work_experience[jobIdx].description[bulletIdx] = e.target.value;
+                            setEditableData(updated);
+                          }}
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                        <button
+                          onClick={() => {
+                            const updated = { ...editableData };
+                            updated.work_experience[jobIdx].description = updated.work_experience[jobIdx].description.filter((_, i) => i !== bulletIdx);
+                            setEditableData(updated);
+                          }}
+                          className="text-gray-400 hover:text-red-500 transition-colors"
+                          title="Remove bullet"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      onClick={() => {
+                        const updated = { ...editableData };
+                        updated.work_experience[jobIdx].description.push("");
+                        setEditableData(updated);
+                      }}
+                      className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1 mt-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      Add bullet point
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {editableData.work_experience.length === 0 && (
+                <p className="text-sm text-gray-400 text-center py-8">No work experience to show achievements</p>
+              )}
+            </div>
+
+            <div className="flex gap-4">
+              <button
+                onClick={() => setStep("work-experience")}
+                className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+              >
+                Back
+              </button>
+              <button
+                onClick={() => setStep("skills")}
+                className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+              >
+                Continue
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 4: Skills */}
+        {step === "skills" && editableData && (
           <div className="bg-white rounded-xl shadow-lg p-6">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
                 <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                 </svg>
               </div>
               <div>
-                <h2 className="text-xl font-semibold text-gray-800">Review Your Information</h2>
-                <p className="text-gray-600 text-sm">Verify the data imported from LinkedIn</p>
+                <h2 className="text-xl font-semibold text-gray-800">Skills</h2>
+                <p className="text-gray-600 text-sm">Review and edit your skills</p>
               </div>
             </div>
 
-            {/* Contact Info */}
-            <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-              <h3 className="font-medium text-gray-800 mb-2">Contact Information</h3>
-              <div className="text-sm text-gray-600 space-y-1">
-                <p><span className="text-gray-500">Name:</span> {linkedinData.contact_info.name || "—"}</p>
-                <p><span className="text-gray-500">Email:</span> {linkedinData.contact_info.email || "—"}</p>
-                <p><span className="text-gray-500">Location:</span> {linkedinData.contact_info.location || "—"}</p>
-                <p><span className="text-gray-500">LinkedIn:</span> {linkedinData.contact_info.linkedin || "—"}</p>
+            <div className="mb-6">
+              <div className="flex flex-wrap gap-2 mb-4">
+                {editableData.skills.map((skill, idx) => (
+                  <span
+                    key={idx}
+                    className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm flex items-center gap-2"
+                  >
+                    {skill}
+                    <button
+                      onClick={() => {
+                        const updated = { ...editableData };
+                        updated.skills = updated.skills.filter((_, i) => i !== idx);
+                        setEditableData(updated);
+                      }}
+                      className="text-blue-500 hover:text-red-500 transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </span>
+                ))}
+                {editableData.skills.length === 0 && (
+                  <p className="text-sm text-gray-400">No skills added yet</p>
+                )}
               </div>
-            </div>
 
-            {/* Work Experience */}
-            <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-              <h3 className="font-medium text-gray-800 mb-2">
-                Work Experience
-                <span className="ml-2 text-sm font-normal text-gray-500">
-                  ({linkedinData.work_experience.length} positions)
-                </span>
-              </h3>
-              {linkedinData.work_experience.length > 0 ? (
-                <div className="text-sm text-gray-600 space-y-2">
-                  {linkedinData.work_experience.slice(0, 3).map((exp, idx) => (
-                    <div key={idx} className="pb-2 border-b border-gray-200 last:border-0">
-                      <p className="font-medium text-gray-700">{exp.title}</p>
-                      <p>{exp.company}</p>
-                      <p className="text-gray-500">{exp.start_date} - {exp.end_date}</p>
-                    </div>
-                  ))}
-                  {linkedinData.work_experience.length > 3 && (
-                    <p className="text-gray-400">+{linkedinData.work_experience.length - 3} more</p>
-                  )}
-                </div>
-              ) : (
-                <p className="text-sm text-gray-400">No work experience found</p>
-              )}
-            </div>
-
-            {/* Education */}
-            <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-              <h3 className="font-medium text-gray-800 mb-2">
-                Education
-                <span className="ml-2 text-sm font-normal text-gray-500">
-                  ({linkedinData.education.length} entries)
-                </span>
-              </h3>
-              {linkedinData.education.length > 0 ? (
-                <div className="text-sm text-gray-600 space-y-1">
-                  {linkedinData.education.slice(0, 2).map((edu, idx) => (
-                    <p key={idx}>{edu.degree} {edu.field && `in ${edu.field}`} - {edu.institution}</p>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-gray-400">No education found</p>
-              )}
-            </div>
-
-            {/* Skills */}
-            <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-              <h3 className="font-medium text-gray-800 mb-2">
-                Skills
-                <span className="ml-2 text-sm font-normal text-gray-500">
-                  ({linkedinData.skills.length} skills)
-                </span>
-              </h3>
-              {linkedinData.skills.length > 0 ? (
-                <div className="flex flex-wrap gap-1">
-                  {linkedinData.skills.slice(0, 10).map((skill, idx) => (
-                    <span key={idx} className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">
-                      {skill}
-                    </span>
-                  ))}
-                  {linkedinData.skills.length > 10 && (
-                    <span className="px-2 py-0.5 bg-gray-100 text-gray-500 rounded text-xs">
-                      +{linkedinData.skills.length - 10} more
-                    </span>
-                  )}
-                </div>
-              ) : (
-                <p className="text-sm text-gray-400">No skills found</p>
-              )}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newSkill}
+                  onChange={(e) => setNewSkill(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && newSkill.trim()) {
+                      const updated = { ...editableData };
+                      updated.skills = [...updated.skills, newSkill.trim()];
+                      setEditableData(updated);
+                      setNewSkill("");
+                    }
+                  }}
+                  placeholder="Add a skill..."
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <button
+                  onClick={() => {
+                    if (newSkill.trim()) {
+                      const updated = { ...editableData };
+                      updated.skills = [...updated.skills, newSkill.trim()];
+                      setEditableData(updated);
+                      setNewSkill("");
+                    }
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                >
+                  Add
+                </button>
+              </div>
             </div>
 
             <p className="text-sm text-gray-500 mb-4 text-center">
@@ -452,16 +639,16 @@ function OnboardingContent() {
 
             <div className="flex gap-4">
               <button
-                onClick={() => setStep("import")}
+                onClick={() => setStep("achievements")}
                 className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors"
               >
-                Re-import
+                Back
               </button>
               <button
                 onClick={handleSave}
                 className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
               >
-                Save & Continue
+                Confirm & Continue
               </button>
             </div>
           </div>
