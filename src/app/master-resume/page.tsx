@@ -1,0 +1,618 @@
+"use client";
+
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import TabsNav from "@/components/TabsNav";
+
+interface WorkExperience {
+  company: string;
+  title: string;
+  start_date: string;
+  end_date: string;
+  description: string[];
+}
+
+interface Education {
+  institution: string;
+  degree: string;
+  field: string;
+  graduation_date: string;
+}
+
+interface ContactInfo {
+  name: string;
+  email: string;
+  phone: string;
+  location: string;
+  linkedin: string;
+}
+
+interface ResumeData {
+  contact_info: ContactInfo;
+  work_experience: WorkExperience[];
+  education: Education[];
+  skills: string[];
+}
+
+const emptyResume: ResumeData = {
+  contact_info: { name: "", email: "", phone: "", location: "", linkedin: "" },
+  work_experience: [],
+  education: [],
+  skills: [],
+};
+
+export default function MasterResumePage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [resumeData, setResumeData] = useState<ResumeData>(emptyResume);
+  const [originalData, setOriginalData] = useState<ResumeData>(emptyResume);
+  const [hasChanges, setHasChanges] = useState(false);
+  const [saveMessage, setSaveMessage] = useState("");
+  const [expandedJobs, setExpandedJobs] = useState<Set<number>>(new Set());
+  const [newSkill, setNewSkill] = useState("");
+
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/");
+    }
+  }, [status, router]);
+
+  useEffect(() => {
+    if (session) {
+      fetchResumeData();
+    }
+  }, [session]);
+
+  useEffect(() => {
+    setHasChanges(JSON.stringify(resumeData) !== JSON.stringify(originalData));
+  }, [resumeData, originalData]);
+
+  const fetchResumeData = async () => {
+    try {
+      const response = await fetch("/api/resume/master");
+      if (response.ok) {
+        const data = await response.json();
+        const formatted: ResumeData = {
+          contact_info: data.contact_info || emptyResume.contact_info,
+          work_experience: data.work_experience || [],
+          education: data.education || [],
+          skills: data.skills || [],
+        };
+        setResumeData(formatted);
+        setOriginalData(formatted);
+      }
+    } catch (err) {
+      console.error("Failed to fetch resume:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    setSaveMessage("");
+
+    try {
+      const response = await fetch("/api/resume/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(resumeData),
+      });
+
+      if (response.ok) {
+        setOriginalData(resumeData);
+        setSaveMessage("Changes saved successfully!");
+        setTimeout(() => setSaveMessage(""), 3000);
+      } else {
+        setSaveMessage("Failed to save changes. Please try again.");
+      }
+    } catch (err) {
+      console.error("Save error:", err);
+      setSaveMessage("Failed to save changes. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updateContactInfo = (field: keyof ContactInfo, value: string) => {
+    setResumeData((prev) => ({
+      ...prev,
+      contact_info: { ...prev.contact_info, [field]: value },
+    }));
+  };
+
+  const updateWorkExperience = (index: number, field: keyof WorkExperience, value: string | string[]) => {
+    setResumeData((prev) => ({
+      ...prev,
+      work_experience: prev.work_experience.map((exp, i) =>
+        i === index ? { ...exp, [field]: value } : exp
+      ),
+    }));
+  };
+
+  const addWorkExperience = () => {
+    setResumeData((prev) => ({
+      ...prev,
+      work_experience: [
+        ...prev.work_experience,
+        { company: "", title: "", start_date: "", end_date: "", description: [""] },
+      ],
+    }));
+    setExpandedJobs((prev) => new Set([...prev, resumeData.work_experience.length]));
+  };
+
+  const removeWorkExperience = (index: number) => {
+    setResumeData((prev) => ({
+      ...prev,
+      work_experience: prev.work_experience.filter((_, i) => i !== index),
+    }));
+  };
+
+  const addBulletPoint = (jobIndex: number) => {
+    setResumeData((prev) => ({
+      ...prev,
+      work_experience: prev.work_experience.map((exp, i) =>
+        i === jobIndex ? { ...exp, description: [...exp.description, ""] } : exp
+      ),
+    }));
+  };
+
+  const updateBulletPoint = (jobIndex: number, bulletIndex: number, value: string) => {
+    setResumeData((prev) => ({
+      ...prev,
+      work_experience: prev.work_experience.map((exp, i) =>
+        i === jobIndex
+          ? {
+              ...exp,
+              description: exp.description.map((d, j) => (j === bulletIndex ? value : d)),
+            }
+          : exp
+      ),
+    }));
+  };
+
+  const removeBulletPoint = (jobIndex: number, bulletIndex: number) => {
+    setResumeData((prev) => ({
+      ...prev,
+      work_experience: prev.work_experience.map((exp, i) =>
+        i === jobIndex
+          ? { ...exp, description: exp.description.filter((_, j) => j !== bulletIndex) }
+          : exp
+      ),
+    }));
+  };
+
+  const updateEducation = (index: number, field: keyof Education, value: string) => {
+    setResumeData((prev) => ({
+      ...prev,
+      education: prev.education.map((edu, i) =>
+        i === index ? { ...edu, [field]: value } : edu
+      ),
+    }));
+  };
+
+  const addEducation = () => {
+    setResumeData((prev) => ({
+      ...prev,
+      education: [
+        ...prev.education,
+        { institution: "", degree: "", field: "", graduation_date: "" },
+      ],
+    }));
+  };
+
+  const removeEducation = (index: number) => {
+    setResumeData((prev) => ({
+      ...prev,
+      education: prev.education.filter((_, i) => i !== index),
+    }));
+  };
+
+  const addSkill = () => {
+    if (newSkill.trim() && !resumeData.skills.includes(newSkill.trim())) {
+      setResumeData((prev) => ({
+        ...prev,
+        skills: [...prev.skills, newSkill.trim()],
+      }));
+      setNewSkill("");
+    }
+  };
+
+  const removeSkill = (skill: string) => {
+    setResumeData((prev) => ({
+      ...prev,
+      skills: prev.skills.filter((s) => s !== skill),
+    }));
+  };
+
+  const toggleJobExpanded = (index: number) => {
+    setExpandedJobs((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(index)) {
+        newSet.delete(index);
+      } else {
+        newSet.add(index);
+      }
+      return newSet;
+    });
+  };
+
+  if (status === "loading" || loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-lg text-gray-600">Loading...</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <TabsNav />
+
+      <div className="ml-64 p-8">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Master Resume</h1>
+            <p className="text-gray-600 text-sm">
+              Edit your profile information. This data is used to generate tailored resumes.
+            </p>
+          </div>
+          <div className="flex items-center gap-4">
+            {saveMessage && (
+              <span className={`text-sm ${saveMessage.includes("success") ? "text-green-600" : "text-red-600"}`}>
+                {saveMessage}
+              </span>
+            )}
+            <button
+              onClick={handleSave}
+              disabled={!hasChanges || saving}
+              className={`px-6 py-2 rounded-lg font-medium transition-colors ${
+                hasChanges
+                  ? "bg-blue-600 text-white hover:bg-blue-700"
+                  : "bg-gray-200 text-gray-500 cursor-not-allowed"
+              }`}
+            >
+              {saving ? "Saving..." : hasChanges ? "Save Changes" : "No Changes"}
+            </button>
+          </div>
+        </div>
+
+        {/* Contact Information */}
+        <div className="bg-white rounded-xl shadow p-6 mb-6">
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">Contact Information</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-1">Name</label>
+              <input
+                type="text"
+                value={resumeData.contact_info.name}
+                onChange={(e) => updateContactInfo("name", e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                placeholder="John Doe"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-1">Email</label>
+              <input
+                type="email"
+                value={resumeData.contact_info.email}
+                onChange={(e) => updateContactInfo("email", e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                placeholder="john@example.com"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-1">Phone</label>
+              <input
+                type="tel"
+                value={resumeData.contact_info.phone}
+                onChange={(e) => updateContactInfo("phone", e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                placeholder="(555) 123-4567"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-1">Location</label>
+              <input
+                type="text"
+                value={resumeData.contact_info.location}
+                onChange={(e) => updateContactInfo("location", e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                placeholder="San Francisco, CA"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-600 mb-1">LinkedIn URL</label>
+              <input
+                type="url"
+                value={resumeData.contact_info.linkedin}
+                onChange={(e) => updateContactInfo("linkedin", e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                placeholder="https://linkedin.com/in/johndoe"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Work Experience */}
+        <div className="bg-white rounded-xl shadow p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-800">Work Experience</h2>
+            <button
+              onClick={addWorkExperience}
+              className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center gap-1"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Add Position
+            </button>
+          </div>
+
+          {resumeData.work_experience.length === 0 ? (
+            <p className="text-gray-500 text-sm">No work experience added yet.</p>
+          ) : (
+            <div className="space-y-4">
+              {resumeData.work_experience.map((job, jobIndex) => (
+                <div key={jobIndex} className="border border-gray-200 rounded-lg overflow-hidden">
+                  {/* Job Header */}
+                  <div
+                    className="flex items-center justify-between p-4 bg-gray-50 cursor-pointer"
+                    onClick={() => toggleJobExpanded(jobIndex)}
+                  >
+                    <div className="flex-1">
+                      <p className="font-medium text-gray-900">
+                        {job.title || "Untitled Position"} {job.company && `at ${job.company}`}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        {job.start_date || "Start"} - {job.end_date || "Present"}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeWorkExperience(jobIndex);
+                        }}
+                        className="text-red-500 hover:text-red-700 p-1"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                      <svg
+                        className={`w-5 h-5 text-gray-400 transition-transform ${expandedJobs.has(jobIndex) ? "rotate-180" : ""}`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
+
+                  {/* Job Details (Expanded) */}
+                  {expandedJobs.has(jobIndex) && (
+                    <div className="p-4 border-t border-gray-200 space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-600 mb-1">Job Title</label>
+                          <input
+                            type="text"
+                            value={job.title}
+                            onChange={(e) => updateWorkExperience(jobIndex, "title", e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                            placeholder="Software Engineer"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-600 mb-1">Company</label>
+                          <input
+                            type="text"
+                            value={job.company}
+                            onChange={(e) => updateWorkExperience(jobIndex, "company", e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                            placeholder="Acme Inc."
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-600 mb-1">Start Date</label>
+                          <input
+                            type="text"
+                            value={job.start_date}
+                            onChange={(e) => updateWorkExperience(jobIndex, "start_date", e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                            placeholder="Jan 2020"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-600 mb-1">End Date</label>
+                          <input
+                            type="text"
+                            value={job.end_date}
+                            onChange={(e) => updateWorkExperience(jobIndex, "end_date", e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                            placeholder="Present"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Bullet Points */}
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="block text-sm font-medium text-gray-600">Achievements / Responsibilities</label>
+                          <button
+                            onClick={() => addBulletPoint(jobIndex)}
+                            className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                          >
+                            + Add Bullet
+                          </button>
+                        </div>
+                        <div className="space-y-2">
+                          {job.description.map((bullet, bulletIndex) => (
+                            <div key={bulletIndex} className="flex gap-2">
+                              <span className="text-gray-400 mt-2">•</span>
+                              <input
+                                type="text"
+                                value={bullet}
+                                onChange={(e) => updateBulletPoint(jobIndex, bulletIndex, e.target.value)}
+                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                                placeholder="Describe an achievement or responsibility..."
+                              />
+                              <button
+                                onClick={() => removeBulletPoint(jobIndex, bulletIndex)}
+                                className="text-red-500 hover:text-red-700 p-2"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </button>
+                            </div>
+                          ))}
+                          {job.description.length === 0 && (
+                            <p className="text-gray-400 text-sm">No bullet points added.</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Education */}
+        <div className="bg-white rounded-xl shadow p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-800">Education</h2>
+            <button
+              onClick={addEducation}
+              className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center gap-1"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Add Education
+            </button>
+          </div>
+
+          {resumeData.education.length === 0 ? (
+            <p className="text-gray-500 text-sm">No education added yet.</p>
+          ) : (
+            <div className="space-y-4">
+              {resumeData.education.map((edu, index) => (
+                <div key={index} className="border border-gray-200 rounded-lg p-4">
+                  <div className="flex justify-between mb-3">
+                    <span className="text-sm font-medium text-gray-500">Education #{index + 1}</span>
+                    <button
+                      onClick={() => removeEducation(index)}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Institution</label>
+                      <input
+                        type="text"
+                        value={edu.institution}
+                        onChange={(e) => updateEducation(index, "institution", e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                        placeholder="University of California"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Degree</label>
+                      <input
+                        type="text"
+                        value={edu.degree}
+                        onChange={(e) => updateEducation(index, "degree", e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                        placeholder="Bachelor of Science"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Field of Study</label>
+                      <input
+                        type="text"
+                        value={edu.field}
+                        onChange={(e) => updateEducation(index, "field", e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                        placeholder="Computer Science"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Graduation Date</label>
+                      <input
+                        type="text"
+                        value={edu.graduation_date}
+                        onChange={(e) => updateEducation(index, "graduation_date", e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                        placeholder="May 2020"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Skills */}
+        <div className="bg-white rounded-xl shadow p-6">
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">Skills</h2>
+
+          {/* Add Skill Input */}
+          <div className="flex gap-2 mb-4">
+            <input
+              type="text"
+              value={newSkill}
+              onChange={(e) => setNewSkill(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addSkill()}
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+              placeholder="Add a skill..."
+            />
+            <button
+              onClick={addSkill}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Add
+            </button>
+          </div>
+
+          {/* Skills Tags */}
+          {resumeData.skills.length === 0 ? (
+            <p className="text-gray-500 text-sm">No skills added yet.</p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {resumeData.skills.map((skill, index) => (
+                <span
+                  key={index}
+                  className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm"
+                >
+                  {skill}
+                  <button
+                    onClick={() => removeSkill(skill)}
+                    className="hover:text-blue-900"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

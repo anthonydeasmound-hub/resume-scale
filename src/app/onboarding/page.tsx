@@ -1,22 +1,46 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import { useState, useEffect, useRef } from "react";
-import { ParsedResume } from "@/lib/gemini";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
 
-type Step = "upload" | "manual" | "review" | "saving";
+interface LinkedInData {
+  contact_info: {
+    name: string;
+    email: string;
+    phone: string;
+    location: string;
+    linkedin: string;
+  };
+  work_experience: Array<{
+    company: string;
+    title: string;
+    start_date: string;
+    end_date: string;
+    description: string[];
+  }>;
+  education: Array<{
+    institution: string;
+    degree: string;
+    field: string;
+    graduation_date: string;
+  }>;
+  skills: string[];
+}
 
-export default function OnboardingPage() {
+type Step = "connect" | "import" | "review" | "saving";
+
+function OnboardingContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [step, setStep] = useState<Step>("upload");
-  const [resumeText, setResumeText] = useState("");
-  const [parsedData, setParsedData] = useState<ParsedResume | null>(null);
+  const searchParams = useSearchParams();
+
+  const [step, setStep] = useState<Step>("connect");
+  const [token, setToken] = useState("");
+  const [tokenCopied, setTokenCopied] = useState(false);
+  const [linkedinData, setLinkedinData] = useState<LinkedInData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [fileName, setFileName] = useState("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -24,121 +48,81 @@ export default function OnboardingPage() {
     }
   }, [status, router]);
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!file.name.toLowerCase().endsWith(".pdf")) {
-      setError("Please upload a PDF file");
-      return;
+  // Fetch token on mount
+  useEffect(() => {
+    if (session) {
+      fetchToken();
     }
+  }, [session]);
 
-    setLoading(true);
-    setError("");
-    setFileName(file.name);
+  // Check for LinkedIn import result
+  useEffect(() => {
+    const importStatus = searchParams.get("linkedin_import");
+    const errorMessage = searchParams.get("message");
 
+    if (importStatus === "success") {
+      fetchLinkedInData();
+    } else if (importStatus === "error") {
+      setError(errorMessage || "Failed to import LinkedIn data. Please try again.");
+      setStep("import");
+    }
+  }, [searchParams]);
+
+  const fetchToken = async () => {
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const uploadResponse = await fetch("/api/resume/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!uploadResponse.ok) {
-        throw new Error("Failed to upload PDF");
+      const response = await fetch("/api/extension/token");
+      if (response.ok) {
+        const data = await response.json();
+        setToken(data.token);
       }
-
-      const { text } = await uploadResponse.json();
-
-      // Defensive check - ensure text is a string
-      if (!text || typeof text !== "string" || text.trim().length < 50) {
-        // PDF extraction failed or returned minimal text
-        setResumeText("");
-        setError("Could not extract text from PDF. Please paste your resume text manually.");
-        setStep("manual");
-        setLoading(false);
-        return;
-      }
-
-      setResumeText(text);
-
-      // Auto-parse the extracted text
-      const parseResponse = await fetch("/api/resume/parse", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ resumeText: text }),
-      });
-
-      if (!parseResponse.ok) {
-        // Check if it's a rate limit error
-        const errorData = await parseResponse.json().catch(() => ({}));
-        if (parseResponse.status === 429 || errorData.error === "rate_limit") {
-          setError("AI service is temporarily busy. Please wait about 30 seconds and click 'Parse Resume' to try again.");
-        } else {
-          setError("Could not parse resume automatically. Please review the text below.");
-        }
-        setStep("manual");
-        setLoading(false);
-        return;
-      }
-
-      const data = await parseResponse.json();
-      setParsedData(data);
-      setStep("review");
     } catch (err) {
-      console.error(err);
-      setError("Failed to process PDF. Please paste your resume text manually.");
-      setStep("manual");
+      console.error("Failed to fetch token:", err);
+    }
+  };
+
+  const fetchLinkedInData = async () => {
+    setLoading(true);
+    try {
+      // Uses session auth, no token needed
+      const response = await fetch("/api/linkedin/parse-profile");
+
+      if (response.ok) {
+        const result = await response.json();
+        setLinkedinData(result.data);
+        setStep("review");
+      } else if (response.status === 404) {
+        setError("No imported data found. Please try importing again.");
+        setStep("import");
+      } else {
+        setError("Could not retrieve imported data. Please try again.");
+        setStep("import");
+      }
+    } catch (err) {
+      console.error("Failed to fetch LinkedIn data:", err);
+      setError("Failed to retrieve imported data.");
+      setStep("import");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleManualParse = async () => {
-    if (!resumeText.trim()) {
-      setError("Please paste your resume text");
-      return;
-    }
-
-    setLoading(true);
-    setError("");
-
+  const copyToken = async () => {
     try {
-      const parseResponse = await fetch("/api/resume/parse", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ resumeText }),
-      });
-
-      if (!parseResponse.ok) {
-        const errorData = await parseResponse.json().catch(() => ({}));
-        if (parseResponse.status === 429 || errorData.error === "rate_limit") {
-          setError("AI service is temporarily busy. Please wait about 30 seconds and try again.");
-        } else {
-          setError("Failed to parse resume. Please try again.");
-        }
-        return;
-      }
-
-      const data = await parseResponse.json();
-      setParsedData(data);
-      setStep("review");
+      await navigator.clipboard.writeText(token);
+      setTokenCopied(true);
+      setTimeout(() => setTokenCopied(false), 2000);
     } catch (err) {
-      console.error(err);
-      setError("Failed to parse resume. Please try again.");
-    } finally {
-      setLoading(false);
+      console.error("Failed to copy:", err);
     }
   };
 
-  const handleSkip = () => {
-    router.push("/dashboard");
+  const handleImportLinkedIn = () => {
+    // Open LinkedIn profile page with auto-import parameter
+    window.open("https://www.linkedin.com/in/me?resumescale_import=auto", "_blank");
   };
 
   const handleSave = async () => {
-    if (!parsedData) return;
+    if (!linkedinData) return;
 
     setStep("saving");
     setError("");
@@ -147,20 +131,21 @@ export default function OnboardingPage() {
       const response = await fetch("/api/resume/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...parsedData,
-          raw_text: resumeText,
-        }),
+        body: JSON.stringify(linkedinData),
       });
 
-      if (!response.ok) throw new Error("Failed to save resume");
+      if (!response.ok) throw new Error("Failed to save");
 
       router.push("/dashboard");
     } catch (err) {
-      setError("Failed to save resume. Please try again.");
+      setError("Failed to save profile. Please try again.");
       setStep("review");
       console.error(err);
     }
+  };
+
+  const handleSkip = () => {
+    router.push("/dashboard");
   };
 
   if (status === "loading") {
@@ -171,214 +156,318 @@ export default function OnboardingPage() {
     );
   }
 
+  const getStepNumber = () => {
+    switch (step) {
+      case "connect": return 1;
+      case "import": return 2;
+      case "review": return 3;
+      case "saving": return 4;
+      default: return 1;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-3xl mx-auto px-4">
+      <div className="max-w-2xl mx-auto px-4">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Welcome to ResumeScale</h1>
           <p className="text-gray-600 mt-2">
-            Let&apos;s get started by importing your resume
+            Connect your LinkedIn to import your profile
           </p>
         </div>
 
         {/* Progress indicator */}
         <div className="flex items-center mb-8">
-          <div className={`flex items-center justify-center w-8 h-8 rounded-full ${step === "upload" || step === "manual" ? "bg-blue-600 text-white" : "bg-green-500 text-white"}`}>
-            {step === "upload" || step === "manual" ? "1" : "✓"}
-          </div>
-          <div className={`flex-1 h-1 mx-2 ${step === "review" || step === "saving" ? "bg-green-500" : "bg-gray-200"}`} />
-          <div className={`flex items-center justify-center w-8 h-8 rounded-full ${step === "review" ? "bg-blue-600 text-white" : step === "saving" ? "bg-green-500 text-white" : "bg-gray-200 text-gray-500"}`}>
-            {step === "saving" ? "✓" : "2"}
-          </div>
+          {[1, 2, 3].map((num, idx) => (
+            <div key={num} className="flex items-center flex-1">
+              <div
+                className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${
+                  getStepNumber() > num
+                    ? "bg-green-500 text-white"
+                    : getStepNumber() === num
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-200 text-gray-500"
+                }`}
+              >
+                {getStepNumber() > num ? "✓" : num}
+              </div>
+              {idx < 2 && (
+                <div
+                  className={`flex-1 h-1 mx-2 ${
+                    getStepNumber() > num ? "bg-green-500" : "bg-gray-200"
+                  }`}
+                />
+              )}
+            </div>
+          ))}
         </div>
 
         {error && (
           <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
             {error}
-          </div>
-        )}
-
-        {step === "upload" && (
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">
-              Upload Your Resume
-            </h2>
-            <p className="text-gray-600 mb-6 text-sm">
-              Upload a PDF of your resume. Our AI will extract your experience, skills, and education.
-            </p>
-
-            {/* File Upload Area */}
-            <div
-              onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-colors"
+            <button
+              onClick={() => setError("")}
+              className="ml-2 text-red-500 hover:text-red-700"
             >
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".pdf"
-                onChange={handleFileUpload}
-                className="hidden"
-              />
-              {loading ? (
-                <div className="flex flex-col items-center">
-                  <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mb-3" />
-                  <p className="text-gray-600">Processing {fileName}...</p>
-                </div>
-              ) : (
-                <>
-                  <svg className="w-12 h-12 text-gray-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                  </svg>
-                  <p className="text-gray-700 font-medium">Click to upload PDF</p>
-                  <p className="text-gray-500 text-sm mt-1">or drag and drop</p>
-                </>
-              )}
-            </div>
-
-            {/* Manual entry option */}
-            <div className="mt-6 text-center space-y-2">
-              <button
-                onClick={() => setStep("manual")}
-                className="text-blue-600 hover:text-blue-700 text-sm font-medium"
-              >
-                Or paste your resume text manually
-              </button>
-              <br />
-              <button
-                onClick={handleSkip}
-                className="text-gray-500 hover:text-gray-700 text-sm underline"
-              >
-                Skip for now
-              </button>
-            </div>
+              ×
+            </button>
           </div>
         )}
 
-        {step === "manual" && (
+        {/* Step 1: Connect Extension */}
+        {step === "connect" && (
           <div className="bg-white rounded-xl shadow-lg p-6">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">
-              Paste Your Resume
-            </h2>
-            <p className="text-gray-600 mb-4 text-sm">
-              Copy and paste the text from your resume below. Our AI will extract your information.
-            </p>
-            <textarea
-              className="w-full h-64 p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none text-gray-900"
-              placeholder="Paste your resume text here..."
-              value={resumeText}
-              onChange={(e) => setResumeText(e.target.value)}
-            />
-            <div className="mt-4 flex gap-4">
-              <button
-                onClick={() => {
-                  setStep("upload");
-                  setError("");
-                }}
-                className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors"
-              >
-                Back
-              </button>
-              <button
-                onClick={handleManualParse}
-                disabled={loading}
-                className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {loading ? "Parsing..." : "Parse Resume"}
-              </button>
-            </div>
-            <div className="mt-4 text-center">
-              <button
-                onClick={handleSkip}
-                className="text-gray-500 hover:text-gray-700 text-sm underline"
-              >
-                Skip for now
-              </button>
-            </div>
-          </div>
-        )}
-
-        {step === "review" && parsedData && (
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">
-              Review Extracted Data
+              Step 1: Connect the Chrome Extension
             </h2>
             <p className="text-gray-600 mb-6 text-sm">
-              Please review the information we extracted from your resume.
+              Install the ResumeScale Chrome extension and connect it using your personal token.
             </p>
 
-            {/* Contact Info */}
-            <div className="mb-6">
-              <h3 className="text-lg font-medium text-gray-700 mb-2">Contact Information</h3>
-              <div className="bg-gray-50 rounded-lg p-4 space-y-1">
-                <p><span className="text-gray-500">Name:</span> <span className="text-gray-900">{parsedData.contact_info.name}</span></p>
-                <p><span className="text-gray-500">Email:</span> <span className="text-gray-900">{parsedData.contact_info.email}</span></p>
-                <p><span className="text-gray-500">Phone:</span> <span className="text-gray-900">{parsedData.contact_info.phone}</span></p>
-                <p><span className="text-gray-500">Location:</span> <span className="text-gray-900">{parsedData.contact_info.location}</span></p>
+            {/* Extension Install Link */}
+            <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+              <h3 className="font-medium text-gray-800 mb-2">Install Extension</h3>
+              <p className="text-sm text-gray-600 mb-3">
+                Load the extension from your local folder:
+              </p>
+              <ol className="text-sm text-gray-600 list-decimal list-inside space-y-1 mb-3">
+                <li>Open Chrome and go to <code className="bg-gray-200 px-1 rounded">chrome://extensions</code></li>
+                <li>Enable &quot;Developer mode&quot; (top right toggle)</li>
+                <li>Click &quot;Load unpacked&quot;</li>
+                <li>Select the extension folder</li>
+              </ol>
+              <div className="bg-white p-2 rounded border text-xs font-mono text-gray-700 break-all">
+                ~/my-app/my-first-app/resumescale-extension
               </div>
             </div>
 
-            {/* Work Experience */}
-            <div className="mb-6">
-              <h3 className="text-lg font-medium text-gray-700 mb-2">Work Experience</h3>
-              <div className="space-y-3">
-                {parsedData.work_experience.map((job, idx) => (
-                  <div key={idx} className="bg-gray-50 rounded-lg p-4">
-                    <p className="font-medium text-gray-900">{job.title}</p>
-                    <p className="text-gray-600">{job.company}</p>
-                    <p className="text-sm text-gray-500">{job.start_date} - {job.end_date}</p>
-                    <ul className="mt-2 text-sm text-gray-700 list-disc list-inside">
-                      {job.description.slice(0, 3).map((desc, i) => (
-                        <li key={i}>{desc}</li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Skills */}
-            <div className="mb-6">
-              <h3 className="text-lg font-medium text-gray-700 mb-2">Skills</h3>
-              <div className="flex flex-wrap gap-2">
-                {parsedData.skills.map((skill, idx) => (
-                  <span key={idx} className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
-                    {skill}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {/* Education */}
-            <div className="mb-6">
-              <h3 className="text-lg font-medium text-gray-700 mb-2">Education</h3>
-              <div className="space-y-2">
-                {parsedData.education.map((edu, idx) => (
-                  <div key={idx} className="bg-gray-50 rounded-lg p-4">
-                    <p className="font-medium text-gray-900">{edu.degree} in {edu.field}</p>
-                    <p className="text-gray-600">{edu.institution}</p>
-                    <p className="text-sm text-gray-500">{edu.graduation_date}</p>
-                  </div>
-                ))}
+            {/* Token Section */}
+            <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+              <h3 className="font-medium text-gray-800 mb-2">Your Connection Token</h3>
+              <p className="text-sm text-gray-600 mb-3">
+                Copy this token and paste it into the extension popup to connect.
+              </p>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={token}
+                  readOnly
+                  className="flex-1 px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-mono text-gray-700"
+                />
+                <button
+                  onClick={copyToken}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                    tokenCopied
+                      ? "bg-green-500 text-white"
+                      : "bg-blue-600 text-white hover:bg-blue-700"
+                  }`}
+                >
+                  {tokenCopied ? "Copied!" : "Copy"}
+                </button>
               </div>
             </div>
 
             <div className="flex gap-4">
               <button
-                onClick={() => setStep("manual")}
+                onClick={handleSkip}
                 className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors"
               >
-                Go Back
+                Skip for now
               </button>
               <button
-                onClick={handleSave}
+                onClick={() => setStep("import")}
                 className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
               >
-                Confirm & Continue
+                Extension Connected
               </button>
             </div>
           </div>
         )}
 
+        {/* Step 2: Import from LinkedIn */}
+        {step === "import" && (
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">
+              Step 2: Import from LinkedIn
+            </h2>
+            <p className="text-gray-600 mb-6 text-sm">
+              Click the button below to open your LinkedIn profile. The extension will automatically import your work experience, education, and skills.
+            </p>
+
+            <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                  <svg className="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-medium text-gray-800">LinkedIn Profile Import</h3>
+                  <p className="text-sm text-gray-600">Make sure you&apos;re logged into LinkedIn</p>
+                </div>
+              </div>
+
+              <button
+                onClick={handleImportLinkedIn}
+                disabled={loading}
+                className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+              >
+                {loading ? (
+                  <>
+                    <span className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full" />
+                    Importing...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    </svg>
+                    Import from LinkedIn
+                  </>
+                )}
+              </button>
+            </div>
+
+            <p className="text-sm text-gray-500 mb-6 text-center">
+              After clicking, wait for the import to complete. You&apos;ll be redirected back here automatically.
+            </p>
+
+            <div className="flex gap-4">
+              <button
+                onClick={() => setStep("connect")}
+                className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+              >
+                Back
+              </button>
+              <button
+                onClick={handleSkip}
+                className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+              >
+                Skip for now
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 3: Review Imported Data */}
+        {step === "review" && linkedinData && (
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-gray-800">Review Your Information</h2>
+                <p className="text-gray-600 text-sm">Verify the data imported from LinkedIn</p>
+              </div>
+            </div>
+
+            {/* Contact Info */}
+            <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+              <h3 className="font-medium text-gray-800 mb-2">Contact Information</h3>
+              <div className="text-sm text-gray-600 space-y-1">
+                <p><span className="text-gray-500">Name:</span> {linkedinData.contact_info.name || "—"}</p>
+                <p><span className="text-gray-500">Email:</span> {linkedinData.contact_info.email || "—"}</p>
+                <p><span className="text-gray-500">Location:</span> {linkedinData.contact_info.location || "—"}</p>
+                <p><span className="text-gray-500">LinkedIn:</span> {linkedinData.contact_info.linkedin || "—"}</p>
+              </div>
+            </div>
+
+            {/* Work Experience */}
+            <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+              <h3 className="font-medium text-gray-800 mb-2">
+                Work Experience
+                <span className="ml-2 text-sm font-normal text-gray-500">
+                  ({linkedinData.work_experience.length} positions)
+                </span>
+              </h3>
+              {linkedinData.work_experience.length > 0 ? (
+                <div className="text-sm text-gray-600 space-y-2">
+                  {linkedinData.work_experience.slice(0, 3).map((exp, idx) => (
+                    <div key={idx} className="pb-2 border-b border-gray-200 last:border-0">
+                      <p className="font-medium text-gray-700">{exp.title}</p>
+                      <p>{exp.company}</p>
+                      <p className="text-gray-500">{exp.start_date} - {exp.end_date}</p>
+                    </div>
+                  ))}
+                  {linkedinData.work_experience.length > 3 && (
+                    <p className="text-gray-400">+{linkedinData.work_experience.length - 3} more</p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-400">No work experience found</p>
+              )}
+            </div>
+
+            {/* Education */}
+            <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+              <h3 className="font-medium text-gray-800 mb-2">
+                Education
+                <span className="ml-2 text-sm font-normal text-gray-500">
+                  ({linkedinData.education.length} entries)
+                </span>
+              </h3>
+              {linkedinData.education.length > 0 ? (
+                <div className="text-sm text-gray-600 space-y-1">
+                  {linkedinData.education.slice(0, 2).map((edu, idx) => (
+                    <p key={idx}>{edu.degree} {edu.field && `in ${edu.field}`} - {edu.institution}</p>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-400">No education found</p>
+              )}
+            </div>
+
+            {/* Skills */}
+            <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+              <h3 className="font-medium text-gray-800 mb-2">
+                Skills
+                <span className="ml-2 text-sm font-normal text-gray-500">
+                  ({linkedinData.skills.length} skills)
+                </span>
+              </h3>
+              {linkedinData.skills.length > 0 ? (
+                <div className="flex flex-wrap gap-1">
+                  {linkedinData.skills.slice(0, 10).map((skill, idx) => (
+                    <span key={idx} className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">
+                      {skill}
+                    </span>
+                  ))}
+                  {linkedinData.skills.length > 10 && (
+                    <span className="px-2 py-0.5 bg-gray-100 text-gray-500 rounded text-xs">
+                      +{linkedinData.skills.length - 10} more
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-400">No skills found</p>
+              )}
+            </div>
+
+            <p className="text-sm text-gray-500 mb-4 text-center">
+              You can edit this information anytime in the Master Resume tab.
+            </p>
+
+            <div className="flex gap-4">
+              <button
+                onClick={() => setStep("import")}
+                className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+              >
+                Re-import
+              </button>
+              <button
+                onClick={handleSave}
+                className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+              >
+                Save & Continue
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Saving State */}
         {step === "saving" && (
           <div className="bg-white rounded-xl shadow-lg p-6 text-center">
             <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4" />
@@ -387,5 +476,19 @@ export default function OnboardingPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function OnboardingPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-lg text-gray-600">Loading...</div>
+        </div>
+      }
+    >
+      <OnboardingContent />
+    </Suspense>
   );
 }
