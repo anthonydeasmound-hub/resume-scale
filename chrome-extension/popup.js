@@ -5,8 +5,20 @@ document.addEventListener('DOMContentLoaded', async () => {
   const tokenInput = document.getElementById('token');
   const connectBtn = document.getElementById('connect-btn');
   const disconnectBtn = document.getElementById('disconnect-btn');
+  const linkedinJobsBtn = document.getElementById('linkedin-jobs-btn');
+  const jobImportSection = document.getElementById('job-import-section');
+  const jobPreviewTitle = document.getElementById('job-preview-title');
+  const jobPreviewCompany = document.getElementById('job-preview-company');
+  const importJobBtn = document.getElementById('import-job-btn');
   const userInfo = document.getElementById('user-info');
   const message = document.getElementById('message');
+
+  let currentJobData = null;
+
+  // LinkedIn Jobs button
+  linkedinJobsBtn.addEventListener('click', () => {
+    chrome.tabs.create({ url: 'https://www.linkedin.com/jobs/' });
+  });
 
   // Load saved settings
   const settings = await chrome.storage.local.get(['serverUrl', 'token', 'user']);
@@ -20,6 +32,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   } else {
     showDisconnected();
   }
+
+  // Check if we're on a LinkedIn job page
+  checkForLinkedInJob();
 
   function showMessage(text, type) {
     message.textContent = text;
@@ -40,6 +55,87 @@ document.addEventListener('DOMContentLoaded', async () => {
     connectedView.style.display = 'none';
     disconnectedView.style.display = 'block';
   }
+
+  async function checkForLinkedInJob() {
+    try {
+      // Get the current tab
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+      if (!tab || !tab.url || !tab.url.includes('linkedin.com/jobs')) {
+        jobImportSection.style.display = 'none';
+        return;
+      }
+
+      // Send message to content script to get job data
+      chrome.tabs.sendMessage(tab.id, { action: 'getJobData' }, (response) => {
+        if (chrome.runtime.lastError) {
+          console.log('Could not connect to content script:', chrome.runtime.lastError.message);
+          jobImportSection.style.display = 'none';
+          return;
+        }
+
+        if (response && response.job_title) {
+          currentJobData = response;
+          jobPreviewTitle.textContent = response.job_title;
+          jobPreviewCompany.textContent = response.company_name || 'Unknown Company';
+          jobImportSection.style.display = 'block';
+        } else {
+          jobImportSection.style.display = 'none';
+        }
+      });
+    } catch (error) {
+      console.error('Error checking for job:', error);
+      jobImportSection.style.display = 'none';
+    }
+  }
+
+  // Import job button
+  importJobBtn.addEventListener('click', async () => {
+    if (!currentJobData) {
+      showMessage('No job data found', 'error');
+      return;
+    }
+
+    const settings = await chrome.storage.local.get(['serverUrl', 'token']);
+
+    if (!settings.token || !settings.serverUrl) {
+      showMessage('Please connect first', 'error');
+      return;
+    }
+
+    const span = importJobBtn.querySelector('span');
+    importJobBtn.disabled = true;
+    span.textContent = 'Importing...';
+
+    try {
+      const response = await fetch(`${settings.serverUrl}/api/extension/jobs`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${settings.token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(currentJobData)
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        showMessage(data.message || 'Job imported!', 'success');
+        span.textContent = 'Imported!';
+        setTimeout(() => {
+          span.textContent = 'Import This Job';
+        }, 2000);
+      } else {
+        showMessage(data.error || 'Failed to import', 'error');
+        span.textContent = 'Import This Job';
+      }
+    } catch (error) {
+      showMessage('Could not connect to server', 'error');
+      span.textContent = 'Import This Job';
+    } finally {
+      importJobBtn.disabled = false;
+    }
+  });
 
   connectBtn.addEventListener('click', async () => {
     const serverUrl = serverUrlInput.value.trim().replace(/\/$/, '');

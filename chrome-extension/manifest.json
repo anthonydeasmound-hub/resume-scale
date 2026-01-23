@@ -35,7 +35,8 @@
         "https://linkedin.com/in/*"
       ],
       "js": ["profile-import.js"],
-      "css": ["content.css"]
+      "css": ["content.css"],
+      "run_at": "document_end"
     }
   ],
   "icons": {
