@@ -1,7 +1,7 @@
-/* Job Detection Notification */
+/* Job Detection Notification - positioned top-right near extensions */
 .resumescale-job-notification {
   position: fixed;
-  bottom: 24px;
+  top: 8px;
   right: 24px;
   display: flex;
   align-items: center;
@@ -13,7 +13,7 @@
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   box-shadow: 0 4px 20px rgba(59, 130, 246, 0.4);
   z-index: 10000;
-  animation: slideInNotif 0.3s ease;
+  animation: slideDownNotif 0.3s ease;
   max-width: 320px;
 }
 
@@ -72,7 +72,29 @@
 }
 
 .resumescale-notif-fadeout {
-  animation: fadeOutNotif 0.3s ease forwards;
+  animation: fadeUpNotif 0.3s ease forwards;
+}
+
+@keyframes slideDownNotif {
+  from {
+    opacity: 0;
+    transform: translateY(-50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeUpNotif {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-50px);
+  }
 }
 
 @keyframes slideInNotif {

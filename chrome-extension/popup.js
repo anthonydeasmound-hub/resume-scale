@@ -7,9 +7,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const disconnectBtn = document.getElementById('disconnect-btn');
   const linkedinJobsBtn = document.getElementById('linkedin-jobs-btn');
   const jobImportSection = document.getElementById('job-import-section');
-  const jobPreviewTitle = document.getElementById('job-preview-title');
-  const jobPreviewCompany = document.getElementById('job-preview-company');
   const importJobBtn = document.getElementById('import-job-btn');
+  const importBtnText = document.getElementById('import-btn-text');
   const userInfo = document.getElementById('user-info');
   const message = document.getElementById('message');
 
@@ -76,8 +75,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (response && response.job_title) {
           currentJobData = response;
-          jobPreviewTitle.textContent = response.job_title;
-          jobPreviewCompany.textContent = response.company_name || 'Unknown Company';
+          importBtnText.textContent = `Import: ${response.job_title}`;
           jobImportSection.style.display = 'block';
         } else {
           jobImportSection.style.display = 'none';
@@ -103,9 +101,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    const span = importJobBtn.querySelector('span');
+    const originalText = importBtnText.textContent;
     importJobBtn.disabled = true;
-    span.textContent = 'Importing...';
+    importBtnText.textContent = 'Importing...';
 
     try {
       const response = await fetch(`${settings.serverUrl}/api/extension/jobs`, {
@@ -121,17 +119,23 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       if (response.ok) {
         showMessage(data.message || 'Job imported!', 'success');
-        span.textContent = 'Imported!';
-        setTimeout(() => {
-          span.textContent = 'Import This Job';
-        }, 2000);
+        // Change button to "Review resume for [Job Title]"
+        const jobTitle = currentJobData.job_title;
+        importBtnText.textContent = `Review resume for ${jobTitle}`;
+        importJobBtn.classList.remove('btn-import');
+        importJobBtn.classList.add('btn-review');
+
+        // Change click handler to open review page
+        importJobBtn.onclick = () => {
+          chrome.tabs.create({ url: `${settings.serverUrl}/review` });
+        };
       } else {
         showMessage(data.error || 'Failed to import', 'error');
-        span.textContent = 'Import This Job';
+        importBtnText.textContent = originalText;
       }
     } catch (error) {
       showMessage('Could not connect to server', 'error');
-      span.textContent = 'Import This Job';
+      importBtnText.textContent = originalText;
     } finally {
       importJobBtn.disabled = false;
     }

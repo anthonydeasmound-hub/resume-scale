@@ -32,9 +32,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { job_description, job_title, company_name, company_url, source_url } = body;
 
-    if (!job_description || job_description.length < 50) {
-      return NextResponse.json({ error: "Job description is required" }, { status: 400 });
-    }
+    // Description is optional - we can still save the job without it
+    const description = job_description || "No description available";
 
     // Check for duplicate (same company and title for this user)
     const existing = db.prepare(
@@ -53,7 +52,7 @@ export async function POST(request: NextRequest) {
       user.id,
       company_name || "Unknown Company",
       job_title || "Unknown Position",
-      job_description
+      description
     );
 
     return NextResponse.json({

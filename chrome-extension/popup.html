@@ -144,20 +144,22 @@
       opacity: 0.7;
       cursor: not-allowed;
     }
-    .job-preview {
-      background: #f1f5f9;
-      border-radius: 8px;
-      padding: 12px;
-      margin-bottom: 12px;
-      font-size: 13px;
+    .btn-review {
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
     }
-    .job-preview-title {
-      font-weight: 600;
-      color: #1e293b;
-      margin-bottom: 4px;
+    .btn-review:hover {
+      background: linear-gradient(135deg, #2563eb, #1e40af);
     }
-    .job-preview-company {
-      color: #64748b;
+    .btn-import span {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 200px;
     }
     .help-text {
       font-size: 12px;
@@ -201,17 +203,13 @@
         Go to LinkedIn Jobs
       </button>
       <div id="job-import-section" style="display: none;">
-        <div class="job-preview" id="job-preview">
-          <div class="job-preview-title" id="job-preview-title"></div>
-          <div class="job-preview-company" id="job-preview-company"></div>
-        </div>
         <button class="btn btn-import" id="import-job-btn">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
             <polyline points="17 21 17 13 7 13 7 21"></polyline>
             <polyline points="7 3 7 8 15 8"></polyline>
           </svg>
-          <span>Import This Job</span>
+          <span id="import-btn-text">Import This Job</span>
         </button>
       </div>
     </div>

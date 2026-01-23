@@ -95,7 +95,7 @@ function ReviewContent() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"resume" | "cover">("resume");
+  const [activeTab, setActiveTab] = useState<"resume" | "cover" | "job-details">("resume");
   const [accentColor, setAccentColor] = useState("#3D5A80");
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
@@ -862,6 +862,14 @@ function ReviewContent() {
                   >
                     Cover Letter
                   </button>
+                  <button
+                    onClick={() => setActiveTab("job-details")}
+                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      activeTab === "job-details" ? "bg-blue-100 text-blue-700" : "text-gray-600"
+                    }`}
+                  >
+                    Job Details
+                  </button>
                 </div>
 
                 {activeTab === "resume" && (
@@ -1554,6 +1562,109 @@ function ReviewContent() {
                         Download Cover Letter PDF
                       </button>
                     </div>
+                  </>
+                )}
+
+                {activeTab === "job-details" && selectedJob && (
+                  <>
+                    {/* Company Info */}
+                    <div className="bg-white rounded-xl shadow p-4">
+                      <div className="flex items-center gap-4 mb-4">
+                        <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center">
+                          <span className="text-2xl font-bold text-gray-400">
+                            {selectedJob.company_name?.charAt(0) || "?"}
+                          </span>
+                        </div>
+                        <div>
+                          <h2 className="text-xl font-semibold text-gray-900">{selectedJob.company_name}</h2>
+                          <p className="text-lg text-gray-600">{selectedJob.job_title}</p>
+                        </div>
+                      </div>
+
+                      {/* Employment Details */}
+                      {selectedJob.job_details_parsed && (() => {
+                        const details: JobDetailsParsed = JSON.parse(selectedJob.job_details_parsed);
+                        return (
+                          <div className="flex flex-wrap gap-2 mb-4">
+                            {details.work_type && (
+                              <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
+                                {details.work_type}
+                              </span>
+                            )}
+                            {details.location && (
+                              <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
+                                {details.location}
+                              </span>
+                            )}
+                            {details.salary_range && (
+                              <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">
+                                {details.salary_range}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </div>
+
+                    {/* Job Description */}
+                    <div className="bg-white rounded-xl shadow p-4">
+                      <h3 className="font-medium text-gray-900 mb-3">Job Description</h3>
+                      <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                        {selectedJob.job_description || "No description available"}
+                      </div>
+                    </div>
+
+                    {/* Requirements & Responsibilities (if parsed) */}
+                    {selectedJob.job_details_parsed && (() => {
+                      const details: JobDetailsParsed = JSON.parse(selectedJob.job_details_parsed);
+                      return (
+                        <>
+                          {details.responsibilities && details.responsibilities.length > 0 && (
+                            <div className="bg-white rounded-xl shadow p-4">
+                              <h3 className="font-medium text-gray-900 mb-3">Responsibilities</h3>
+                              <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
+                                {details.responsibilities.map((item, idx) => (
+                                  <li key={idx}>{item}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {details.requirements && details.requirements.length > 0 && (
+                            <div className="bg-white rounded-xl shadow p-4">
+                              <h3 className="font-medium text-gray-900 mb-3">Requirements</h3>
+                              <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
+                                {details.requirements.map((item, idx) => (
+                                  <li key={idx}>{item}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {details.qualifications && details.qualifications.length > 0 && (
+                            <div className="bg-white rounded-xl shadow p-4">
+                              <h3 className="font-medium text-gray-900 mb-3">Qualifications</h3>
+                              <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
+                                {details.qualifications.map((item, idx) => (
+                                  <li key={idx}>{item}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {details.benefits && details.benefits.length > 0 && (
+                            <div className="bg-white rounded-xl shadow p-4">
+                              <h3 className="font-medium text-gray-900 mb-3">Benefits</h3>
+                              <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
+                                {details.benefits.map((item, idx) => (
+                                  <li key={idx}>{item}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
                   </>
                 )}
               </div>
