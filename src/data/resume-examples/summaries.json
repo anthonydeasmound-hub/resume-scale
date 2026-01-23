@@ -1,0 +1,98 @@
+[
+  {
+    "id": 1,
+    "type": "BAD",
+    "text": "Responsible for sales",
+    "explanation": "Lacks specific metrics and outcomes"
+  },
+  {
+    "id": 2,
+    "type": "GOOD",
+    "text": "Exceeded quarterly sales targets by 25%, generating $1.2M in new revenue through strategic account expansion",
+    "explanation": "Specific outcome, dollar amount, method"
+  },
+  {
+    "id": 3,
+    "type": "BAD",
+    "text": "Managed a team",
+    "explanation": "Lacks specific metrics and outcomes"
+  },
+  {
+    "id": 4,
+    "type": "GOOD",
+    "text": "Led cross-functional team of 12 engineers, delivering $5M product launch 2 weeks ahead of schedule",
+    "explanation": "Team size, project value, timeline impact"
+  },
+  {
+    "id": 5,
+    "type": "BAD",
+    "text": "Improved processes",
+    "explanation": "Lacks specific metrics and outcomes"
+  },
+  {
+    "id": 6,
+    "type": "GOOD",
+    "text": "Redesigned checkout flow reducing cart abandonment by 35%, increasing monthly revenue by $180K",
+    "explanation": "Specific process, percentage, dollar impact"
+  },
+  {
+    "id": 7,
+    "type": "BAD",
+    "text": "Helped with marketing",
+    "explanation": "Lacks specific metrics and outcomes"
+  },
+  {
+    "id": 8,
+    "type": "GOOD",
+    "text": "Launched email automation campaign reaching 500K subscribers, driving 40% increase in qualified leads",
+    "explanation": "Scale, reach, measurable outcome"
+  },
+  {
+    "id": 9,
+    "type": "BAD",
+    "text": "Did data analysis",
+    "explanation": "Lacks specific metrics and outcomes"
+  },
+  {
+    "id": 10,
+    "type": "GOOD",
+    "text": "Analyzed 2M+ customer records to identify churn patterns, implementing retention program that reduced churn by 22%",
+    "explanation": "Data scale, action taken, result"
+  },
+  {
+    "id": 11,
+    "type": "BAD",
+    "text": "Worked on projects",
+    "explanation": "Lacks specific metrics and outcomes"
+  },
+  {
+    "id": 12,
+    "type": "GOOD",
+    "text": "Delivered 8 major product features on time, contributing to 30% increase in user engagement",
+    "explanation": "Deliverable count, impact metric"
+  },
+  {
+    "id": 13,
+    "type": "BAD",
+    "text": "Handled customer issues",
+    "explanation": "Lacks specific metrics and outcomes"
+  },
+  {
+    "id": 14,
+    "type": "GOOD",
+    "text": "Resolved 95% of escalations within 24 hours, improving CSAT scores from 72 to 89",
+    "explanation": "Response time, satisfaction improvement"
+  },
+  {
+    "id": 15,
+    "type": "BAD",
+    "text": "Used various tools",
+    "explanation": "Lacks specific metrics and outcomes"
+  },
+  {
+    "id": 16,
+    "type": "GOOD",
+    "text": "Implemented Salesforce CRM integration reducing manual data entry by 80%, saving 20 hours/week for sales team",
+    "explanation": "Specific tool, efficiency gain, time saved"
+  }
+]

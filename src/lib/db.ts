@@ -29,6 +29,10 @@ db.exec(`
     work_experience TEXT,
     skills TEXT,
     education TEXT,
+    certifications TEXT,
+    languages TEXT,
+    honors TEXT,
+    profile_photo_path TEXT,
     raw_text TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -53,6 +57,7 @@ db.exec(`
     interview_3 TEXT,
     interview_4 TEXT,
     interview_5 TEXT,
+    job_details_parsed TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id)
@@ -84,6 +89,29 @@ try {
   // Column already exists
 }
 
+// Add new resume columns for existing databases
+const newResumeColumns = [
+  { name: 'certifications', type: 'TEXT' },
+  { name: 'languages', type: 'TEXT' },
+  { name: 'honors', type: 'TEXT' },
+  { name: 'profile_photo_path', type: 'TEXT' },
+];
+
+for (const col of newResumeColumns) {
+  try {
+    db.exec(`ALTER TABLE resumes ADD COLUMN ${col.name} ${col.type}`);
+  } catch {
+    // Column already exists
+  }
+}
+
+// Add job_details_parsed column for existing databases
+try {
+  db.exec(`ALTER TABLE job_applications ADD COLUMN job_details_parsed TEXT`);
+} catch {
+  // Column already exists
+}
+
 export default db;
 
 // Helper types
@@ -102,6 +130,10 @@ export interface Resume {
   work_experience: string | null;
   skills: string | null;
   education: string | null;
+  certifications: string | null;
+  languages: string | null;
+  honors: string | null;
+  profile_photo_path: string | null;
   raw_text: string | null;
   created_at: string;
   updated_at: string;
@@ -125,6 +157,7 @@ export interface JobApplication {
   interview_3: string | null;
   interview_4: string | null;
   interview_5: string | null;
+  job_details_parsed: string | null; // JSON with requirements, responsibilities, qualifications, etc.
   created_at: string;
   updated_at: string;
 }

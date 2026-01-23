@@ -1,20 +1,10 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import Groq from "groq-sdk";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+// Initialize Groq client
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || "" });
 
-// Helper to check if error is rate limit
-function isRateLimitError(error: unknown): boolean {
-  if (error instanceof Error) {
-    const msg = error.message.toLowerCase();
-    return msg.includes("429") || msg.includes("rate") || msg.includes("quota");
-  }
-  return false;
-}
-
-// Helper to call Groq as fallback
-async function callGroq(prompt: string): Promise<string> {
+// Call Groq LLM
+async function callAI(prompt: string): Promise<string> {
   const completion = await groq.chat.completions.create({
     messages: [{ role: "user", content: prompt }],
     model: "llama-3.3-70b-versatile",
@@ -23,24 +13,110 @@ async function callGroq(prompt: string): Promise<string> {
   return completion.choices[0]?.message?.content || "";
 }
 
-// Helper to call Gemini
-async function callGemini(prompt: string): Promise<string> {
-  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-  const result = await model.generateContent(prompt);
-  return result.response.text();
+// Get company context - what does this company do?
+async function getCompanyContext(company: string): Promise<string> {
+  const prompt = `In 1-2 sentences, describe what ${company} does as a company. Focus on their main product/service and industry. If you don't know the company, make a reasonable inference based on the name. Be concise.`;
+  return await callAI(prompt);
 }
 
-// Call AI with Groq fallback
-async function callAI(prompt: string): Promise<string> {
-  try {
-    return await callGemini(prompt);
-  } catch (error) {
-    if (isRateLimitError(error) && process.env.GROQ_API_KEY) {
-      console.log("Gemini rate limited, falling back to Groq...");
-      return await callGroq(prompt);
+// Role-specific task templates
+const roleTaskTemplates: Record<string, string[]> = {
+  "account development representative": [
+    "Cold calling and prospecting potential clients",
+    "Qualifying inbound leads and scheduling demos",
+    "Managing CRM pipeline and tracking outreach metrics",
+    "Collaborating with Account Executives on deals",
+  ],
+  "account executive": [
+    "Running product demos and presentations",
+    "Negotiating contracts and closing deals",
+    "Managing full sales cycle from prospect to close",
+    "Forecasting and pipeline management",
+  ],
+  "sales development representative": [
+    "Prospecting and cold outreach via phone/email",
+    "Qualifying leads using BANT/MEDDIC frameworks",
+    "Setting meetings for Account Executives",
+    "Tracking activities in Salesforce/HubSpot",
+  ],
+  "software engineer": [
+    "Designing and implementing features",
+    "Writing unit tests and code reviews",
+    "Debugging production issues",
+    "Collaborating with product teams",
+  ],
+  "product manager": [
+    "Defining product roadmap",
+    "Writing PRDs and user stories",
+    "Conducting user research",
+    "Coordinating cross-functional teams",
+  ],
+  "marketing manager": [
+    "Planning and executing campaigns",
+    "Managing marketing budget",
+    "Analyzing campaign metrics",
+    "Creating marketing content",
+  ],
+  "customer success": [
+    "Onboarding new customers",
+    "Conducting quarterly business reviews",
+    "Driving product adoption",
+    "Handling renewals and upsells",
+  ],
+};
+
+function getRoleTasks(title: string): string[] {
+  const titleLower = title.toLowerCase();
+  for (const [role, tasks] of Object.entries(roleTaskTemplates)) {
+    if (titleLower.includes(role) || role.includes(titleLower)) {
+      return tasks;
     }
-    throw error;
   }
+  const keywords: Record<string, string> = {
+    "sdr": "sales development representative",
+    "adr": "account development representative",
+    "ae": "account executive",
+    "sales": "account executive",
+    "engineer": "software engineer",
+    "developer": "software engineer",
+    "marketing": "marketing manager",
+    "product": "product manager",
+    "customer": "customer success",
+  };
+  for (const [keyword, role] of Object.entries(keywords)) {
+    if (titleLower.includes(keyword)) {
+      return roleTaskTemplates[role] || [];
+    }
+  }
+  return [];
+}
+
+// Extract metrics from bullet points (percentages, dollar amounts, numbers)
+// This ensures AI alternatives use ONLY the user's actual metrics
+export function extractMetrics(bullets: string[]): string[] {
+  const metrics: string[] = [];
+  const patterns = [
+    /\d+%/g,                           // Percentages: 25%, 150%
+    /\$[\d.,]+[KMB]?/gi,               // Dollar amounts: $1M, $500K, $1.2M
+    /\d+\+?\s*(clients?|accounts?|users?|customers?|deals?|leads?|meetings?|calls?|demos?|team members?|engineers?|people)/gi, // Counts with context
+    /\d+[xX]\s*(increase|growth|improvement|return)/gi, // Multipliers: 3x increase
+    /\d+\s*(days?|weeks?|months?|years?)/gi, // Time periods
+    /\$[\d.,]+\s*(ARR|MRR|revenue|pipeline|quota)/gi, // Revenue metrics
+    /top\s*\d+%/gi,                    // Rankings: top 10%
+    /\d+\s*-\s*\d+/g,                  // Ranges: 50-100
+  ];
+
+  for (const bullet of bullets) {
+    for (const pattern of patterns) {
+      const matches = bullet.match(pattern);
+      if (matches) {
+        metrics.push(...matches);
+      }
+    }
+  }
+
+  // Deduplicate and return
+  return [...new Set(metrics)];
 }
 
 export interface JobInfo {
@@ -98,6 +174,73 @@ If the company name or job title is not clear, make your best guess based on the
     .trim();
 
   return JSON.parse(cleanedResponse);
+}
+
+// Extract detailed job sections from description
+export interface JobDetailsParsed {
+  responsibilities: string[];
+  requirements: string[];
+  qualifications: string[];
+  benefits: string[];
+  salary_range: string | null;
+  location: string | null;
+  work_type: string | null; // remote, hybrid, on-site
+}
+
+export async function extractJobDetails(jobDescription: string): Promise<JobDetailsParsed> {
+  const prompt = `Analyze this job description and extract the key sections into structured data.
+
+Job Description:
+${jobDescription.slice(0, 4000)}
+
+Extract and categorize the information into these sections:
+- responsibilities: What the person will do day-to-day (list of bullet points)
+- requirements: Required skills, experience, education (list of bullet points)
+- qualifications: Nice-to-have or preferred qualifications (list of bullet points)
+- benefits: Perks, benefits, compensation mentions (list of bullet points)
+- salary_range: If mentioned, extract the salary range as a string (e.g., "$80,000 - $120,000")
+- location: Where the job is located
+- work_type: "remote", "hybrid", "on-site", or null if not specified
+
+Keep each bullet point concise (1 sentence max). Extract 3-8 items per section where available.
+
+Return ONLY valid JSON:
+{
+  "responsibilities": ["responsibility 1", "responsibility 2"],
+  "requirements": ["requirement 1", "requirement 2"],
+  "qualifications": ["qualification 1", "qualification 2"],
+  "benefits": ["benefit 1", "benefit 2"],
+  "salary_range": "$X - $Y" or null,
+  "location": "City, State" or null,
+  "work_type": "remote" | "hybrid" | "on-site" | null
+}`;
+
+  try {
+    const response = await callAI(prompt);
+    const cleanedResponse = response
+      .replace(/```json\n?/g, "")
+      .replace(/```\n?/g, "")
+      .trim();
+
+    const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]);
+    }
+
+    return JSON.parse(cleanedResponse);
+  } catch (error) {
+    console.error("Failed to extract job details:", error);
+    // Return empty structure on failure
+    return {
+      responsibilities: [],
+      requirements: [],
+      qualifications: [],
+      benefits: [],
+      salary_range: null,
+      location: null,
+      work_type: null,
+    };
+  }
 }
 
 export interface ParsedResume {
@@ -298,6 +441,9 @@ export interface EmailClassification {
   summary: string;
 }
 
+// Import summary examples from reference sheet
+import { getGoodSummaries, getBadSummaries, getRoleSummaries } from "./resume-examples";
+
 // Generate 3 summary options for the resume
 export async function generateSummaryOptions(
   resume: ParsedResume,
@@ -305,40 +451,73 @@ export async function generateSummaryOptions(
   jobTitle: string,
   companyName: string
 ): Promise<string[]> {
-  const prompt = `You are an expert resume writer. Generate 3 professional summary options for this candidate applying to ${jobTitle} at ${companyName}.
+  // Get company context for target company
+  const companyContext = await getCompanyContext(companyName);
 
-CANDIDATE BACKGROUND:
-${resume.work_experience.map(exp => `- ${exp.title} at ${exp.company}`).join("\n")}
-Skills: ${resume.skills.slice(0, 12).join(", ")}
+  // Extract ALL metrics from the user's master resume - AI must use ONLY these
+  const allBullets = resume.work_experience.flatMap(exp => exp.description || []);
+  const userMetrics = extractMetrics(allBullets);
 
-TARGET JOB REQUIREMENTS:
-${jobDescription.slice(0, 1200)}
+  // Extract 2 best achievements from resume bullets (look for metrics)
+  const achievementBullets = allBullets
+    .filter(b => /\d+%|\$[\d.,]+[KMB]?|\d+\+/.test(b)) // Has metrics
+    .slice(0, 2);
 
-WRITE 3 DIFFERENT SUMMARIES (2-3 sentences each, 40-60 words):
+  // Calculate years of experience
+  const mostRecent = resume.work_experience[0];
+  const totalYears = resume.work_experience.length > 0
+    ? Math.max(2, resume.work_experience.length * 2) // Rough estimate
+    : 3;
 
-Summary 1 - Achievement Focus:
-- Lead with years of experience and specialty
-- Include one specific metric or achievement
-- Connect to the target role
+  // Get role-specific summary examples
+  const roleSummaryExamples = getRoleSummaries(jobTitle).slice(0, 2);
 
-Summary 2 - Skills Focus:
-- Lead with core competencies that match the job
-- Highlight technical expertise or key abilities
-- Show alignment with company needs
+  // Build metrics section for prompt
+  const metricsSection = userMetrics.length > 0
+    ? `\nCANDIDATE'S ACTUAL METRICS (USE ONLY THESE - DO NOT INVENT):\n${userMetrics.map(m => `• ${m}`).join("\n")}\n`
+    : "\n(No specific metrics found - do not invent metrics, focus on qualitative strengths)\n";
 
-Summary 3 - Impact Focus:
-- Lead with scope of responsibility or leadership
-- Show business impact or transformation
-- Express enthusiasm for the opportunity
+  const prompt = `Write 3 professional summary options for this candidate applying to ${jobTitle} at ${companyName}.
 
-RULES:
-- Include at least one number/metric per summary
-- Use keywords from the job description
-- No clichés like "hardworking" or "team player" alone
-- Each summary must be distinctly DIFFERENT
+ABOUT ${companyName.toUpperCase()} (TARGET COMPANY):
+${companyContext}
+
+THE CANDIDATE:
+• Most recent: ${mostRecent?.title || 'N/A'} at ${mostRecent?.company || 'N/A'}
+• Experience: ~${totalYears}+ years in ${mostRecent?.title?.split(' ').pop() || 'their field'}
+• Key skills: ${resume.skills.slice(0, 10).join(", ")}
+${achievementBullets.length > 0 ? `• Top achievements:\n  - ${achievementBullets.join("\n  - ")}` : ""}
+${metricsSection}
+TARGET ROLE REQUIREMENTS:
+${jobDescription.slice(0, 1000)}
+
+${roleSummaryExamples.length > 0 ? `REFERENCE EXAMPLES:
+${roleSummaryExamples.map(s => `"${s.summary}"`).join("\n")}` : ""}
+
+WRITE 3 SUMMARIES (2-3 sentences, 40-60 words each):
+
+Each summary MUST:
+1. Open with years of experience + specialty
+2. Reference ${companyName} or their industry specifically
+3. Include 1-2 metrics from "CANDIDATE'S ACTUAL METRICS" above - DO NOT invent new numbers
+4. Use keywords from the job description
+5. End with value proposition for THIS role at ${companyName}
+
+THREE DISTINCT ANGLES:
+• Summary 1 - INDUSTRY EXPERTISE: Lead with domain knowledge (e.g., "SaaS sales leader with 5+ years...")
+• Summary 2 - QUANTIFIED ACHIEVEMENT: Lead with biggest metric from ACTUAL METRICS (e.g., "Revenue driver who generated $4M+...")
+• Summary 3 - GROWTH/TRANSFORMATION: Lead with scale/impact from ACTUAL METRICS (e.g., "Growth-focused leader who scaled team from 5 to 20...")
+
+**METRIC RULE**: You may ONLY use metrics that appear in "CANDIDATE'S ACTUAL METRICS". Do NOT invent, estimate, or create new percentages, dollar amounts, or numbers.
+
+BAD (invented metric): "Generated $5M in revenue" (if $5M wasn't in actual metrics)
+GOOD (using actual metric): "Generated $4M+ ARR" (if $4M was in actual metrics)
+GOOD (no metric if none available): "Drove significant revenue growth across enterprise accounts"
+
+METRIC FORMAT: Always use numbers (25%, $1.2M, 10+) - never write them out
 
 RESPOND WITH ONLY A JSON ARRAY OF 3 STRINGS:
-["Summary 1 text here...", "Summary 2 text here...", "Summary 3 text here..."]`;
+["Summary 1...", "Summary 2...", "Summary 3..."]`;
 
   const response = await callAI(prompt);
   const cleanedResponse = response
@@ -362,40 +541,48 @@ export async function generateBulletOptions(
   jobTitle: string,
   companyName: string
 ): Promise<string[]> {
-  const prompt = `You are an expert resume writer. Generate 8 UNIQUE bullet points for this role, optimized for the target job.
+  // Get company context and role tasks for specificity
+  const [companyContext, roleTasks] = await Promise.all([
+    getCompanyContext(role.company),
+    Promise.resolve(getRoleTasks(role.title)),
+  ]);
 
-CANDIDATE'S ROLE: ${role.title} at ${role.company}
-ORIGINAL EXPERIENCE:
+  // Extract metrics from the user's ACTUAL bullets - AI must use ONLY these
+  const userMetrics = extractMetrics(role.description);
+  const metricsSection = userMetrics.length > 0
+    ? `\nYOUR ACTUAL METRICS (USE ONLY THESE - DO NOT INVENT NEW NUMBERS):\n${userMetrics.map(m => `• ${m}`).join("\n")}\n`
+    : "\n(No specific metrics found in original bullets - do not invent metrics)\n";
+
+  const prompt = `You worked as a ${role.title} at ${role.company}. Rewrite your experience into 8 bullet points tailored for the ${jobTitle} role at ${companyName}.
+
+ABOUT ${role.company.toUpperCase()} (your previous employer):
+${companyContext}
+
+YOUR ACTUAL ACTIVITIES AS ${role.title.toUpperCase()}:
+${roleTasks.length > 0 ? roleTasks.map(t => `• ${t}`).join("\n") : "• Infer from the original experience below"}
+
+YOUR ORIGINAL EXPERIENCE:
 ${role.description.map((d, i) => `${i + 1}. ${d}`).join("\n")}
-
-TARGET: ${jobTitle} at ${companyName}
-JOB REQUIREMENTS:
+${metricsSection}
+TARGET JOB (${jobTitle} at ${companyName}):
 ${jobDescription.slice(0, 1200)}
 
-RULES FOR EACH BULLET:
-1. 10-18 words maximum (one line on resume)
-2. Start with strong action verb (Led, Drove, Built, Achieved, Delivered, Increased, Reduced, Managed)
-3. Include a metric when possible (%, $, #, time)
-4. Match keywords from the job description naturally
+CRITICAL INSTRUCTIONS:
+1. Each bullet must be 8-12 words (concise, fits one resume line)
+2. Each bullet must describe a SPECIFIC activity, not just a result
+3. Pretend you're a ${role.title} at ${role.company}. Describe your responsibilities and achievements as if you actually held this role
+4. Include WHO you worked with (clients, teams, stakeholders)
+5. Include WHAT tools/methods you used
+6. Tailor language to match the target job description keywords
+7. **METRIC RULE**: You may ONLY use metrics that appear in "YOUR ACTUAL METRICS" above. Do NOT invent, estimate, or create new percentages, dollar amounts, or numbers. If unsure, omit the metric rather than fabricate one.
 
-CRITICAL - EACH BULLET MUST BE UNIQUE:
-- Bullet 1: Focus on REVENUE/GROWTH impact
-- Bullet 2: Focus on EFFICIENCY/PROCESS improvement
-- Bullet 3: Focus on TEAM/LEADERSHIP achievement
-- Bullet 4: Focus on TECHNICAL/SKILLS demonstration
-- Bullet 5: Focus on CLIENT/STAKEHOLDER success
-- Bullet 6: Focus on INNOVATION/INITIATIVE
-- Bullet 7: Focus on PROBLEM-SOLVING example
-- Bullet 8: Focus on COLLABORATION/CROSS-FUNCTIONAL work
+BAD (invented metric): "Increased revenue by 45% through strategic initiatives" (if 45% wasn't in original)
+GOOD (using actual metric): "Grew enterprise accounts 30% via consultative selling" (if 30% was in original)
+GOOD (no metric if none available): "Led enterprise sales initiatives across strategic accounts"
 
-DO NOT repeat similar achievements. Each bullet must highlight a DIFFERENT aspect of their work.
+METRIC FORMAT: Always use numbers (25%, $1.2M, 50+) - never write them out
 
-Example format:
-- "Drove $1.2M revenue growth by expanding enterprise accounts 40% year-over-year"
-- "Reduced customer churn 25% through proactive engagement and quarterly business reviews"
-- "Led team of 6 to deliver product launch 2 weeks ahead of schedule"
-
-RESPOND WITH ONLY A JSON ARRAY OF 8 STRINGS, ordered by relevance to the ${jobTitle} role:
+RESPOND WITH ONLY A JSON ARRAY OF 8 STRINGS:
 ["bullet 1", "bullet 2", "bullet 3", "bullet 4", "bullet 5", "bullet 6", "bullet 7", "bullet 8"]`;
 
   const response = await callAI(prompt);
@@ -413,37 +600,61 @@ RESPOND WITH ONLY A JSON ARRAY OF 8 STRINGS, ordered by relevance to the ${jobTi
   return JSON.parse(cleanedResponse);
 }
 
+// Import curated skills data
+import { getSkillsForRole, findSimilarRole } from "./resume-examples";
+
 // Generate skill recommendations optimized for the job
 export async function generateSkillRecommendations(
   candidateSkills: string[],
   jobDescription: string,
   jobTitle: string,
   companyName: string
-): Promise<{ recommended: string[]; fromResume: string[] }> {
+): Promise<{ recommended: string[]; fromResume: string[]; fromJobDescription: string[] }> {
+  // Get curated skills for this role type
+  const matchedRole = findSimilarRole(jobTitle);
+  const curatedSkills = matchedRole ? getSkillsForRole(matchedRole) : null;
+
+  // Build reference skills from curated data
+  let curatedSkillsText = "";
+  if (curatedSkills) {
+    curatedSkillsText = `
+CURATED SKILLS FOR ${matchedRole?.toUpperCase()} ROLES (use as reference):
+Technical Skills: ${curatedSkills.hardSkills.join(", ")}
+Soft Skills: ${curatedSkills.softSkills.join(", ")}
+Tools: ${curatedSkills.tools.join(", ")}
+`;
+  }
+
   const prompt = `You are a resume ATS optimization expert. Analyze skills for the ${jobTitle} role at ${companyName}.
 
 CANDIDATE'S SKILLS:
 ${candidateSkills.join(", ")}
 
 JOB DESCRIPTION:
-${jobDescription.slice(0, 1500)}
-
-TASK: Return two skill lists as JSON.
+${jobDescription.slice(0, 2000)}
+${curatedSkillsText}
+TASK: Return THREE skill lists as JSON.
 
 1. "fromResume": Candidate's skills most relevant to this job (order by relevance, max 12)
    - Include skills that match or relate to job requirements
    - Use the job description's exact terminology when possible
    - Exclude skills irrelevant to this role
 
-2. "recommended": Additional skills from the job description the candidate likely has but didn't list (max 6)
+2. "fromJobDescription": Skills EXPLICITLY mentioned or required in the job description that the candidate does NOT have listed (max 10)
+   - Extract exact skill names from the job description (programming languages, tools, frameworks, methodologies)
+   - DO NOT include skills already in the candidate's list
+   - Focus on hard requirements and "nice to have" skills from the job posting
+   - Use the exact terminology from the job description
+
+3. "recommended": Additional skills from the curated list that would strengthen the application (max 6)
+   - Skills common for ${jobTitle} roles that aren't in the job description or candidate's list
    - Only suggest skills plausible for someone with their background
-   - Focus on common tools/skills for this role they may have forgotten to list
-   - Don't suggest skills outside their likely experience
 
 RESPOND WITH ONLY THIS JSON FORMAT, NO OTHER TEXT:
 {
-  "fromResume": ["Skill 1", "Skill 2", "Skill 3"],
-  "recommended": ["Additional Skill 1", "Additional Skill 2"]
+  "fromResume": ["Skill 1", "Skill 2"],
+  "fromJobDescription": ["Required Skill 1", "Required Skill 2"],
+  "recommended": ["Suggested Skill 1", "Suggested Skill 2"]
 }`;
 
   const response = await callAI(prompt);
@@ -455,7 +666,13 @@ RESPOND WITH ONLY THIS JSON FORMAT, NO OTHER TEXT:
   // Handle case where AI returns explanation instead of JSON
   const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
   if (jsonMatch) {
-    return JSON.parse(jsonMatch[0]);
+    const result = JSON.parse(jsonMatch[0]);
+    // Ensure fromJobDescription exists for backwards compatibility
+    return {
+      fromResume: result.fromResume || [],
+      fromJobDescription: result.fromJobDescription || [],
+      recommended: result.recommended || []
+    };
   }
 
   return JSON.parse(cleanedResponse);
@@ -506,4 +723,66 @@ Return ONLY valid JSON:
       summary: "Failed to classify",
     };
   }
+}
+
+// Generate bullet point recommendations for onboarding (no target job)
+export async function generateOnboardingBullets(
+  role: { company: string; title: string },
+  existingBullets: string[]
+): Promise<string[]> {
+  // Infer seniority from title
+  const titleLower = role.title.toLowerCase();
+  let seniorityLevel = "mid-level";
+  if (titleLower.includes("senior") || titleLower.includes("sr.") || titleLower.includes("lead") || titleLower.includes("principal")) {
+    seniorityLevel = "senior";
+  } else if (titleLower.includes("director") || titleLower.includes("vp") || titleLower.includes("head of") || titleLower.includes("chief")) {
+    seniorityLevel = "executive";
+  } else if (titleLower.includes("junior") || titleLower.includes("jr.") || titleLower.includes("associate") || titleLower.includes("entry")) {
+    seniorityLevel = "entry-level";
+  }
+
+  const prompt = `Pretend you're a ${role.title} at ${role.company} and you had to describe your work responsibilities and achievements. Break that down into 8 bullet points to put on your resume.
+
+SENIORITY LEVEL: ${seniorityLevel}
+
+${existingBullets.length > 0 ? `EXISTING BULLETS (DO NOT DUPLICATE):
+${existingBullets.map((d, i) => `${i + 1}. ${d}`).join("\n")}
+
+` : ""}BULLET FORMAT:
+Each bullet must follow: [POWER VERB] + [WHAT you did] + [SCALE/SCOPE] + [BUSINESS IMPACT]
+
+Examples:
+✅ "Spearheaded migration of 50+ microservices to Kubernetes, reducing deployment time 70% and saving $200K annually"
+✅ "Led cross-functional team of 8 to deliver $2M product launch 3 weeks ahead of schedule"
+✅ "Redesigned sales pipeline workflow, increasing conversion rates 35% and shortening cycle by 12 days"
+
+❌ Never use weak phrases like "Responsible for", "Helped with", "Assisted in"
+
+REQUIREMENTS:
+- Start each bullet with a strong action verb
+- Include at least one metric (%, $, #, or timeframe)
+- Keep each bullet to 8-12 words (concise, one line)
+- Cover different aspects: leadership, technical work, business impact, collaboration, innovation
+
+METRIC FORMAT (CRITICAL):
+ALWAYS use numbers, never write them out:
+- 25%, $1.2M, 50+, 8 engineers, 3 months
+- NOT "twenty-five percent" or "eight engineers"
+
+OUTPUT: Return ONLY a valid JSON array with exactly 8 strings. No explanations.
+
+["bullet 1", "bullet 2", "bullet 3", "bullet 4", "bullet 5", "bullet 6", "bullet 7", "bullet 8"]`;
+
+  const response = await callAI(prompt);
+  const cleanedResponse = response
+    .replace(/```json\n?/g, "")
+    .replace(/```\n?/g, "")
+    .trim();
+
+  const jsonMatch = cleanedResponse.match(/\[[\s\S]*\]/);
+  if (jsonMatch) {
+    return JSON.parse(jsonMatch[0]);
+  }
+
+  return JSON.parse(cleanedResponse);
 }

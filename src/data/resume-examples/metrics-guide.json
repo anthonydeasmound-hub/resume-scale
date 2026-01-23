@@ -1,0 +1,106 @@
+[
+  {
+    "metricType": "Percentage Improvement",
+    "examples": [
+      "Increased by 25%",
+      "Reduced by 40%",
+      "Improved by 15%",
+      "Boosted by 30%"
+    ],
+    "bestFor": "Efficiency, Performance, Growth",
+    "formulaPattern": "[Action verb] + [metric] + by X%"
+  },
+  {
+    "metricType": "Dollar Amount",
+    "examples": [
+      "Generated $2.4M",
+      "Saved $500K",
+      "Secured $5M deal",
+      "Managed $10M budget"
+    ],
+    "bestFor": "Revenue, Cost Savings, Sales, Budget",
+    "formulaPattern": "[Action verb] + $X in [outcome]"
+  },
+  {
+    "metricType": "Team/Scale",
+    "examples": [
+      "Led team of 50+",
+      "Managed 200+ stakeholders",
+      "Supported 10",
+      "000 users"
+    ],
+    "bestFor": "Leadership, Impact Scope",
+    "formulaPattern": "[Managed/Led] + X [people/users/accounts]"
+  },
+  {
+    "metricType": "Time Savings",
+    "examples": [
+      "Reduced from 16 seconds to 4 seconds",
+      "Saved 15 hours/week",
+      "Cut cycle time by 50%"
+    ],
+    "bestFor": "Efficiency, Automation, Process",
+    "formulaPattern": "[Reduced/Cut] + time from X to Y"
+  },
+  {
+    "metricType": "Count/Volume",
+    "examples": [
+      "Processed 1M+ records",
+      "Launched 5 products",
+      "Acquired 200+ clients",
+      "Filled 150 positions"
+    ],
+    "bestFor": "Throughput, Productivity, Scale",
+    "formulaPattern": "[Action verb] + X [units]"
+  },
+  {
+    "metricType": "Rankings/Awards",
+    "examples": [
+      "Top 5% performer",
+      "President's Club",
+      "#1 in region",
+      "Gold medalist"
+    ],
+    "bestFor": "Recognition, Achievement, Excellence",
+    "formulaPattern": "Recognized as/Awarded [achievement]"
+  },
+  {
+    "metricType": "Conversion/Engagement",
+    "examples": [
+      "Improved CTR by 24%",
+      "Boosted conversion by 18%",
+      "Increased DAU by 20%"
+    ],
+    "bestFor": "Marketing, Sales, UX, Product",
+    "formulaPattern": "[Improved/Increased] + [metric] + by X%"
+  },
+  {
+    "metricType": "Customer Metrics",
+    "examples": [
+      "Increased CSAT by 40%",
+      "Reduced churn by 15%",
+      "NPS improved from 32 to 58"
+    ],
+    "bestFor": "Customer Success, Support, Product",
+    "formulaPattern": "[Metric] + [improved/increased] + by X"
+  },
+  {
+    "metricType": "Accuracy/Quality",
+    "examples": [
+      "Achieved 99.5% accuracy",
+      "Reduced errors by 30%",
+      "Zero defects"
+    ],
+    "bestFor": "QA, Finance, Operations",
+    "formulaPattern": "[Achieved/Maintained] + X% accuracy"
+  },
+  {
+    "metricType": "Speed/Velocity",
+    "examples": [
+      "Reduced time-to-hire by 25 days",
+      "Deployment time from 2 days to 4 hours"
+    ],
+    "bestFor": "HR, DevOps, Operations",
+    "formulaPattern": "[Reduced/Accelerated] + time + by X"
+  }
+]

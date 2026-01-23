@@ -15,11 +15,17 @@ interface Stats {
   review_count: number;
 }
 
+interface UserProfile {
+  name: string;
+  profile_photo_path: string | null;
+}
+
 export default function DashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
   // Job form state
   const [jobDescription, setJobDescription] = useState("");
@@ -40,6 +46,7 @@ export default function DashboardPage() {
   useEffect(() => {
     if (session) {
       fetchStats();
+      fetchUserProfile();
     }
   }, [session]);
 
@@ -54,6 +61,21 @@ export default function DashboardPage() {
       console.error("Failed to fetch stats:", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchUserProfile = async () => {
+    try {
+      const response = await fetch("/api/resume/master");
+      if (response.ok) {
+        const data = await response.json();
+        setUserProfile({
+          name: data.contact_info?.name || session?.user?.name || "",
+          profile_photo_path: data.profile_photo_path || null,
+        });
+      }
+    } catch (err) {
+      console.error("Failed to fetch user profile:", err);
     }
   };
 
@@ -135,7 +157,28 @@ export default function DashboardPage() {
       <TabsNav reviewCount={stats?.review_count || 0} />
 
       <div className="ml-64 p-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">Dashboard</h1>
+        {/* Header with Profile Photo */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-4">
+            {userProfile?.profile_photo_path ? (
+              <img
+                src={userProfile.profile_photo_path}
+                alt="Profile"
+                className="w-14 h-14 rounded-full object-cover border-2 border-gray-200"
+              />
+            ) : (
+              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-xl font-bold">
+                {(userProfile?.name || session?.user?.name || "U").charAt(0).toUpperCase()}
+              </div>
+            )}
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                Welcome back{userProfile?.name ? `, ${userProfile.name.split(" ")[0]}` : ""}
+              </h1>
+              <p className="text-gray-500 text-sm">Track your job applications and progress</p>
+            </div>
+          </div>
+        </div>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">

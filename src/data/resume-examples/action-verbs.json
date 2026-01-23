@@ -1,0 +1,193 @@
+[
+  {
+    "category": "Leadership",
+    "verbs": [
+      "Led",
+      "Directed",
+      "Managed",
+      "Spearheaded",
+      "Orchestrated",
+      "Oversaw",
+      "Supervised",
+      "Mentored",
+      "Coached",
+      "Guided",
+      "Headed",
+      "Steered"
+    ],
+    "bestFor": "Management, Team Lead roles"
+  },
+  {
+    "category": "Achievement",
+    "verbs": [
+      "Achieved",
+      "Exceeded",
+      "Surpassed",
+      "Attained",
+      "Accomplished",
+      "Delivered",
+      "Completed",
+      "Outperformed",
+      "Won",
+      "Earned"
+    ],
+    "bestFor": "Sales, Performance-based roles"
+  },
+  {
+    "category": "Creation/Development",
+    "verbs": [
+      "Developed",
+      "Created",
+      "Designed",
+      "Built",
+      "Established",
+      "Launched",
+      "Initiated",
+      "Pioneered",
+      "Introduced",
+      "Founded",
+      "Constructed"
+    ],
+    "bestFor": "Engineering, Product, Design roles"
+  },
+  {
+    "category": "Improvement",
+    "verbs": [
+      "Improved",
+      "Enhanced",
+      "Optimized",
+      "Streamlined",
+      "Revamped",
+      "Transformed",
+      "Modernized",
+      "Upgraded",
+      "Refined",
+      "Elevated"
+    ],
+    "bestFor": "Operations, Process roles"
+  },
+  {
+    "category": "Growth",
+    "verbs": [
+      "Grew",
+      "Expanded",
+      "Increased",
+      "Scaled",
+      "Accelerated",
+      "Boosted",
+      "Elevated",
+      "Maximized",
+      "Amplified",
+      "Multiplied"
+    ],
+    "bestFor": "Sales, Marketing, Growth roles"
+  },
+  {
+    "category": "Analysis",
+    "verbs": [
+      "Analyzed",
+      "Assessed",
+      "Evaluated",
+      "Researched",
+      "Investigated",
+      "Examined",
+      "Studied",
+      "Identified",
+      "Diagnosed",
+      "Audited"
+    ],
+    "bestFor": "Data, Finance, Research roles"
+  },
+  {
+    "category": "Cost/Revenue",
+    "verbs": [
+      "Reduced",
+      "Saved",
+      "Generated",
+      "Recovered",
+      "Negotiated",
+      "Secured",
+      "Captured",
+      "Retained",
+      "Conserved",
+      "Minimized"
+    ],
+    "bestFor": "Finance, Operations, Sales"
+  },
+  {
+    "category": "Technical",
+    "verbs": [
+      "Implemented",
+      "Automated",
+      "Engineered",
+      "Programmed",
+      "Configured",
+      "Deployed",
+      "Integrated",
+      "Migrated",
+      "Architected",
+      "Coded"
+    ],
+    "bestFor": "Engineering, IT, DevOps roles"
+  },
+  {
+    "category": "Collaboration",
+    "verbs": [
+      "Collaborated",
+      "Partnered",
+      "Coordinated",
+      "Facilitated",
+      "United",
+      "Aligned",
+      "Leveraged",
+      "Synchronized",
+      "Bridged"
+    ],
+    "bestFor": "Cross-functional, PM roles"
+  },
+  {
+    "category": "Communication",
+    "verbs": [
+      "Presented",
+      "Communicated",
+      "Articulated",
+      "Conveyed",
+      "Reported",
+      "Documented",
+      "Published",
+      "Advocated",
+      "Promoted"
+    ],
+    "bestFor": "Marketing, Executive, PR roles"
+  },
+  {
+    "category": "Problem Solving",
+    "verbs": [
+      "Resolved",
+      "Solved",
+      "Addressed",
+      "Troubleshot",
+      "Diagnosed",
+      "Remedied",
+      "Rectified",
+      "Fixed",
+      "Debugged",
+      "Mitigated"
+    ],
+    "bestFor": "Engineering, Support, Operations"
+  },
+  {
+    "category": "Strategy",
+    "verbs": [
+      "Strategized",
+      "Planned",
+      "Formulated",
+      "Devised",
+      "Conceptualized",
+      "Envisioned",
+      "Forecasted",
+      "Projected"
+    ],
+    "bestFor": "Executive, Strategy, Consulting"
+  }
+]

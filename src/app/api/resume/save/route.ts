@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { contact_info, work_experience, skills, education, raw_text } = await request.json();
+    const { contact_info, work_experience, skills, education, certifications, languages, honors, profile_photo_path, raw_text } = await request.json();
 
     // Get or create user
     let user = db.prepare("SELECT id FROM users WHERE email = ?").get(session.user.email) as { id: number } | undefined;
@@ -30,27 +30,37 @@ export async function POST(request: NextRequest) {
       // Update existing resume
       db.prepare(`
         UPDATE resumes
-        SET contact_info = ?, work_experience = ?, skills = ?, education = ?, raw_text = ?, updated_at = CURRENT_TIMESTAMP
+        SET contact_info = ?, work_experience = ?, skills = ?, education = ?,
+            certifications = ?, languages = ?, honors = ?, profile_photo_path = ?,
+            raw_text = ?, updated_at = CURRENT_TIMESTAMP
         WHERE user_id = ?
       `).run(
         JSON.stringify(contact_info),
         JSON.stringify(work_experience),
         JSON.stringify(skills),
         JSON.stringify(education),
+        certifications ? JSON.stringify(certifications) : null,
+        languages ? JSON.stringify(languages) : null,
+        honors ? JSON.stringify(honors) : null,
+        profile_photo_path || null,
         raw_text,
         user.id
       );
     } else {
       // Insert new resume
       db.prepare(`
-        INSERT INTO resumes (user_id, contact_info, work_experience, skills, education, raw_text)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO resumes (user_id, contact_info, work_experience, skills, education, certifications, languages, honors, profile_photo_path, raw_text)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         user.id,
         JSON.stringify(contact_info),
         JSON.stringify(work_experience),
         JSON.stringify(skills),
         JSON.stringify(education),
+        certifications ? JSON.stringify(certifications) : null,
+        languages ? JSON.stringify(languages) : null,
+        honors ? JSON.stringify(honors) : null,
+        profile_photo_path || null,
         raw_text
       );
     }

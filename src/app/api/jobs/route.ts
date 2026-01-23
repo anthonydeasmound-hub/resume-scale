@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import db from "@/lib/db";
-import { extractJobInfo } from "@/lib/gemini";
+import { extractJobInfo, extractJobDetails } from "@/lib/gemini";
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -27,13 +27,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Extract company name and job title from description using AI
-    const { company_name, job_title } = await extractJobInfo(job_description);
+    // Extract company name, job title, and detailed sections from description using AI
+    const [{ company_name, job_title }, jobDetails] = await Promise.all([
+      extractJobInfo(job_description),
+      extractJobDetails(job_description),
+    ]);
 
     const result = db.prepare(`
-      INSERT INTO job_applications (user_id, company_name, job_title, job_description, status)
-      VALUES (?, ?, ?, ?, 'review')
-    `).run(user.id, company_name, job_title, job_description);
+      INSERT INTO job_applications (user_id, company_name, job_title, job_description, job_details_parsed, status)
+      VALUES (?, ?, ?, ?, ?, 'review')
+    `).run(user.id, company_name, job_title, job_description, JSON.stringify(jobDetails));
 
     return NextResponse.json({
       success: true,

@@ -26,6 +26,10 @@ export async function GET() {
       work_experience: string;
       skills: string;
       education: string;
+      certifications: string | null;
+      languages: string | null;
+      honors: string | null;
+      profile_photo_path: string | null;
       created_at: string;
       updated_at: string;
     } | undefined;
@@ -40,6 +44,10 @@ export async function GET() {
       work_experience: JSON.parse(resume.work_experience),
       skills: JSON.parse(resume.skills),
       education: JSON.parse(resume.education),
+      certifications: resume.certifications ? JSON.parse(resume.certifications) : [],
+      languages: resume.languages ? JSON.parse(resume.languages) : [],
+      honors: resume.honors ? JSON.parse(resume.honors) : [],
+      profile_photo_path: resume.profile_photo_path,
       created_at: resume.created_at,
       updated_at: resume.updated_at,
     });

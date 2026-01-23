@@ -1,0 +1,817 @@
+[
+  {
+    "role": "Software Engineer",
+    "category": "Technology",
+    "hardSkills": [
+      "Java",
+      "Python",
+      "C++",
+      "SQL",
+      "JavaScript",
+      "REST APIs",
+      "Microservices",
+      "System Design",
+      "Data Structures",
+      "Algorithms"
+    ],
+    "softSkills": [
+      "Problem-Solving",
+      "Communication",
+      "Teamwork",
+      "Attention to Detail",
+      "Critical Thinking"
+    ],
+    "tools": [
+      "Git",
+      "Docker",
+      "AWS",
+      "Linux",
+      "VS Code",
+      "IntelliJ",
+      "Jenkins",
+      "Kubernetes"
+    ],
+    "certifications": [
+      "AWS Certified Developer",
+      "Google Cloud",
+      "Scrum Master"
+    ]
+  },
+  {
+    "role": "Product Manager",
+    "category": "Product",
+    "hardSkills": [
+      "Product Strategy",
+      "Market Analysis",
+      "Roadmapping",
+      "User Research",
+      "Data Analysis",
+      "A/B Testing",
+      "PRDs",
+      "Competitive Analysis"
+    ],
+    "softSkills": [
+      "Leadership",
+      "Communication",
+      "Strategic Thinking",
+      "Stakeholder Management",
+      "Decision Making"
+    ],
+    "tools": [
+      "Jira",
+      "Confluence",
+      "Figma",
+      "Amplitude",
+      "Mixpanel",
+      "Productboard",
+      "Aha!"
+    ],
+    "certifications": [
+      "Certified Scrum Product Owner (CSPO)",
+      "PMP",
+      "Pragmatic Marketing"
+    ]
+  },
+  {
+    "role": "Sales Manager",
+    "category": "Sales",
+    "hardSkills": [
+      "Sales Strategy",
+      "Pipeline Management",
+      "Forecasting",
+      "Contract Negotiation",
+      "Territory Planning",
+      "Revenue Operations"
+    ],
+    "softSkills": [
+      "Leadership",
+      "Negotiation",
+      "Communication",
+      "Coaching",
+      "Resilience",
+      "Empathy"
+    ],
+    "tools": [
+      "Salesforce",
+      "HubSpot",
+      "LinkedIn Sales Navigator",
+      "Gong",
+      "ZoomInfo",
+      "Outreach",
+      "Clari"
+    ],
+    "certifications": [
+      "Certified Sales Leadership Professional (CSLP)",
+      "Sandler",
+      "SPIN"
+    ]
+  },
+  {
+    "role": "Data Analyst",
+    "category": "Data/Analytics",
+    "hardSkills": [
+      "SQL",
+      "Python",
+      "R",
+      "Statistical Analysis",
+      "Data Visualization",
+      "Predictive Analytics",
+      "ETL",
+      "Data Modeling"
+    ],
+    "softSkills": [
+      "Analytical Thinking",
+      "Communication",
+      "Problem-Solving",
+      "Attention to Detail",
+      "Curiosity"
+    ],
+    "tools": [
+      "Tableau",
+      "Power BI",
+      "Excel",
+      "Google Analytics",
+      "Looker",
+      "Jupyter",
+      "dbt"
+    ],
+    "certifications": [
+      "Google Analytics Certification",
+      "Tableau Desktop Certified",
+      "SQL Certification"
+    ]
+  },
+  {
+    "role": "Marketing Manager",
+    "category": "Marketing",
+    "hardSkills": [
+      "Campaign Management",
+      "SEO/SEM",
+      "Content Strategy",
+      "Brand Management",
+      "Marketing Analytics",
+      "Budget Management"
+    ],
+    "softSkills": [
+      "Creativity",
+      "Leadership",
+      "Strategic Thinking",
+      "Communication",
+      "Adaptability"
+    ],
+    "tools": [
+      "Google Ads",
+      "HubSpot",
+      "Marketo",
+      "Google Analytics",
+      "Hootsuite",
+      "Mailchimp",
+      "SEMrush"
+    ],
+    "certifications": [
+      "Google Ads Certification",
+      "HubSpot Marketing",
+      "Meta Blueprint"
+    ]
+  },
+  {
+    "role": "IT Project Manager",
+    "category": "Technology",
+    "hardSkills": [
+      "Project Planning",
+      "Risk Management",
+      "Agile/Scrum",
+      "Stakeholder Management",
+      "Budget Management",
+      "Resource Allocation"
+    ],
+    "softSkills": [
+      "Leadership",
+      "Communication",
+      "Problem-Solving",
+      "Time Management",
+      "Negotiation"
+    ],
+    "tools": [
+      "Jira",
+      "MS Project",
+      "Asana",
+      "SAP",
+      "Confluence",
+      "Monday.com",
+      "Trello"
+    ],
+    "certifications": [
+      "PMP",
+      "PRINCE2",
+      "CSM",
+      "SAP Activate Project Manager"
+    ]
+  },
+  {
+    "role": "Account Executive",
+    "category": "Sales",
+    "hardSkills": [
+      "Prospecting",
+      "Qualifying",
+      "Demo/Presentation",
+      "Objection Handling",
+      "Closing",
+      "Account Planning",
+      "CRM Management"
+    ],
+    "softSkills": [
+      "Relationship Building",
+      "Persuasion",
+      "Resilience",
+      "Active Listening",
+      "Time Management"
+    ],
+    "tools": [
+      "Salesforce",
+      "Outreach",
+      "Gong",
+      "LinkedIn Sales Navigator",
+      "ZoomInfo",
+      "SalesLoft"
+    ],
+    "certifications": [
+      "Salesforce Certified",
+      "Sandler Sales",
+      "Challenger Sale"
+    ]
+  },
+  {
+    "role": "Business Analyst",
+    "category": "Business",
+    "hardSkills": [
+      "Requirements Gathering",
+      "Process Mapping",
+      "Data Analysis",
+      "Gap Analysis",
+      "Documentation",
+      "SQL",
+      "User Stories"
+    ],
+    "softSkills": [
+      "Communication",
+      "Critical Thinking",
+      "Problem-Solving",
+      "Attention to Detail",
+      "Facilitation"
+    ],
+    "tools": [
+      "SQL",
+      "Excel",
+      "Visio",
+      "JIRA",
+      "Confluence",
+      "Tableau",
+      "Power BI"
+    ],
+    "certifications": [
+      "CBAP",
+      "PMI-PBA",
+      "CCBA",
+      "Six Sigma Green Belt"
+    ]
+  },
+  {
+    "role": "UX Designer",
+    "category": "Design",
+    "hardSkills": [
+      "User Research",
+      "Wireframing",
+      "Prototyping",
+      "Usability Testing",
+      "Information Architecture",
+      "Interaction Design"
+    ],
+    "softSkills": [
+      "Empathy",
+      "Creativity",
+      "Communication",
+      "Collaboration",
+      "Problem Solving"
+    ],
+    "tools": [
+      "Figma",
+      "Sketch",
+      "Adobe XD",
+      "InVision",
+      "Miro",
+      "UserTesting",
+      "Maze"
+    ],
+    "certifications": [
+      "Google UX Design Certificate",
+      "Nielsen Norman UX Certification"
+    ]
+  },
+  {
+    "role": "Financial Analyst",
+    "category": "Finance",
+    "hardSkills": [
+      "Financial Modeling",
+      "Forecasting",
+      "Budgeting",
+      "Variance Analysis",
+      "Valuation",
+      "Excel",
+      "Data Analysis"
+    ],
+    "softSkills": [
+      "Analytical Thinking",
+      "Attention to Detail",
+      "Communication",
+      "Problem Solving"
+    ],
+    "tools": [
+      "Excel",
+      "Bloomberg",
+      "SAP",
+      "Oracle",
+      "Tableau",
+      "Power BI",
+      "Python"
+    ],
+    "certifications": [
+      "CFA",
+      "CPA",
+      "Financial Modeling Certificate",
+      "FRM"
+    ]
+  },
+  {
+    "role": "HR Manager",
+    "category": "Human Resources",
+    "hardSkills": [
+      "Talent Acquisition",
+      "Employee Relations",
+      "Performance Management",
+      "Compensation & Benefits",
+      "HRIS",
+      "Employment Law"
+    ],
+    "softSkills": [
+      "Leadership",
+      "Empathy",
+      "Communication",
+      "Conflict Resolution",
+      "Strategic Thinking"
+    ],
+    "tools": [
+      "Workday",
+      "BambooHR",
+      "ADP",
+      "LinkedIn Recruiter",
+      "Greenhouse",
+      "Lever"
+    ],
+    "certifications": [
+      "SHRM-CP",
+      "PHR",
+      "SPHR",
+      "SHRM-SCP"
+    ]
+  },
+  {
+    "role": "Operations Manager",
+    "category": "Operations",
+    "hardSkills": [
+      "Process Optimization",
+      "Supply Chain",
+      "Quality Control",
+      "Inventory Management",
+      "Lean/Six Sigma",
+      "Project Management"
+    ],
+    "softSkills": [
+      "Leadership",
+      "Problem-Solving",
+      "Decision Making",
+      "Communication",
+      "Time Management"
+    ],
+    "tools": [
+      "SAP",
+      "Oracle",
+      "Tableau",
+      "MS Project",
+      "ERP Systems",
+      "WMS"
+    ],
+    "certifications": [
+      "Six Sigma Green/Black Belt",
+      "PMP",
+      "CPIM",
+      "CSCP"
+    ]
+  },
+  {
+    "role": "DevOps Engineer",
+    "category": "Technology",
+    "hardSkills": [
+      "CI/CD",
+      "Infrastructure as Code",
+      "Containerization",
+      "Cloud Platforms",
+      "Monitoring",
+      "Scripting",
+      "Security"
+    ],
+    "softSkills": [
+      "Problem-Solving",
+      "Collaboration",
+      "Communication",
+      "Adaptability"
+    ],
+    "tools": [
+      "Jenkins",
+      "Docker",
+      "Kubernetes",
+      "AWS",
+      "Terraform",
+      "Ansible",
+      "Prometheus"
+    ],
+    "certifications": [
+      "AWS DevOps Engineer",
+      "Kubernetes Administrator (CKA)",
+      "Azure DevOps"
+    ]
+  },
+  {
+    "role": "Data Scientist",
+    "category": "Data/Analytics",
+    "hardSkills": [
+      "Machine Learning",
+      "Statistical Modeling",
+      "Python",
+      "Deep Learning",
+      "NLP",
+      "Feature Engineering",
+      "A/B Testing"
+    ],
+    "softSkills": [
+      "Problem-Solving",
+      "Curiosity",
+      "Communication",
+      "Creativity",
+      "Critical Thinking"
+    ],
+    "tools": [
+      "Python",
+      "TensorFlow",
+      "PyTorch",
+      "Jupyter",
+      "Spark",
+      "Scikit-learn",
+      "SQL"
+    ],
+    "certifications": [
+      "AWS ML Specialty",
+      "Google ML Engineer",
+      "Coursera ML Certificate"
+    ]
+  },
+  {
+    "role": "Frontend Developer",
+    "category": "Technology",
+    "hardSkills": [
+      "HTML/CSS",
+      "JavaScript",
+      "React/Vue/Angular",
+      "Responsive Design",
+      "Web Performance",
+      "TypeScript",
+      "Testing"
+    ],
+    "softSkills": [
+      "Attention to Detail",
+      "Problem-Solving",
+      "Collaboration",
+      "Creativity"
+    ],
+    "tools": [
+      "VS Code",
+      "Git",
+      "Chrome DevTools",
+      "Webpack",
+      "npm",
+      "Storybook"
+    ],
+    "certifications": [
+      "Meta Frontend Developer",
+      "AWS Cloud Practitioner"
+    ]
+  },
+  {
+    "role": "Backend Developer",
+    "category": "Technology",
+    "hardSkills": [
+      "Node.js/Python/Java",
+      "APIs",
+      "Databases",
+      "System Design",
+      "Security",
+      "Caching",
+      "Message Queues"
+    ],
+    "softSkills": [
+      "Problem-Solving",
+      "Attention to Detail",
+      "Communication",
+      "Analytical Thinking"
+    ],
+    "tools": [
+      "PostgreSQL",
+      "MongoDB",
+      "Redis",
+      "Docker",
+      "AWS",
+      "GraphQL"
+    ],
+    "certifications": [
+      "AWS Developer Associate",
+      "Oracle Java Certification"
+    ]
+  },
+  {
+    "role": "Customer Success Manager",
+    "category": "Customer Success",
+    "hardSkills": [
+      "Customer Onboarding",
+      "Account Management",
+      "Retention Strategies",
+      "Upselling",
+      "Health Scoring",
+      "QBRs"
+    ],
+    "softSkills": [
+      "Relationship Building",
+      "Communication",
+      "Problem-Solving",
+      "Empathy",
+      "Patience"
+    ],
+    "tools": [
+      "Gainsight",
+      "Salesforce",
+      "Zendesk",
+      "Intercom",
+      "ChurnZero",
+      "Totango"
+    ],
+    "certifications": [
+      "Customer Success Manager Certification (CSM)",
+      "Gainsight Admin"
+    ]
+  },
+  {
+    "role": "Recruiter",
+    "category": "Human Resources",
+    "hardSkills": [
+      "Sourcing",
+      "Screening",
+      "Interviewing",
+      "Offer Negotiation",
+      "ATS Management",
+      "Employer Branding"
+    ],
+    "softSkills": [
+      "Communication",
+      "Empathy",
+      "Judgment",
+      "Time Management",
+      "Networking"
+    ],
+    "tools": [
+      "LinkedIn Recruiter",
+      "Greenhouse",
+      "Lever",
+      "Workday",
+      "Indeed",
+      "ATS"
+    ],
+    "certifications": [
+      "LinkedIn Certified Professional Recruiter",
+      "AIRS Certification"
+    ]
+  },
+  {
+    "role": "Graphic Designer",
+    "category": "Design",
+    "hardSkills": [
+      "Visual Design",
+      "Typography",
+      "Brand Identity",
+      "Layout Design",
+      "Photo Editing",
+      "Motion Graphics"
+    ],
+    "softSkills": [
+      "Creativity",
+      "Attention to Detail",
+      "Communication",
+      "Time Management"
+    ],
+    "tools": [
+      "Adobe Creative Suite",
+      "Figma",
+      "Canva",
+      "InDesign",
+      "After Effects"
+    ],
+    "certifications": [
+      "Adobe Certified Expert",
+      "Google UX Design Certificate"
+    ]
+  },
+  {
+    "role": "Content Marketing Manager",
+    "category": "Marketing",
+    "hardSkills": [
+      "Content Strategy",
+      "SEO",
+      "Copywriting",
+      "Editorial Planning",
+      "Analytics",
+      "Content Distribution"
+    ],
+    "softSkills": [
+      "Creativity",
+      "Writing",
+      "Strategic Thinking",
+      "Project Management",
+      "Adaptability"
+    ],
+    "tools": [
+      "WordPress",
+      "SEMrush",
+      "Ahrefs",
+      "Google Analytics",
+      "Canva",
+      "HubSpot"
+    ],
+    "certifications": [
+      "HubSpot Content Marketing",
+      "Google Analytics Certification"
+    ]
+  },
+  {
+    "role": "Accountant",
+    "category": "Finance",
+    "hardSkills": [
+      "GAAP",
+      "Financial Reporting",
+      "Tax Preparation",
+      "Auditing",
+      "Accounts Payable/Receivable",
+      "Reconciliation"
+    ],
+    "softSkills": [
+      "Attention to Detail",
+      "Integrity",
+      "Communication",
+      "Organization",
+      "Analytical Thinking"
+    ],
+    "tools": [
+      "QuickBooks",
+      "SAP",
+      "Oracle",
+      "Excel",
+      "NetSuite",
+      "Xero"
+    ],
+    "certifications": [
+      "CPA",
+      "CMA",
+      "EA",
+      "QuickBooks Certified"
+    ]
+  },
+  {
+    "role": "Supply Chain Manager",
+    "category": "Operations",
+    "hardSkills": [
+      "Demand Planning",
+      "Inventory Management",
+      "Logistics",
+      "Procurement",
+      "Supplier Management",
+      "S&OP"
+    ],
+    "softSkills": [
+      "Leadership",
+      "Negotiation",
+      "Problem-Solving",
+      "Communication",
+      "Analytical Thinking"
+    ],
+    "tools": [
+      "SAP",
+      "Oracle SCM",
+      "JDA",
+      "Tableau",
+      "Excel",
+      "WMS Systems"
+    ],
+    "certifications": [
+      "CSCP",
+      "CPIM",
+      "Six Sigma",
+      "PMP"
+    ]
+  },
+  {
+    "role": "Executive Assistant",
+    "category": "Administrative",
+    "hardSkills": [
+      "Calendar Management",
+      "Travel Coordination",
+      "Event Planning",
+      "Communication",
+      "Project Coordination"
+    ],
+    "softSkills": [
+      "Organization",
+      "Discretion",
+      "Communication",
+      "Multitasking",
+      "Anticipation"
+    ],
+    "tools": [
+      "Microsoft Office",
+      "Google Workspace",
+      "Concur",
+      "Calendly",
+      "Slack"
+    ],
+    "certifications": [
+      "Certified Administrative Professional (CAP)"
+    ]
+  },
+  {
+    "role": "QA Engineer",
+    "category": "Technology",
+    "hardSkills": [
+      "Test Planning",
+      "Test Automation",
+      "Bug Tracking",
+      "CI/CD",
+      "API Testing",
+      "Performance Testing",
+      "Selenium"
+    ],
+    "softSkills": [
+      "Attention to Detail",
+      "Critical Thinking",
+      "Communication",
+      "Patience"
+    ],
+    "tools": [
+      "Selenium",
+      "Cypress",
+      "Postman",
+      "Jira",
+      "Jenkins",
+      "TestRail",
+      "Appium"
+    ],
+    "certifications": [
+      "ISTQB Certified",
+      "AWS Certified Cloud Practitioner"
+    ]
+  },
+  {
+    "role": "Business Development Manager",
+    "category": "Sales",
+    "hardSkills": [
+      "Lead Generation",
+      "Partnership Development",
+      "Market Analysis",
+      "Contract Negotiation",
+      "Strategic Planning"
+    ],
+    "softSkills": [
+      "Relationship Building",
+      "Communication",
+      "Negotiation",
+      "Strategic Thinking",
+      "Resilience"
+    ],
+    "tools": [
+      "Salesforce",
+      "HubSpot",
+      "LinkedIn",
+      "PitchBook",
+      "Crunchbase"
+    ],
+    "certifications": [
+      "Strategic Account Management (SAM)",
+      "MBA"
+    ]
+  }
+]

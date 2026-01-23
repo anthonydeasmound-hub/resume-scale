@@ -1,0 +1,352 @@
+[
+  {
+    "id": 1,
+    "role": "Software Engineer",
+    "category": "Technology",
+    "url": "https://enhancv.com/resume-examples/software-engineer/",
+    "status": "Complete"
+  },
+  {
+    "id": 2,
+    "role": "Product Manager",
+    "category": "Product",
+    "url": "https://enhancv.com/resume-examples/product-manager/",
+    "status": "Complete"
+  },
+  {
+    "id": 3,
+    "role": "Sales Manager",
+    "category": "Sales",
+    "url": "https://enhancv.com/resume-examples/sales-manager/",
+    "status": "Complete"
+  },
+  {
+    "id": 4,
+    "role": "Data Analyst",
+    "category": "Data/Analytics",
+    "url": "https://enhancv.com/resume-examples/data-analyst/",
+    "status": "Complete"
+  },
+  {
+    "id": 5,
+    "role": "Marketing Manager",
+    "category": "Marketing",
+    "url": "https://enhancv.com/resume-examples/marketing-manager/",
+    "status": "Complete"
+  },
+  {
+    "id": 6,
+    "role": "IT Project Manager",
+    "category": "Technology",
+    "url": "https://enhancv.com/resume-examples/it-project-manager/",
+    "status": "Complete"
+  },
+  {
+    "id": 7,
+    "role": "Business Analyst",
+    "category": "Business",
+    "url": "https://enhancv.com/resume-examples/business-analyst/",
+    "status": "Complete"
+  },
+  {
+    "id": 8,
+    "role": "UX Designer",
+    "category": "Design",
+    "url": "https://enhancv.com/resume-examples/ux-designer/",
+    "status": "Complete"
+  },
+  {
+    "id": 9,
+    "role": "Account Executive",
+    "category": "Sales",
+    "url": "https://enhancv.com/resume-examples/account-executive/",
+    "status": "Complete"
+  },
+  {
+    "id": 10,
+    "role": "Financial Analyst",
+    "category": "Finance",
+    "url": "https://enhancv.com/resume-examples/financial-analyst/",
+    "status": "Complete"
+  },
+  {
+    "id": 11,
+    "role": "HR Manager",
+    "category": "Human Resources",
+    "url": "https://enhancv.com/resume-examples/hr-manager-resume/",
+    "status": "Complete"
+  },
+  {
+    "id": 12,
+    "role": "Operations Manager",
+    "category": "Operations",
+    "url": "https://enhancv.com/resume-examples/operations-manager/",
+    "status": "Complete"
+  },
+  {
+    "id": 13,
+    "role": "Customer Success Manager",
+    "category": "Customer Success",
+    "url": "https://enhancv.com/resume-examples/client-success-manager/",
+    "status": "Reference"
+  },
+  {
+    "id": 14,
+    "role": "DevOps Engineer",
+    "category": "Technology",
+    "url": "https://enhancv.com/resume-examples/devops-engineer/",
+    "status": "Reference"
+  },
+  {
+    "id": 15,
+    "role": "Data Scientist",
+    "category": "Data/Analytics",
+    "url": "https://enhancv.com/resume-examples/data-scientist/",
+    "status": "Reference"
+  },
+  {
+    "id": 16,
+    "role": "Frontend Developer",
+    "category": "Technology",
+    "url": "https://enhancv.com/resume-examples/front-end-developer/",
+    "status": "Reference"
+  },
+  {
+    "id": 17,
+    "role": "Backend Developer",
+    "category": "Technology",
+    "url": "https://enhancv.com/resume-examples/back-end-engineer/",
+    "status": "Reference"
+  },
+  {
+    "id": 18,
+    "role": "Full Stack Developer",
+    "category": "Technology",
+    "url": "https://enhancv.com/resume-examples/full-stack-developer/",
+    "status": "Reference"
+  },
+  {
+    "id": 19,
+    "role": "Content Marketing Manager",
+    "category": "Marketing",
+    "url": "https://enhancv.com/resume-examples/content-marketing-manager/",
+    "status": "Reference"
+  },
+  {
+    "id": 20,
+    "role": "Digital Marketing Manager",
+    "category": "Marketing",
+    "url": "https://enhancv.com/resume-examples/digital-marketing-manager/",
+    "status": "Reference"
+  },
+  {
+    "id": 21,
+    "role": "SaaS Sales Manager",
+    "category": "Sales",
+    "url": "https://enhancv.com/resume-examples/saas-sales-manager/",
+    "status": "Reference"
+  },
+  {
+    "id": 22,
+    "role": "Account Manager",
+    "category": "Sales",
+    "url": "https://enhancv.com/resume-examples/account-manager/",
+    "status": "Reference"
+  },
+  {
+    "id": 23,
+    "role": "Executive Assistant",
+    "category": "Administrative",
+    "url": "https://enhancv.com/resume-examples/executive-assistant/",
+    "status": "Reference"
+  },
+  {
+    "id": 24,
+    "role": "Accountant",
+    "category": "Finance",
+    "url": "https://enhancv.com/resume-examples/accountant/",
+    "status": "Reference"
+  },
+  {
+    "id": 25,
+    "role": "Data Engineer",
+    "category": "Technology",
+    "url": "https://enhancv.com/resume-examples/data-engineer/",
+    "status": "Reference"
+  },
+  {
+    "id": 26,
+    "role": "Machine Learning Engineer",
+    "category": "Technology",
+    "url": "https://enhancv.com/resume-examples/machine-learning-engineer/",
+    "status": "Reference"
+  },
+  {
+    "id": 27,
+    "role": "Product Designer",
+    "category": "Design",
+    "url": "https://enhancv.com/resume-examples/product-designer/",
+    "status": "Reference"
+  },
+  {
+    "id": 28,
+    "role": "Graphic Designer",
+    "category": "Design",
+    "url": "https://enhancv.com/resume-examples/graphic-designer/",
+    "status": "Reference"
+  },
+  {
+    "id": 29,
+    "role": "Supply Chain Manager",
+    "category": "Operations",
+    "url": "https://enhancv.com/resume-examples/supply-chain-manager/",
+    "status": "Reference"
+  },
+  {
+    "id": 30,
+    "role": "QA Engineer",
+    "category": "Technology",
+    "url": "https://enhancv.com/resume-examples/qa-engineer/",
+    "status": "Reference"
+  },
+  {
+    "id": 31,
+    "role": "Recruiter",
+    "category": "Human Resources",
+    "url": "https://enhancv.com/resume-examples/recruiter/",
+    "status": "Reference"
+  },
+  {
+    "id": 32,
+    "role": "Technical Writer",
+    "category": "Content",
+    "url": "https://enhancv.com/resume-examples/technical-writer/",
+    "status": "Reference"
+  },
+  {
+    "id": 33,
+    "role": "Business Development Manager",
+    "category": "Sales",
+    "url": "https://enhancv.com/resume-examples/business-development-manager/",
+    "status": "Reference"
+  },
+  {
+    "id": 34,
+    "role": "Sales Representative",
+    "category": "Sales",
+    "url": "https://enhancv.com/resume-examples/sales-representative/",
+    "status": "Reference"
+  },
+  {
+    "id": 35,
+    "role": "Consultant",
+    "category": "Consulting",
+    "url": "https://enhancv.com/resume-examples/consultant/",
+    "status": "Reference"
+  },
+  {
+    "id": 36,
+    "role": "Mechanical Engineer",
+    "category": "Engineering",
+    "url": "https://enhancv.com/resume-examples/mechanical-engineer/",
+    "status": "Reference"
+  },
+  {
+    "id": 37,
+    "role": "Civil Engineer",
+    "category": "Engineering",
+    "url": "https://enhancv.com/resume-examples/civil-engineer/",
+    "status": "Reference"
+  },
+  {
+    "id": 38,
+    "role": "Electrical Engineer",
+    "category": "Engineering",
+    "url": "https://enhancv.com/resume-examples/electrical-engineer/",
+    "status": "Reference"
+  },
+  {
+    "id": 39,
+    "role": "Registered Nurse",
+    "category": "Healthcare",
+    "url": "https://enhancv.com/resume-examples/registered-nurse/",
+    "status": "Reference"
+  },
+  {
+    "id": 40,
+    "role": "Healthcare Administrator",
+    "category": "Healthcare",
+    "url": "https://enhancv.com/resume-examples/healthcare-administrator/",
+    "status": "Reference"
+  },
+  {
+    "id": 41,
+    "role": "Teacher",
+    "category": "Education",
+    "url": "https://enhancv.com/resume-examples/teacher/",
+    "status": "Reference"
+  },
+  {
+    "id": 42,
+    "role": "Real Estate Agent",
+    "category": "Real Estate",
+    "url": "https://enhancv.com/resume-examples/real-estate-agent/",
+    "status": "Reference"
+  },
+  {
+    "id": 43,
+    "role": "Restaurant Manager",
+    "category": "Hospitality",
+    "url": "https://enhancv.com/resume-examples/restaurant-manager/",
+    "status": "Reference"
+  },
+  {
+    "id": 44,
+    "role": "Event Planner",
+    "category": "Events",
+    "url": "https://enhancv.com/resume-examples/event-planner/",
+    "status": "Reference"
+  },
+  {
+    "id": 45,
+    "role": "Social Media Manager",
+    "category": "Marketing",
+    "url": "https://enhancv.com/resume-examples/social-media-manager/",
+    "status": "Reference"
+  },
+  {
+    "id": 46,
+    "role": "SEO Specialist",
+    "category": "Marketing",
+    "url": "https://enhancv.com/resume-examples/seo-specialist/",
+    "status": "Reference"
+  },
+  {
+    "id": 47,
+    "role": "Cloud Engineer",
+    "category": "Technology",
+    "url": "https://enhancv.com/resume-examples/cloud-engineer/",
+    "status": "Reference"
+  },
+  {
+    "id": 48,
+    "role": "Cybersecurity Analyst",
+    "category": "Technology",
+    "url": "https://enhancv.com/resume-examples/cybersecurity-analyst/",
+    "status": "Reference"
+  },
+  {
+    "id": 49,
+    "role": "Solutions Architect",
+    "category": "Technology",
+    "url": "https://enhancv.com/resume-examples/solutions-architect/",
+    "status": "Reference"
+  },
+  {
+    "id": 50,
+    "role": "Chief Technology Officer",
+    "category": "Executive",
+    "url": "https://enhancv.com/resume-examples/cto/",
+    "status": "Reference"
+  }
+]

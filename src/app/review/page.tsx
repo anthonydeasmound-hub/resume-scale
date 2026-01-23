@@ -17,6 +17,17 @@ interface Job {
   status: string;
   reviewed: boolean;
   created_at: string;
+  job_details_parsed: string | null;
+}
+
+interface JobDetailsParsed {
+  responsibilities: string[];
+  requirements: string[];
+  qualifications: string[];
+  benefits: string[];
+  salary_range: string | null;
+  location: string | null;
+  work_type: string | null;
 }
 
 interface ContactInfo {
@@ -99,12 +110,15 @@ function ReviewContent() {
   const [summaryOptions, setSummaryOptions] = useState<string[]>([]);
   const [selectedSummaryIndex, setSelectedSummaryIndex] = useState<number | null>(null);
   const [loadingSummaries, setLoadingSummaries] = useState(false);
+  const [editingSummary, setEditingSummary] = useState(false);
+  const [editedSummaryText, setEditedSummaryText] = useState("");
 
   // Work experience selections
   const [selectedRoles, setSelectedRoles] = useState<SelectedRole[]>([]);
 
   // Skills options
   const [skillsFromResume, setSkillsFromResume] = useState<string[]>([]);
+  const [skillsFromJobDescription, setSkillsFromJobDescription] = useState<string[]>([]);
   const [recommendedSkills, setRecommendedSkills] = useState<string[]>([]);
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [loadingSkills, setLoadingSkills] = useState(false);
@@ -112,6 +126,33 @@ function ReviewContent() {
   // Cover letter
   const [coverLetter, setCoverLetter] = useState("");
   const [generatingCoverLetter, setGeneratingCoverLetter] = useState(false);
+
+  // Resume Review Score
+  interface ResumeReviewResult {
+    overallScore: number;
+    categoryScores: {
+      impact: number;
+      metrics: number;
+      actionVerbs: number;
+      relevance: number;
+      clarity: number;
+    };
+    strengths: string[];
+    improvements: string[];
+    bulletFeedback: {
+      bullet: string;
+      score: number;
+      feedback: string;
+      suggestion?: string;
+    }[];
+  }
+  const [reviewScore, setReviewScore] = useState<ResumeReviewResult | null>(null);
+  const [loadingReview, setLoadingReview] = useState(false);
+  const [showReviewPanel, setShowReviewPanel] = useState(false);
+
+  // Job details sidebar
+  const [showJobDetails, setShowJobDetails] = useState(true);
+  const [showFullDescription, setShowFullDescription] = useState(false);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -238,7 +279,7 @@ function ReviewContent() {
     // Initialize all roles with master bullets, but only pre-select up to calculated max
     const initialRoles: SelectedRole[] = topRoles.map((role, idx) => {
       const masterBullets = role.description.slice(0, 8); // Get up to 8 master bullets as options
-      // Only pre-select 3 bullets initially (will be enforced by maxBulletsPerRole)
+      // Only pre-select 3 bullets initially (will be enforced by MAX_TOTAL_BULLETS)
       const initialSelected = Math.min(3, masterBullets.length);
       return {
         roleIndex: idx,
@@ -339,10 +380,11 @@ function ReviewContent() {
 
       if (response.ok) {
         const data = await response.json();
-        setSkillsFromResume(data.fromResume);
-        setRecommendedSkills(data.recommended);
+        setSkillsFromResume(data.fromResume || []);
+        setSkillsFromJobDescription(data.fromJobDescription || []);
+        setRecommendedSkills(data.recommended || []);
         // Pre-select all skills from resume
-        setSelectedSkills(data.fromResume);
+        setSelectedSkills(data.fromResume || []);
       }
     } catch (err) {
       console.error("Failed to load skills:", err);
@@ -411,68 +453,40 @@ function ReviewContent() {
     }
   };
 
-  // Calculate max bullets per role to fit on single page
-  // Footer (Skills + Education) is fixed at bottom, main content must fit above it
-  const calculateMaxBullets = (): number => {
-    const summaryLength = selectedSummaryIndex !== null && summaryOptions[selectedSummaryIndex]
-      ? summaryOptions[selectedSummaryIndex].length
-      : 0;
-    const rolesCount = selectedRoles.length;
+  // Hard limit of 10 bullets total across all roles
+  const MAX_TOTAL_BULLETS = 10;
+  const INITIAL_SUGGESTIONS_SHOWN = 4;
 
-    // Available lines in main content area (above fixed footer):
-    // Main content max-height is 6.4in ≈ 32 lines at 10.3pt with 1.5 line-height
-    // Header (name + contact): ~3 lines
-    // Summary section title + text: 4-6 lines
-    // Work Experience title: 1 line
-    // Role headers: 2 lines each
-    // Remaining for bullets
+  // Track which roles have expanded suggestions
+  const [expandedBulletOptions, setExpandedBulletOptions] = useState<Record<number, boolean>>({});
 
-    let availableLines = 32;
-
-    // Header takes ~3 lines
-    availableLines -= 3;
-
-    // Summary section (title + text): 4-6 lines based on length
-    if (summaryLength > 350) availableLines -= 6;
-    else if (summaryLength > 200) availableLines -= 5;
-    else availableLines -= 4;
-
-    // Work Experience section title
-    availableLines -= 1;
-
-    // Each role has a 2-line header (title, company, dates)
-    availableLines -= rolesCount * 2;
-
-    // Remaining lines for bullets, distributed across roles
-    // Each bullet averages ~1.5 lines (many wrap to 2 lines)
-    const totalBullets = Math.floor(availableLines / 1.5);
-    const bulletsPerRole = Math.floor(totalBullets / Math.max(rolesCount, 1));
-
-    // Clamp between 3 and 4 bullets per role for safety
-    return Math.max(3, Math.min(4, bulletsPerRole));
-  };
-
-  const maxBulletsPerRole = calculateMaxBullets();
+  // Calculate total selected bullets across all roles
+  const totalSelectedBullets = selectedRoles.reduce((sum, r) => sum + r.selectedBullets.length, 0);
 
   const toggleBullet = (roleIndex: number, bulletIndex: number) => {
-    setSelectedRoles((prev) =>
-      prev.map((r) => {
+    setSelectedRoles((prev) => {
+      // Calculate current total
+      const currentTotal = prev.reduce((sum, r) => sum + r.selectedBullets.length, 0);
+
+      return prev.map((r) => {
         if (r.roleIndex !== roleIndex) return r;
 
         const isSelected = r.selectedBullets.includes(bulletIndex);
         let newSelected: number[];
 
         if (isSelected) {
+          // Always allow deselecting
           newSelected = r.selectedBullets.filter((i) => i !== bulletIndex);
-        } else if (r.selectedBullets.length < maxBulletsPerRole) {
+        } else if (currentTotal < MAX_TOTAL_BULLETS) {
+          // Only allow selecting if under total limit
           newSelected = [...r.selectedBullets, bulletIndex];
         } else {
-          return r; // Max bullets reached
+          return r; // Max total bullets reached
         }
 
         return { ...r, selectedBullets: newSelected };
-      })
-    );
+      });
+    });
     setHasChanges(true);
   };
 
@@ -516,6 +530,43 @@ function ReviewContent() {
       console.error("Failed to generate cover letter:", err);
     } finally {
       setGeneratingCoverLetter(false);
+    }
+  };
+
+  const reviewResumeQuality = async () => {
+    if (!selectedJob || selectedRoles.length === 0) return;
+    setLoadingReview(true);
+    setShowReviewPanel(true);
+
+    try {
+      // Collect all selected bullets from all roles
+      const allBullets: string[] = [];
+      const role = selectedRoles[0]; // Use first role for context
+      const masterRole = masterResume?.work_experience[role.roleIndex];
+
+      selectedRoles.forEach((r) => {
+        r.selectedBullets.forEach((idx) => {
+          allBullets.push(r.bulletOptions[idx]);
+        });
+      });
+
+      const response = await fetch("/api/review-resume", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bullets: allBullets,
+          role: masterRole ? { title: masterRole.title, company: masterRole.company } : { title: selectedJob.job_title, company: selectedJob.company_name },
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setReviewScore(data);
+      }
+    } catch (err) {
+      console.error("Failed to review resume:", err);
+    } finally {
+      setLoadingReview(false);
     }
   };
 
@@ -790,7 +841,7 @@ function ReviewContent() {
               </div>
             </div>
 
-            <div className="grid lg:grid-cols-2 gap-6">
+            <div className={`grid gap-6 ${showJobDetails ? "lg:grid-cols-[1fr_1fr_280px]" : "lg:grid-cols-2"}`}>
               {/* Left side - Accordions */}
               <div className="space-y-4">
                 {/* Resume/Cover Letter Tabs */}
@@ -848,13 +899,67 @@ function ReviewContent() {
                             </div>
                           ) : (
                             <div className="pt-3">
-                              {/* Selected Summary at top */}
+                              {/* Selected Summary at top - Editable */}
                               {selectedSummaryIndex !== null && summaryOptions[selectedSummaryIndex] && (
                                 <div className="mb-4">
-                                  <p className="text-xs font-medium text-gray-600 mb-2">Selected:</p>
-                                  <div className="p-3 rounded-lg border-2 border-blue-500 bg-blue-50">
-                                    <p className="text-sm text-gray-700">{summaryOptions[selectedSummaryIndex]}</p>
+                                  <div className="flex items-center justify-between mb-2">
+                                    <p className="text-xs font-medium text-gray-600">Selected:</p>
+                                    {!editingSummary && (
+                                      <button
+                                        onClick={() => {
+                                          setEditingSummary(true);
+                                          setEditedSummaryText(summaryOptions[selectedSummaryIndex]);
+                                        }}
+                                        className="text-xs text-blue-600 hover:text-blue-800"
+                                      >
+                                        Edit
+                                      </button>
+                                    )}
                                   </div>
+                                  {editingSummary ? (
+                                    <div className="space-y-2">
+                                      <textarea
+                                        value={editedSummaryText}
+                                        onChange={(e) => setEditedSummaryText(e.target.value)}
+                                        className="w-full p-3 rounded-lg border-2 border-blue-500 bg-white text-sm text-gray-700 resize-none focus:outline-none focus:ring-2 focus:ring-blue-300"
+                                        rows={4}
+                                        autoFocus
+                                      />
+                                      <div className="flex gap-2 justify-end">
+                                        <button
+                                          onClick={() => {
+                                            setEditingSummary(false);
+                                            setEditedSummaryText("");
+                                          }}
+                                          className="px-3 py-1 text-xs text-gray-600 hover:text-gray-800"
+                                        >
+                                          Cancel
+                                        </button>
+                                        <button
+                                          onClick={() => {
+                                            const newOptions = [...summaryOptions];
+                                            newOptions[selectedSummaryIndex] = editedSummaryText;
+                                            setSummaryOptions(newOptions);
+                                            setEditingSummary(false);
+                                            setEditedSummaryText("");
+                                          }}
+                                          className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
+                                        >
+                                          Save
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div
+                                      onClick={() => {
+                                        setEditingSummary(true);
+                                        setEditedSummaryText(summaryOptions[selectedSummaryIndex]);
+                                      }}
+                                      className="p-3 rounded-lg border-2 border-blue-500 bg-blue-50 cursor-pointer hover:bg-blue-100 transition-colors"
+                                    >
+                                      <p className="text-sm text-gray-700">{summaryOptions[selectedSummaryIndex]}</p>
+                                    </div>
+                                  )}
                                 </div>
                               )}
 
@@ -913,7 +1018,9 @@ function ReviewContent() {
 
                       {expandedSection === "experience" && masterResume && (
                         <div className="px-4 pb-4 border-t">
-                          <p className="text-sm text-gray-600 py-3">Select {maxBulletsPerRole} bullets for each role:</p>
+                          <p className="text-sm text-gray-600 py-3">
+                            Select bullets for your resume ({totalSelectedBullets}/{MAX_TOTAL_BULLETS} selected):
+                          </p>
 
                           <div className="space-y-3">
                             {selectedRoles.length === 0 ? (
@@ -951,7 +1058,7 @@ function ReviewContent() {
                                           {/* Selected bullets at top */}
                                           <div className="mb-3">
                                             <p className="text-xs font-medium text-gray-600 mb-2">
-                                              Selected ({selectedRole.selectedBullets.length}/{maxBulletsPerRole}) - click to remove:
+                                              Selected ({selectedRole.selectedBullets.length}) - click to remove:
                                             </p>
                                             <div className="space-y-2">
                                               {selectedRole.selectedBullets.length === 0 ? (
@@ -991,34 +1098,73 @@ function ReviewContent() {
                                           {/* Unselected bullets below */}
                                           {unselectedBullets.length > 0 && (
                                             <div>
-                                              <p className="text-xs font-medium text-purple-600 mb-2">
-                                                Available options - click to add:
-                                              </p>
-                                              <div className="space-y-2">
-                                                {unselectedBullets.map(({ bullet, idx }) => {
-                                                  const isFromMaster = idx < selectedRole.masterBullets.length;
-                                                  const isMaxReached = selectedRole.selectedBullets.length >= maxBulletsPerRole;
-                                                  return (
-                                                    <div
-                                                      key={idx}
-                                                      onClick={() => !isMaxReached && toggleBullet(selectedRole.roleIndex, idx)}
-                                                      className={`p-2 rounded border cursor-pointer text-sm transition-colors ${
-                                                        isMaxReached
-                                                          ? "border-gray-200 bg-gray-100 opacity-50 cursor-not-allowed"
-                                                          : "border-gray-200 hover:border-purple-300 hover:bg-purple-50"
-                                                      }`}
-                                                    >
-                                                      <div className="flex items-start gap-2">
-                                                        <div className="w-4 h-4 rounded border border-gray-300 flex-shrink-0 mt-0.5" />
-                                                        <span className="text-gray-700 flex-1">{bullet}</span>
-                                                        <span className={`text-xs px-1.5 py-0.5 rounded ${isFromMaster ? "bg-gray-100 text-gray-500" : "bg-purple-50 text-purple-500"}`}>
-                                                          {isFromMaster ? "Resume" : "AI"}
-                                                        </span>
-                                                      </div>
+                                              {(() => {
+                                                const isMaxReached = totalSelectedBullets >= MAX_TOTAL_BULLETS;
+                                                const isExpanded = expandedBulletOptions[selectedRole.roleIndex];
+                                                const bulletsToShow = isExpanded
+                                                  ? unselectedBullets
+                                                  : unselectedBullets.slice(0, INITIAL_SUGGESTIONS_SHOWN);
+                                                const hasMoreOptions = unselectedBullets.length > INITIAL_SUGGESTIONS_SHOWN;
+
+                                                return (
+                                                  <>
+                                                    <p className="text-xs font-medium text-purple-600 mb-2">
+                                                      Available options - click to add:
+                                                    </p>
+                                                    {isMaxReached && (
+                                                      <p className="text-xs text-amber-600 mb-2">
+                                                        Maximum {MAX_TOTAL_BULLETS} bullets reached - remove one to add more
+                                                      </p>
+                                                    )}
+                                                    <div className="space-y-2">
+                                                      {bulletsToShow.map(({ bullet, idx }) => {
+                                                        const isFromMaster = idx < selectedRole.masterBullets.length;
+                                                        return (
+                                                          <div
+                                                            key={idx}
+                                                            onClick={() => !isMaxReached && toggleBullet(selectedRole.roleIndex, idx)}
+                                                            className={`p-2 rounded border cursor-pointer text-sm transition-colors ${
+                                                              isMaxReached
+                                                                ? "border-gray-200 bg-gray-100 opacity-50 cursor-not-allowed"
+                                                                : "border-gray-200 hover:border-purple-300 hover:bg-purple-50"
+                                                            }`}
+                                                          >
+                                                            <div className="flex items-start gap-2">
+                                                              <div className="w-4 h-4 rounded border border-gray-300 flex-shrink-0 mt-0.5" />
+                                                              <span className="text-gray-700 flex-1">{bullet}</span>
+                                                              <span className={`text-xs px-1.5 py-0.5 rounded ${isFromMaster ? "bg-gray-100 text-gray-500" : "bg-purple-50 text-purple-500"}`}>
+                                                                {isFromMaster ? "Resume" : "AI"}
+                                                              </span>
+                                                            </div>
+                                                          </div>
+                                                        );
+                                                      })}
                                                     </div>
-                                                  );
-                                                })}
-                                              </div>
+                                                    {hasMoreOptions && !isExpanded && (
+                                                      <button
+                                                        onClick={() => setExpandedBulletOptions(prev => ({ ...prev, [selectedRole.roleIndex]: true }))}
+                                                        className="w-full py-2 mt-2 text-sm text-purple-600 hover:text-purple-700 flex items-center justify-center gap-1"
+                                                      >
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                        </svg>
+                                                        Load more options ({unselectedBullets.length - INITIAL_SUGGESTIONS_SHOWN} more)
+                                                      </button>
+                                                    )}
+                                                    {isExpanded && hasMoreOptions && (
+                                                      <button
+                                                        onClick={() => setExpandedBulletOptions(prev => ({ ...prev, [selectedRole.roleIndex]: false }))}
+                                                        className="w-full py-2 mt-2 text-sm text-gray-500 hover:text-gray-600 flex items-center justify-center gap-1"
+                                                      >
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                                        </svg>
+                                                        Show less
+                                                      </button>
+                                                    )}
+                                                  </>
+                                                );
+                                              })()}
                                             </div>
                                           )}
                                         </div>
@@ -1098,6 +1244,31 @@ function ReviewContent() {
                                 </div>
                               </div>
 
+                              {/* Skills from Job Description - Most Important */}
+                              {skillsFromJobDescription.filter(s => !selectedSkills.includes(s)).length > 0 && (
+                                <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg>
+                                    <p className="text-xs font-medium text-amber-700">Required in Job Description - click to add:</p>
+                                  </div>
+                                  <div className="flex flex-wrap gap-2">
+                                    {skillsFromJobDescription
+                                      .filter(skill => !selectedSkills.includes(skill))
+                                      .map((skill) => (
+                                        <button
+                                          key={skill}
+                                          onClick={() => toggleSkill(skill)}
+                                          className="px-3 py-1 rounded-full text-sm transition-colors bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-200 font-medium"
+                                        >
+                                          + {skill}
+                                        </button>
+                                      ))}
+                                  </div>
+                                </div>
+                              )}
+
                               {/* Unselected skills from resume */}
                               {skillsFromResume.filter(s => !selectedSkills.includes(s)).length > 0 && (
                                 <div className="mb-4">
@@ -1121,7 +1292,7 @@ function ReviewContent() {
                               {/* AI recommended skills */}
                               {recommendedSkills.filter(s => !selectedSkills.includes(s)).length > 0 && (
                                 <div>
-                                  <p className="text-xs font-medium text-purple-600 mb-2">AI Recommendations - click to add:</p>
+                                  <p className="text-xs font-medium text-purple-600 mb-2">AI Suggestions - click to add:</p>
                                   <div className="flex flex-wrap gap-2">
                                     {recommendedSkills
                                       .filter(skill => !selectedSkills.includes(skill))
@@ -1161,6 +1332,150 @@ function ReviewContent() {
                           />
                         ))}
                       </div>
+                    </div>
+
+                    {/* Resume Quality Score */}
+                    <div className="bg-white rounded-xl shadow overflow-hidden">
+                      <button
+                        onClick={() => showReviewPanel ? setShowReviewPanel(false) : reviewResumeQuality()}
+                        disabled={selectedRoles.length === 0 || loadingReview}
+                        className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 disabled:opacity-50"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-medium ${
+                            reviewScore ? (reviewScore.overallScore >= 70 ? "bg-green-100 text-green-700" : reviewScore.overallScore >= 50 ? "bg-yellow-100 text-yellow-700" : "bg-red-100 text-red-700") : "bg-purple-100 text-purple-600"
+                          }`}>
+                            {loadingReview ? (
+                              <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                            ) : reviewScore ? (
+                              Math.round(reviewScore.overallScore)
+                            ) : (
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                              </svg>
+                            )}
+                          </div>
+                          <span className="font-medium text-gray-900">
+                            {loadingReview ? "Analyzing..." : reviewScore ? `Score: ${reviewScore.overallScore}/100` : "AI Resume Score"}
+                          </span>
+                        </div>
+                        <svg
+                          className={`w-5 h-5 text-gray-500 transition-transform ${showReviewPanel ? "rotate-180" : ""}`}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+
+                      {showReviewPanel && (
+                        <div className="px-4 pb-4 border-t">
+                          {loadingReview ? (
+                            <div className="py-8 text-center">
+                              <div className="animate-spin w-6 h-6 border-2 border-purple-600 border-t-transparent rounded-full mx-auto mb-2" />
+                              <p className="text-sm text-gray-500">AI is reviewing your resume bullets...</p>
+                            </div>
+                          ) : reviewScore ? (
+                            <div className="pt-4 space-y-4">
+                              {/* Overall Score */}
+                              <div className="text-center">
+                                <div className={`inline-flex items-center justify-center w-20 h-20 rounded-full text-2xl font-bold ${
+                                  reviewScore.overallScore >= 70 ? "bg-green-100 text-green-700" :
+                                  reviewScore.overallScore >= 50 ? "bg-yellow-100 text-yellow-700" :
+                                  "bg-red-100 text-red-700"
+                                }`}>
+                                  {reviewScore.overallScore}
+                                </div>
+                                <p className="text-sm text-gray-500 mt-2">Overall Score</p>
+                              </div>
+
+                              {/* Category Scores */}
+                              <div className="grid grid-cols-5 gap-2">
+                                {Object.entries(reviewScore.categoryScores).map(([key, value]) => (
+                                  <div key={key} className="text-center">
+                                    <div className={`text-sm font-semibold ${
+                                      value >= 7 ? "text-green-600" : value >= 5 ? "text-yellow-600" : "text-red-600"
+                                    }`}>
+                                      {value}/10
+                                    </div>
+                                    <div className="text-xs text-gray-500 capitalize">{key}</div>
+                                  </div>
+                                ))}
+                              </div>
+
+                              {/* Strengths */}
+                              {reviewScore.strengths.length > 0 && (
+                                <div>
+                                  <p className="text-xs font-medium text-green-600 mb-1">Strengths</p>
+                                  <ul className="text-xs text-gray-600 space-y-1">
+                                    {reviewScore.strengths.map((s, i) => (
+                                      <li key={i} className="flex items-start gap-1">
+                                        <span className="text-green-500">+</span> {s}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+
+                              {/* Improvements */}
+                              {reviewScore.improvements.length > 0 && (
+                                <div>
+                                  <p className="text-xs font-medium text-amber-600 mb-1">Areas to Improve</p>
+                                  <ul className="text-xs text-gray-600 space-y-1">
+                                    {reviewScore.improvements.map((s, i) => (
+                                      <li key={i} className="flex items-start gap-1">
+                                        <span className="text-amber-500">!</span> {s}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+
+                              {/* Bullet Feedback */}
+                              {reviewScore.bulletFeedback.length > 0 && (
+                                <div>
+                                  <p className="text-xs font-medium text-gray-700 mb-2">Bullet Analysis</p>
+                                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                                    {reviewScore.bulletFeedback.map((fb, i) => (
+                                      <div key={i} className={`p-2 rounded text-xs ${
+                                        fb.score >= 7 ? "bg-green-50 border border-green-200" :
+                                        fb.score >= 5 ? "bg-yellow-50 border border-yellow-200" :
+                                        "bg-red-50 border border-red-200"
+                                      }`}>
+                                        <div className="flex justify-between items-start mb-1">
+                                          <span className="text-gray-700 truncate flex-1 mr-2">{fb.bullet}</span>
+                                          <span className={`font-semibold ${
+                                            fb.score >= 7 ? "text-green-600" : fb.score >= 5 ? "text-yellow-600" : "text-red-600"
+                                          }`}>{fb.score}/10</span>
+                                        </div>
+                                        <p className="text-gray-500">{fb.feedback}</p>
+                                        {fb.suggestion && (
+                                          <p className="text-purple-600 mt-1 italic">Suggestion: {fb.suggestion}</p>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              <button
+                                onClick={reviewResumeQuality}
+                                className="w-full py-2 text-sm text-purple-600 hover:text-purple-700"
+                              >
+                                Re-analyze
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="py-4 text-center text-sm text-gray-500">
+                              Click to analyze your resume bullets with AI
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     {/* Download Buttons */}
@@ -1358,6 +1673,188 @@ function ReviewContent() {
                   )}
                 </div>
               </div>
+
+              {/* Right side - Job Details Sidebar */}
+              {showJobDetails && selectedJob?.job_details_parsed && (
+                <div className="bg-white rounded-xl shadow-lg overflow-hidden sticky top-8" style={{ height: "fit-content" }}>
+                  <div className="bg-gradient-to-r from-indigo-500 to-purple-600 px-4 py-3 flex items-center justify-between">
+                    <span className="text-sm font-medium text-white">Job Details</span>
+                    <button
+                      onClick={() => setShowJobDetails(false)}
+                      className="text-white/80 hover:text-white transition-colors"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+
+                  <div className="overflow-auto p-4 space-y-4" style={{ maxHeight: "calc(100vh - 200px)" }}>
+                    {(() => {
+                      const details: JobDetailsParsed = JSON.parse(selectedJob.job_details_parsed);
+                      return (
+                        <>
+                          {/* Location & Work Type */}
+                          {(details.location || details.work_type || details.salary_range) && (
+                            <div className="flex flex-wrap gap-2 pb-3 border-b border-gray-100">
+                              {details.location && (
+                                <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 rounded text-xs text-gray-600">
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                  </svg>
+                                  {details.location}
+                                </span>
+                              )}
+                              {details.work_type && (
+                                <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 rounded text-xs text-blue-600">
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                  </svg>
+                                  {details.work_type}
+                                </span>
+                              )}
+                              {details.salary_range && (
+                                <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-50 rounded text-xs text-green-600">
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                  {details.salary_range}
+                                </span>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Requirements */}
+                          {details.requirements.length > 0 && (
+                            <div>
+                              <h4 className="text-xs font-semibold text-red-600 uppercase tracking-wide mb-2 flex items-center gap-1">
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                                Requirements
+                              </h4>
+                              <ul className="space-y-1.5">
+                                {details.requirements.map((req, i) => (
+                                  <li key={i} className="text-xs text-gray-600 flex items-start gap-1.5">
+                                    <span className="text-red-400 mt-0.5">•</span>
+                                    <span>{req}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {/* Responsibilities */}
+                          {details.responsibilities.length > 0 && (
+                            <div>
+                              <h4 className="text-xs font-semibold text-indigo-600 uppercase tracking-wide mb-2 flex items-center gap-1">
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                                </svg>
+                                Responsibilities
+                              </h4>
+                              <ul className="space-y-1.5">
+                                {details.responsibilities.map((resp, i) => (
+                                  <li key={i} className="text-xs text-gray-600 flex items-start gap-1.5">
+                                    <span className="text-indigo-400 mt-0.5">•</span>
+                                    <span>{resp}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {/* Qualifications */}
+                          {details.qualifications.length > 0 && (
+                            <div>
+                              <h4 className="text-xs font-semibold text-purple-600 uppercase tracking-wide mb-2 flex items-center gap-1">
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                                </svg>
+                                Qualifications
+                              </h4>
+                              <ul className="space-y-1.5">
+                                {details.qualifications.map((qual, i) => (
+                                  <li key={i} className="text-xs text-gray-600 flex items-start gap-1.5">
+                                    <span className="text-purple-400 mt-0.5">•</span>
+                                    <span>{qual}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {/* Benefits */}
+                          {details.benefits.length > 0 && (
+                            <div>
+                              <h4 className="text-xs font-semibold text-green-600 uppercase tracking-wide mb-2 flex items-center gap-1">
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
+                                </svg>
+                                Benefits
+                              </h4>
+                              <ul className="space-y-1.5">
+                                {details.benefits.map((benefit, i) => (
+                                  <li key={i} className="text-xs text-gray-600 flex items-start gap-1.5">
+                                    <span className="text-green-400 mt-0.5">•</span>
+                                    <span>{benefit}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
+
+                    {/* Full Description - Collapsible */}
+                    {selectedJob.job_description && (
+                      <div className="border-t border-gray-200 pt-3 mt-3">
+                        <button
+                          onClick={() => setShowFullDescription(!showFullDescription)}
+                          className="w-full flex items-center justify-between text-xs font-semibold text-gray-500 uppercase tracking-wide hover:text-gray-700 transition-colors"
+                        >
+                          <span className="flex items-center gap-1">
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            Full Description
+                          </span>
+                          <svg
+                            className={`w-4 h-4 transition-transform ${showFullDescription ? "rotate-180" : ""}`}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+                        {showFullDescription && (
+                          <div className="mt-3 p-3 bg-gray-50 rounded-lg max-h-64 overflow-y-auto">
+                            <p className="text-xs text-gray-600 whitespace-pre-wrap leading-relaxed">
+                              {selectedJob.job_description}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Toggle button when sidebar is hidden */}
+              {!showJobDetails && selectedJob?.job_details_parsed && (
+                <button
+                  onClick={() => setShowJobDetails(true)}
+                  className="fixed right-4 top-1/2 -translate-y-1/2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white p-2 rounded-l-lg shadow-lg hover:from-indigo-600 hover:to-purple-700 transition-all"
+                  title="Show Job Details"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+              )}
             </div>
           </>
         )}

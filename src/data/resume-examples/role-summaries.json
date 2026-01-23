@@ -1,0 +1,128 @@
+[
+  {
+    "role": "Agile Project Manager",
+    "summary": "Experienced Agile Project Manager skilled in leading data governance initiatives and improving decision-making. Passionate about data integrity and efficiency with over 7 years of project management experience. Successfully managed capital budgets and coached teams, resulting in significant cost savings and quality improvements.",
+    "skills": [
+      "Data Governance",
+      "Decision-Making",
+      "Budget Management",
+      "Team Coaching"
+    ]
+  },
+  {
+    "role": "Assistant Project Manager",
+    "summary": "Eager to leverage over 5 years of project management experience, skills in resource coordination, and a track record of enhancing project schedules and budgets. Committed to supporting project delivery and optimizing key project through strategic budget adjustments.",
+    "skills": [
+      "Resource Coordination",
+      "Scheduling",
+      "Budget Management"
+    ]
+  },
+  {
+    "role": "Certified Project Management Professional",
+    "summary": "Result-oriented project team leader with 5 years of experience covering project and product management including developing, implementing and supporting complex infrastructures for fast growing startups. A fast and eager learner, I am detail oriented and adapt to changing project requirements quickly to meet business goals.",
+    "skills": [
+      "Project Management",
+      "Product Management",
+      "Infrastructure",
+      "Startups"
+    ]
+  },
+  {
+    "role": "Software Engineer",
+    "summary": "Passionate Software Engineer with 10+ years of experience in developing web applications and backend systems. Skilled at writing clear, concise code that is easy to maintain and troubleshoot. Experienced in working with both small and large teams across multiple projects and companies.",
+    "skills": [
+      "Web Applications",
+      "Backend Systems",
+      "Code Quality",
+      "Teamwork"
+    ]
+  },
+  {
+    "role": "Product Manager",
+    "summary": "With over 5 years of experience in product management, I have a proven track record of driving product strategy and innovation. My expertise in leading cross-functional teams to deliver impactful products aligns with my passion for creating solutions that meet user needs and business goals.",
+    "skills": [
+      "Product Strategy",
+      "Innovation",
+      "Cross-functional Leadership"
+    ]
+  },
+  {
+    "role": "Sales Manager",
+    "summary": "Results-driven Sales Manager with 8+ years of experience leading high-performing sales teams across B2B and B2C markets. Achieved 40% year-over-year revenue growth by implementing strategic sales initiatives and CRM optimization.",
+    "skills": [
+      "Sales Leadership",
+      "B2B",
+      "B2C",
+      "Revenue Growth"
+    ]
+  },
+  {
+    "role": "Data Analyst",
+    "summary": "Data Analyst with 5+ years of experience transforming complex datasets into actionable business insights. Led projects analyzing user engagement across multiple platforms, resulting in 30% improvement in retention rates.",
+    "skills": [
+      "Data Analysis",
+      "Business Insights",
+      "User Engagement"
+    ]
+  },
+  {
+    "role": "HR Manager",
+    "summary": "Head of Human Resources with 12+ years developing large impactful teams with skills in consulting and training. Managed 5 department heads across 300+ employees with annual revenue up to $12M.",
+    "skills": [
+      "HR Leadership",
+      "Team Development",
+      "Training",
+      "Consulting"
+    ]
+  },
+  {
+    "role": "Operations Manager",
+    "summary": "Experienced operations and supply chain professional with proven track record managing large-scale logistics. Adept at leading teams of up to 100 staff, optimizing productivity with 33% YoY improvement, and driving cost savings.",
+    "skills": [
+      "Operations",
+      "Supply Chain",
+      "Logistics",
+      "Team Leadership"
+    ]
+  },
+  {
+    "role": "UX Designer",
+    "summary": "Senior UX Designer with 8+ years transforming user needs into engaging digital experiences. Increased user engagement by 40% through targeted design improvements and led team of 10 designers.",
+    "skills": [
+      "UX Design",
+      "User Research",
+      "Team Leadership"
+    ]
+  },
+  {
+    "role": "Financial Analyst",
+    "summary": "Enthusiastic Financial Analyst with over 9 years of experience in data analysis, budgeting, and project management. Skilled in developing financial models and improving forecast processes.",
+    "skills": [
+      "Financial Analysis",
+      "Budgeting",
+      "Forecasting",
+      "Financial Modeling"
+    ]
+  },
+  {
+    "role": "Account Executive",
+    "summary": "Senior Account Executive with 6+ years in Salesforce solution sales, excelling at driving business growth through strategic partnerships. Track record includes multimillion-dollar deals and 95% customer satisfaction rate.",
+    "skills": [
+      "Salesforce",
+      "Solution Sales",
+      "Partnerships",
+      "Customer Success"
+    ]
+  },
+  {
+    "role": "Business Analyst",
+    "summary": "Seasoned Business Analyst with over 12 years in business analytics, specializing in data visualization and BI software. Led major analytics dashboard projects that enhanced reporting efficiency by 30%.",
+    "skills": [
+      "Business Analytics",
+      "Data Visualization",
+      "BI",
+      "Dashboards"
+    ]
+  }
+]

@@ -1,0 +1,2737 @@
+[
+  {
+    "role": "Software Engineer",
+    "category": "Technology",
+    "seniority": "Senior",
+    "bullet": "Successfully converted whole project from Python 2 to 3.8.0",
+    "actionVerb": "Converted",
+    "metricType": "Technical",
+    "skills": [
+      "Python",
+      "Migration"
+    ]
+  },
+  {
+    "role": "Software Engineer",
+    "category": "Technology",
+    "seniority": "Senior",
+    "bullet": "Scripted unique test plans and processes to remove redundancy by 40% and ensured predictable outcomes",
+    "actionVerb": "Scripted",
+    "metricType": "Percentage",
+    "skills": [
+      "Testing",
+      "QA",
+      "Automation"
+    ]
+  },
+  {
+    "role": "Software Engineer",
+    "category": "Technology",
+    "seniority": "Senior",
+    "bullet": "Developed a desktop application to automate database testing process, improved efficiency by 65%",
+    "actionVerb": "Developed",
+    "metricType": "Percentage",
+    "skills": [
+      "Automation",
+      "Database",
+      "Testing"
+    ]
+  },
+  {
+    "role": "Software Engineer",
+    "category": "Technology",
+    "seniority": "Senior",
+    "bullet": "Automated process to create usage graphs, saving $500,000/year & increasing accuracy",
+    "actionVerb": "Automated",
+    "metricType": "Dollar Amount",
+    "skills": [
+      "Automation",
+      "Data Visualization"
+    ]
+  },
+  {
+    "role": "Software Engineer",
+    "category": "Technology",
+    "seniority": "Mid",
+    "bullet": "Moved the automation solution into a commercial software ($60k/year)",
+    "actionVerb": "Moved",
+    "metricType": "Dollar Amount",
+    "skills": [
+      "Commercial Software",
+      "Automation"
+    ]
+  },
+  {
+    "role": "Software Engineer",
+    "category": "Technology",
+    "seniority": "Mid",
+    "bullet": "Designed and developed reusable software components used in 3 different projects, reducing development effort by 50%",
+    "actionVerb": "Designed",
+    "metricType": "Percentage",
+    "skills": [
+      "Software Architecture",
+      "Reusability"
+    ]
+  },
+  {
+    "role": "Software Engineer",
+    "category": "Technology",
+    "seniority": "Mid",
+    "bullet": "Re-engineered critical modules within a sprint to optimize performance by 68%",
+    "actionVerb": "Re-engineered",
+    "metricType": "Percentage",
+    "skills": [
+      "Performance Optimization",
+      "Agile"
+    ]
+  },
+  {
+    "role": "Software Engineer",
+    "category": "Technology",
+    "seniority": "Mid",
+    "bullet": "Rated with best annual performance rating for all years; given to top ~5% employees",
+    "actionVerb": "Rated",
+    "metricType": "Percentage",
+    "skills": [
+      "Performance Recognition"
+    ]
+  },
+  {
+    "role": "Software Engineer",
+    "category": "Technology",
+    "seniority": "Junior",
+    "bullet": "Fueled additional revenue stream through responsive customer support, generating $18k in new license sales",
+    "actionVerb": "Fueled",
+    "metricType": "Dollar Amount",
+    "skills": [
+      "Customer Support",
+      "Revenue"
+    ]
+  },
+  {
+    "role": "Software Engineer",
+    "category": "Technology",
+    "seniority": "Junior",
+    "bullet": "Reduced processing time by 75% from 16+ seconds to less than 4 seconds by redesigning the algorithm",
+    "actionVerb": "Reduced",
+    "metricType": "Percentage",
+    "skills": [
+      "Algorithm Optimization",
+      "Performance"
+    ]
+  },
+  {
+    "role": "Software Engineer",
+    "category": "Technology",
+    "seniority": "Junior",
+    "bullet": "Spearheaded the revamp of tech stack which resulted in 40% decrease in server costs",
+    "actionVerb": "Spearheaded",
+    "metricType": "Percentage",
+    "skills": [
+      "Tech Stack",
+      "Cost Reduction"
+    ]
+  },
+  {
+    "role": "Software Engineer",
+    "category": "Technology",
+    "seniority": "Junior",
+    "bullet": "Improved user interfaces by updating menus to be more intuitive, increasing sales by 5%",
+    "actionVerb": "Improved",
+    "metricType": "Percentage",
+    "skills": [
+      "UI/UX",
+      "Sales Impact"
+    ]
+  },
+  {
+    "role": "Software Engineer",
+    "category": "Technology",
+    "seniority": "Senior",
+    "bullet": "Spearheaded a $12M software project from design to distribution as a senior software engineer in a 12-people team",
+    "actionVerb": "Spearheaded",
+    "metricType": "Dollar Amount",
+    "skills": [
+      "Project Leadership",
+      "Team Management"
+    ]
+  },
+  {
+    "role": "Software Engineer",
+    "category": "Technology",
+    "seniority": "Senior",
+    "bullet": "30% improved query efficiency by designing and fully revising the two largest MySQL databases",
+    "actionVerb": "Improved",
+    "metricType": "Percentage",
+    "skills": [
+      "MySQL",
+      "Database Optimization"
+    ]
+  },
+  {
+    "role": "Software Engineer",
+    "category": "Technology",
+    "seniority": "Senior",
+    "bullet": "Developed a chatbot which helped customer to reduce costs by 240% in their customer service department",
+    "actionVerb": "Developed",
+    "metricType": "Percentage",
+    "skills": [
+      "Chatbot",
+      "AI",
+      "Customer Service"
+    ]
+  },
+  {
+    "role": "Product Manager",
+    "category": "Product",
+    "seniority": "Senior",
+    "bullet": "Led the development and launch of a new financial data integration platform, increasing market penetration by 25% within the first year",
+    "actionVerb": "Led",
+    "metricType": "Percentage",
+    "skills": [
+      "Product Launch",
+      "Market Expansion",
+      "Fintech"
+    ]
+  },
+  {
+    "role": "Product Manager",
+    "category": "Product",
+    "seniority": "Senior",
+    "bullet": "Managed a cross-functional team of 10, including engineers and designers, to deliver project on time and under budget",
+    "actionVerb": "Managed",
+    "metricType": "Team Size",
+    "skills": [
+      "Cross-functional Leadership",
+      "Budget Management"
+    ]
+  },
+  {
+    "role": "Product Manager",
+    "category": "Product",
+    "seniority": "Senior",
+    "bullet": "Implemented a customer feedback loop that resulted in a 40% improvement in customer satisfaction scores",
+    "actionVerb": "Implemented",
+    "metricType": "Percentage",
+    "skills": [
+      "Customer Feedback",
+      "CSAT",
+      "User Research"
+    ]
+  },
+  {
+    "role": "Product Manager",
+    "category": "Product",
+    "seniority": "Senior",
+    "bullet": "Conducted competitive analysis to inform product positioning, leading to a 15% increase in product adoption",
+    "actionVerb": "Conducted",
+    "metricType": "Percentage",
+    "skills": [
+      "Competitive Analysis",
+      "Product Strategy"
+    ]
+  },
+  {
+    "role": "Product Manager",
+    "category": "Product",
+    "seniority": "Senior",
+    "bullet": "Negotiated partnerships with key financial institutions, expanding the platform's reach and functionality",
+    "actionVerb": "Negotiated",
+    "metricType": "Qualitative",
+    "skills": [
+      "Partnership Development",
+      "Business Development"
+    ]
+  },
+  {
+    "role": "Product Manager",
+    "category": "Product",
+    "seniority": "Senior",
+    "bullet": "Developed and executed a go-to-market strategy that resulted in the product being featured in major tech publications",
+    "actionVerb": "Developed",
+    "metricType": "Qualitative",
+    "skills": [
+      "GTM Strategy",
+      "Marketing",
+      "PR"
+    ]
+  },
+  {
+    "role": "Product Manager",
+    "category": "Product",
+    "seniority": "Mid",
+    "bullet": "Oversaw the development of a new payment processing feature, resulting in a 20% increase in transaction volume",
+    "actionVerb": "Oversaw",
+    "metricType": "Percentage",
+    "skills": [
+      "Payment Processing",
+      "Feature Development"
+    ]
+  },
+  {
+    "role": "Product Manager",
+    "category": "Product",
+    "seniority": "Mid",
+    "bullet": "Collaborated with engineering team to streamline development process, reducing time to market by 30%",
+    "actionVerb": "Collaborated",
+    "metricType": "Percentage",
+    "skills": [
+      "Process Improvement",
+      "Engineering Collaboration"
+    ]
+  },
+  {
+    "role": "Product Manager",
+    "category": "Product",
+    "seniority": "Mid",
+    "bullet": "Led user research initiatives that informed product improvements, enhancing user experience and satisfaction",
+    "actionVerb": "Led",
+    "metricType": "Qualitative",
+    "skills": [
+      "User Research",
+      "UX",
+      "Product Discovery"
+    ]
+  },
+  {
+    "role": "Product Manager",
+    "category": "Product",
+    "seniority": "Mid",
+    "bullet": "Managed product backlog and prioritization, ensuring alignment with strategic business goals",
+    "actionVerb": "Managed",
+    "metricType": "Qualitative",
+    "skills": [
+      "Backlog Management",
+      "Prioritization",
+      "Strategy"
+    ]
+  },
+  {
+    "role": "Product Manager",
+    "category": "Product",
+    "seniority": "Entry",
+    "bullet": "Contributed to the development of a CRM feature that increased user engagement by 30%",
+    "actionVerb": "Contributed",
+    "metricType": "Percentage",
+    "skills": [
+      "CRM",
+      "User Engagement",
+      "Feature Development"
+    ]
+  },
+  {
+    "role": "Product Manager",
+    "category": "Product",
+    "seniority": "Entry",
+    "bullet": "Participated in agile development processes, contributing to sprint planning and review meetings",
+    "actionVerb": "Participated",
+    "metricType": "Qualitative",
+    "skills": [
+      "Agile",
+      "Scrum",
+      "Sprint Planning"
+    ]
+  },
+  {
+    "role": "Sales Manager",
+    "category": "Sales",
+    "seniority": "Senior",
+    "bullet": "Led a team of 50+ sales professionals, achieving a 40% year-over-year increase in sales revenue",
+    "actionVerb": "Led",
+    "metricType": "Percentage",
+    "skills": [
+      "Team Leadership",
+      "Revenue Growth"
+    ]
+  },
+  {
+    "role": "Sales Manager",
+    "category": "Sales",
+    "seniority": "Senior",
+    "bullet": "Developed and executed a comprehensive sales strategy, resulting in acquisition of 200+ new clients within first year",
+    "actionVerb": "Developed",
+    "metricType": "Count",
+    "skills": [
+      "Sales Strategy",
+      "Client Acquisition"
+    ]
+  },
+  {
+    "role": "Sales Manager",
+    "category": "Sales",
+    "seniority": "Senior",
+    "bullet": "Implemented a CRM system that improved lead generation processes by 35%, enhancing sales team efficiency",
+    "actionVerb": "Implemented",
+    "metricType": "Percentage",
+    "skills": [
+      "CRM",
+      "Lead Generation",
+      "Sales Operations"
+    ]
+  },
+  {
+    "role": "Sales Manager",
+    "category": "Sales",
+    "seniority": "Senior",
+    "bullet": "Negotiated high-value contracts with key accounts, securing deals worth over $5M",
+    "actionVerb": "Negotiated",
+    "metricType": "Dollar Amount",
+    "skills": [
+      "Contract Negotiation",
+      "Enterprise Sales"
+    ]
+  },
+  {
+    "role": "Sales Manager",
+    "category": "Sales",
+    "seniority": "Senior",
+    "bullet": "Launched a training program for sales staff, increasing team productivity by 25% and reducing employee turnover by 15%",
+    "actionVerb": "Launched",
+    "metricType": "Percentage",
+    "skills": [
+      "Training",
+      "Productivity",
+      "Retention"
+    ]
+  },
+  {
+    "role": "Sales Manager",
+    "category": "Sales",
+    "seniority": "Senior",
+    "bullet": "Spearheaded adoption of data-driven sales techniques, resulting in 50% improvement in sales forecasting accuracy",
+    "actionVerb": "Spearheaded",
+    "metricType": "Percentage",
+    "skills": [
+      "Data Analytics",
+      "Sales Forecasting"
+    ]
+  },
+  {
+    "role": "Sales Manager",
+    "category": "Sales",
+    "seniority": "Mid",
+    "bullet": "Managed a regional sales team of 30, driving a 25% increase in regional sales through targeted marketing campaigns",
+    "actionVerb": "Managed",
+    "metricType": "Percentage",
+    "skills": [
+      "Regional Sales",
+      "Team Management"
+    ]
+  },
+  {
+    "role": "Sales Manager",
+    "category": "Sales",
+    "seniority": "Mid",
+    "bullet": "Orchestrated the launch of a new product line, resulting in a 20% increase in market share within first six months",
+    "actionVerb": "Orchestrated",
+    "metricType": "Percentage",
+    "skills": [
+      "Product Launch",
+      "Market Share"
+    ]
+  },
+  {
+    "role": "Sales Manager",
+    "category": "Sales",
+    "seniority": "Mid",
+    "bullet": "Enhanced customer satisfaction rates by 30% through implementation of new customer feedback system",
+    "actionVerb": "Enhanced",
+    "metricType": "Percentage",
+    "skills": [
+      "Customer Satisfaction",
+      "Feedback Systems"
+    ]
+  },
+  {
+    "role": "Sales Manager",
+    "category": "Sales",
+    "seniority": "Mid",
+    "bullet": "Secured a pivotal partnership with a leading industry influencer, enhancing brand visibility and credibility",
+    "actionVerb": "Secured",
+    "metricType": "Qualitative",
+    "skills": [
+      "Partnerships",
+      "Brand Marketing"
+    ]
+  },
+  {
+    "role": "Sales Manager",
+    "category": "Sales",
+    "seniority": "Entry",
+    "bullet": "Led a team of 20 sales representatives, achieving a 15% increase in sales targets over two consecutive years",
+    "actionVerb": "Led",
+    "metricType": "Percentage",
+    "skills": [
+      "Team Leadership",
+      "Target Achievement"
+    ]
+  },
+  {
+    "role": "Sales Manager",
+    "category": "Sales",
+    "seniority": "Entry",
+    "bullet": "Developed and maintained relationships with key clients, contributing to a 20% increase in client retention rates",
+    "actionVerb": "Developed",
+    "metricType": "Percentage",
+    "skills": [
+      "Client Relations",
+      "Retention"
+    ]
+  },
+  {
+    "role": "Data Analyst",
+    "category": "Data/Analytics",
+    "seniority": "Senior",
+    "bullet": "Led a project analyzing user engagement data across multiple platforms, resulting in 30% improvement in user retention rates",
+    "actionVerb": "Led",
+    "metricType": "Percentage",
+    "skills": [
+      "User Engagement",
+      "Retention Analysis"
+    ]
+  },
+  {
+    "role": "Data Analyst",
+    "category": "Data/Analytics",
+    "seniority": "Senior",
+    "bullet": "Developed comprehensive dashboards using Power BI that aggregated performance metrics, streamlining access for 200+ stakeholders",
+    "actionVerb": "Developed",
+    "metricType": "Count",
+    "skills": [
+      "Power BI",
+      "Dashboards",
+      "Stakeholder Reporting"
+    ]
+  },
+  {
+    "role": "Data Analyst",
+    "category": "Data/Analytics",
+    "seniority": "Senior",
+    "bullet": "Collaborated with cross-functional teams to define KPIs, improving team's ability to respond to market dynamics",
+    "actionVerb": "Collaborated",
+    "metricType": "Qualitative",
+    "skills": [
+      "KPIs",
+      "Cross-functional",
+      "Strategy"
+    ]
+  },
+  {
+    "role": "Data Analyst",
+    "category": "Data/Analytics",
+    "seniority": "Senior",
+    "bullet": "Implemented predictive analytics techniques that identified emerging trends, enabling strategic decisions resulting in 25% increase in quarterly sales",
+    "actionVerb": "Implemented",
+    "metricType": "Percentage",
+    "skills": [
+      "Predictive Analytics",
+      "Sales Impact"
+    ]
+  },
+  {
+    "role": "Data Analyst",
+    "category": "Data/Analytics",
+    "seniority": "Mid",
+    "bullet": "Managed data extraction and transformation processes using SQL, contributing to 20% reduction in data processing time",
+    "actionVerb": "Managed",
+    "metricType": "Percentage",
+    "skills": [
+      "SQL",
+      "ETL",
+      "Data Processing"
+    ]
+  },
+  {
+    "role": "Data Analyst",
+    "category": "Data/Analytics",
+    "seniority": "Mid",
+    "bullet": "Produced detailed data reports that informed marketing strategies, leading to 15% uptick in customer engagement",
+    "actionVerb": "Produced",
+    "metricType": "Percentage",
+    "skills": [
+      "Reporting",
+      "Marketing Analytics"
+    ]
+  },
+  {
+    "role": "Data Analyst",
+    "category": "Data/Analytics",
+    "seniority": "Mid",
+    "bullet": "Spearheaded training sessions for new team members on data analysis best practices, fostering continuous improvement",
+    "actionVerb": "Spearheaded",
+    "metricType": "Qualitative",
+    "skills": [
+      "Training",
+      "Team Development"
+    ]
+  },
+  {
+    "role": "Data Analyst",
+    "category": "Data/Analytics",
+    "seniority": "Mid",
+    "bullet": "Conducted extensive A/B testing to analyze website performance, leading to insights that improved conversion rate by 10%",
+    "actionVerb": "Conducted",
+    "metricType": "Percentage",
+    "skills": [
+      "A/B Testing",
+      "CRO",
+      "Web Analytics"
+    ]
+  },
+  {
+    "role": "Data Analyst",
+    "category": "Data/Analytics",
+    "seniority": "Entry",
+    "bullet": "Automated report generation processes for market analysis, resulting in time savings of 15 hours per week",
+    "actionVerb": "Automated",
+    "metricType": "Time",
+    "skills": [
+      "Automation",
+      "Reporting",
+      "Efficiency"
+    ]
+  },
+  {
+    "role": "Data Analyst",
+    "category": "Data/Analytics",
+    "seniority": "Entry",
+    "bullet": "Analyzed customer feedback data to identify key areas for product improvement, contributing to 5% increase in CSAT scores",
+    "actionVerb": "Analyzed",
+    "metricType": "Percentage",
+    "skills": [
+      "Customer Feedback",
+      "CSAT"
+    ]
+  },
+  {
+    "role": "Data Analyst",
+    "category": "Data/Analytics",
+    "seniority": "Entry",
+    "bullet": "Utilized Excel and SQL to analyze booking trends, influencing strategic initiatives that enhanced revenue by 10%",
+    "actionVerb": "Utilized",
+    "metricType": "Percentage",
+    "skills": [
+      "Excel",
+      "SQL",
+      "Revenue Analysis"
+    ]
+  },
+  {
+    "role": "Marketing Manager",
+    "category": "Marketing",
+    "seniority": "Senior",
+    "bullet": "Generated $2.4M in new revenue through segmented email automation campaigns",
+    "actionVerb": "Generated",
+    "metricType": "Dollar Amount",
+    "skills": [
+      "Email Marketing",
+      "Automation",
+      "Revenue"
+    ]
+  },
+  {
+    "role": "Marketing Manager",
+    "category": "Marketing",
+    "seniority": "Senior",
+    "bullet": "Raised engagement 48% YoY through storytelling content and A/B testing",
+    "actionVerb": "Raised",
+    "metricType": "Percentage",
+    "skills": [
+      "Content Marketing",
+      "A/B Testing",
+      "Engagement"
+    ]
+  },
+  {
+    "role": "Marketing Manager",
+    "category": "Marketing",
+    "seniority": "Senior",
+    "bullet": "Reduced ad spend by 22% by reallocating budget to top-performing audiences",
+    "actionVerb": "Reduced",
+    "metricType": "Percentage",
+    "skills": [
+      "Budget Optimization",
+      "PPC",
+      "ROAS"
+    ]
+  },
+  {
+    "role": "Marketing Manager",
+    "category": "Marketing",
+    "seniority": "Senior",
+    "bullet": "Expanded reach by 6.3M impressions via influencer partnerships",
+    "actionVerb": "Expanded",
+    "metricType": "Count",
+    "skills": [
+      "Influencer Marketing",
+      "Brand Awareness"
+    ]
+  },
+  {
+    "role": "Marketing Manager",
+    "category": "Marketing",
+    "seniority": "Senior",
+    "bullet": "Improved landing page conversions by 18% with CRO testing",
+    "actionVerb": "Improved",
+    "metricType": "Percentage",
+    "skills": [
+      "CRO",
+      "Landing Pages",
+      "Conversion"
+    ]
+  },
+  {
+    "role": "Marketing Manager",
+    "category": "Marketing",
+    "seniority": "Senior",
+    "bullet": "Led 8-person team; cut project delivery times 30% using Agile sprints",
+    "actionVerb": "Led",
+    "metricType": "Percentage",
+    "skills": [
+      "Team Leadership",
+      "Agile",
+      "Project Management"
+    ]
+  },
+  {
+    "role": "Marketing Manager",
+    "category": "Marketing",
+    "seniority": "Mid",
+    "bullet": "Managed cross-channel campaigns (email, paid, social) reaching 5.2M users and boosting CTR by 24%",
+    "actionVerb": "Managed",
+    "metricType": "Percentage",
+    "skills": [
+      "Multi-channel Marketing",
+      "CTR"
+    ]
+  },
+  {
+    "role": "Marketing Manager",
+    "category": "Marketing",
+    "seniority": "Mid",
+    "bullet": "Reported ROI weekly; used GA4 + Looker to cut CPC by 19%",
+    "actionVerb": "Reported",
+    "metricType": "Percentage",
+    "skills": [
+      "GA4",
+      "Analytics",
+      "CPC Optimization"
+    ]
+  },
+  {
+    "role": "Marketing Manager",
+    "category": "Marketing",
+    "seniority": "Mid",
+    "bullet": "Partnered with creative + copy teams; redesigned ads to improve engagement by 31%",
+    "actionVerb": "Partnered",
+    "metricType": "Percentage",
+    "skills": [
+      "Creative Collaboration",
+      "Ad Design"
+    ]
+  },
+  {
+    "role": "IT Project Manager",
+    "category": "Technology",
+    "seniority": "Senior",
+    "bullet": "Managed the global software development team of 40 members",
+    "actionVerb": "Managed",
+    "metricType": "Team Size",
+    "skills": [
+      "Global Team Management"
+    ]
+  },
+  {
+    "role": "IT Project Manager",
+    "category": "Technology",
+    "seniority": "Senior",
+    "bullet": "Upgraded SAP system to ECC6, increasing productivity by 30%",
+    "actionVerb": "Upgraded",
+    "metricType": "Percentage",
+    "skills": [
+      "SAP",
+      "System Migration"
+    ]
+  },
+  {
+    "role": "IT Project Manager",
+    "category": "Technology",
+    "seniority": "Senior",
+    "bullet": "Increased profits by 15% with solutions to reduce cash conflicts",
+    "actionVerb": "Increased",
+    "metricType": "Percentage",
+    "skills": [
+      "Financial Impact",
+      "Problem Solving"
+    ]
+  },
+  {
+    "role": "IT Project Manager",
+    "category": "Technology",
+    "seniority": "Senior",
+    "bullet": "Managed testing & cutover activities across 10 software releases; successfully delivered on 2900+ requirements",
+    "actionVerb": "Managed",
+    "metricType": "Count",
+    "skills": [
+      "Release Management",
+      "QA"
+    ]
+  },
+  {
+    "role": "IT Project Manager",
+    "category": "Technology",
+    "seniority": "Mid",
+    "bullet": "Managing budgets of up to $4.5M, budgeting, scheduling with SAP",
+    "actionVerb": "Managing",
+    "metricType": "Dollar Amount",
+    "skills": [
+      "Budget Management",
+      "SAP"
+    ]
+  },
+  {
+    "role": "IT Project Manager",
+    "category": "Technology",
+    "seniority": "Mid",
+    "bullet": "Developed 8+ new features and enhancements to existing features, reducing customer turnover by 20%",
+    "actionVerb": "Developed",
+    "metricType": "Percentage",
+    "skills": [
+      "Feature Development",
+      "Customer Retention"
+    ]
+  },
+  {
+    "role": "IT Project Manager",
+    "category": "Technology",
+    "seniority": "Mid",
+    "bullet": "Recruited, hired, and trained 10 developers that met company's needs",
+    "actionVerb": "Recruited",
+    "metricType": "Count",
+    "skills": [
+      "Hiring",
+      "Team Building"
+    ]
+  },
+  {
+    "role": "IT Project Manager",
+    "category": "Technology",
+    "seniority": "Entry",
+    "bullet": "Displayed autonomy by planning and executing regular software updates to 200+ company machines",
+    "actionVerb": "Displayed",
+    "metricType": "Count",
+    "skills": [
+      "IT Operations",
+      "Maintenance"
+    ]
+  },
+  {
+    "role": "IT Project Manager",
+    "category": "Technology",
+    "seniority": "Entry",
+    "bullet": "Reduced 7% of the forecasted spending by negotiating lump sum contracts with vendors",
+    "actionVerb": "Reduced",
+    "metricType": "Percentage",
+    "skills": [
+      "Vendor Negotiation",
+      "Cost Savings"
+    ]
+  },
+  {
+    "role": "IT Project Manager",
+    "category": "Technology",
+    "seniority": "Entry",
+    "bullet": "Delivered budget management program to manage $400M marketing budget",
+    "actionVerb": "Delivered",
+    "metricType": "Dollar Amount",
+    "skills": [
+      "Budget Management",
+      "Enterprise Scale"
+    ]
+  },
+  {
+    "role": "Account Executive",
+    "category": "Sales",
+    "seniority": "Senior",
+    "bullet": "Spearheaded integration of Salesforce solutions with clients' existing systems, leading to a 25% increase in client efficiency",
+    "actionVerb": "Spearheaded",
+    "metricType": "Percentage",
+    "skills": [
+      "Salesforce",
+      "Integration",
+      "Client Success"
+    ]
+  },
+  {
+    "role": "Account Executive",
+    "category": "Sales",
+    "seniority": "Senior",
+    "bullet": "Established and cultivated strategic partnerships with industry leaders, contributing to a 40% expansion of client base",
+    "actionVerb": "Established",
+    "metricType": "Percentage",
+    "skills": [
+      "Partnership Development",
+      "Client Acquisition"
+    ]
+  },
+  {
+    "role": "Account Executive",
+    "category": "Sales",
+    "seniority": "Senior",
+    "bullet": "Exceeded annual sales targets by 20% through strategic planning and execution of sales initiatives",
+    "actionVerb": "Exceeded",
+    "metricType": "Percentage",
+    "skills": [
+      "Sales Targets",
+      "Strategic Planning"
+    ]
+  },
+  {
+    "role": "Account Executive",
+    "category": "Sales",
+    "seniority": "Senior",
+    "bullet": "Facilitated in-depth Salesforce training sessions for clients, resulting in a 95% customer satisfaction rate",
+    "actionVerb": "Facilitated",
+    "metricType": "Percentage",
+    "skills": [
+      "Training",
+      "Customer Satisfaction"
+    ]
+  },
+  {
+    "role": "Account Executive",
+    "category": "Sales",
+    "seniority": "Mid",
+    "bullet": "Developed and executed a roadmap for Salesforce CRM implementations, driving 30% more effective lead management",
+    "actionVerb": "Developed",
+    "metricType": "Percentage",
+    "skills": [
+      "CRM Implementation",
+      "Lead Management"
+    ]
+  },
+  {
+    "role": "Account Executive",
+    "category": "Sales",
+    "seniority": "Mid",
+    "bullet": "Managed the sales cycle end-to-end for key accounts, securing deals averaging $750K in value",
+    "actionVerb": "Managed",
+    "metricType": "Dollar Amount",
+    "skills": [
+      "Enterprise Sales",
+      "Deal Closing"
+    ]
+  },
+  {
+    "role": "Account Executive",
+    "category": "Sales",
+    "seniority": "Mid",
+    "bullet": "Mentored junior sales associates, enhancing team productivity and sales effectiveness",
+    "actionVerb": "Mentored",
+    "metricType": "Qualitative",
+    "skills": [
+      "Mentorship",
+      "Team Development"
+    ]
+  },
+  {
+    "role": "Account Executive",
+    "category": "Sales",
+    "seniority": "Entry",
+    "bullet": "Initiated and nurtured relationships with mid-market clients, leading to a steady 15% annual growth in territory revenue",
+    "actionVerb": "Initiated",
+    "metricType": "Percentage",
+    "skills": [
+      "Client Relations",
+      "Revenue Growth"
+    ]
+  },
+  {
+    "role": "Account Executive",
+    "category": "Sales",
+    "seniority": "Entry",
+    "bullet": "Implemented a strategic sales pipeline management process, improving forecasting accuracy by 20%",
+    "actionVerb": "Implemented",
+    "metricType": "Percentage",
+    "skills": [
+      "Pipeline Management",
+      "Forecasting"
+    ]
+  },
+  {
+    "role": "Account Executive",
+    "category": "Sales",
+    "seniority": "Entry",
+    "bullet": "Closed 10+ high-value accounts within the first year by leveraging in-depth industry knowledge",
+    "actionVerb": "Closed",
+    "metricType": "Count",
+    "skills": [
+      "Account Closing",
+      "Industry Expertise"
+    ]
+  },
+  {
+    "role": "Business Analyst",
+    "category": "Business",
+    "seniority": "Senior",
+    "bullet": "Led the development of an advanced analytics dashboard that improved decision-making speed for senior management by 25%",
+    "actionVerb": "Led",
+    "metricType": "Percentage",
+    "skills": [
+      "Analytics Dashboard",
+      "Decision Support"
+    ]
+  },
+  {
+    "role": "Business Analyst",
+    "category": "Business",
+    "seniority": "Senior",
+    "bullet": "Facilitated over 40 workshops to define and refine project scopes, translating complex data into actionable insights",
+    "actionVerb": "Facilitated",
+    "metricType": "Count",
+    "skills": [
+      "Workshops",
+      "Stakeholder Engagement"
+    ]
+  },
+  {
+    "role": "Business Analyst",
+    "category": "Business",
+    "seniority": "Senior",
+    "bullet": "Coordinated user acceptance testing, resulting in a 10% decrease in post-deployment issues",
+    "actionVerb": "Coordinated",
+    "metricType": "Percentage",
+    "skills": [
+      "UAT",
+      "Quality Assurance"
+    ]
+  },
+  {
+    "role": "Business Analyst",
+    "category": "Business",
+    "seniority": "Senior",
+    "bullet": "Provided expert training and support to the operations team, boosting their productivity by 20%",
+    "actionVerb": "Provided",
+    "metricType": "Percentage",
+    "skills": [
+      "Training",
+      "Productivity Improvement"
+    ]
+  },
+  {
+    "role": "Business Analyst",
+    "category": "Business",
+    "seniority": "Mid",
+    "bullet": "Implemented a strategic data integration solution that streamlined operations and saved the company $200K annually",
+    "actionVerb": "Implemented",
+    "metricType": "Dollar Amount",
+    "skills": [
+      "Data Integration",
+      "Cost Savings"
+    ]
+  },
+  {
+    "role": "Business Analyst",
+    "category": "Business",
+    "seniority": "Mid",
+    "bullet": "Played a key role in the migration of analytics platforms to a more robust system, increasing data processing speed by 30%",
+    "actionVerb": "Played",
+    "metricType": "Percentage",
+    "skills": [
+      "Platform Migration",
+      "Performance"
+    ]
+  },
+  {
+    "role": "Business Analyst",
+    "category": "Business",
+    "seniority": "Mid",
+    "bullet": "Led the documentation efforts for system requirements using JIRA, enhancing team productivity",
+    "actionVerb": "Led",
+    "metricType": "Qualitative",
+    "skills": [
+      "Documentation",
+      "JIRA",
+      "Requirements"
+    ]
+  },
+  {
+    "role": "Business Analyst",
+    "category": "Business",
+    "seniority": "Entry",
+    "bullet": "Optimized data collection and analysis processes, improving data quality and reducing time-to-insight by 20%",
+    "actionVerb": "Optimized",
+    "metricType": "Percentage",
+    "skills": [
+      "Data Quality",
+      "Process Improvement"
+    ]
+  },
+  {
+    "role": "Business Analyst",
+    "category": "Business",
+    "seniority": "Entry",
+    "bullet": "Contributed to the development of a predictive analytics model that enhanced forecasting accuracy",
+    "actionVerb": "Contributed",
+    "metricType": "Qualitative",
+    "skills": [
+      "Predictive Analytics",
+      "Forecasting"
+    ]
+  },
+  {
+    "role": "UX Designer",
+    "category": "Design",
+    "seniority": "Senior",
+    "bullet": "Directed the redesign of digital media platforms, enhancing user experience and interface, increasing user retention rates by 15%",
+    "actionVerb": "Directed",
+    "metricType": "Percentage",
+    "skills": [
+      "Platform Redesign",
+      "User Retention"
+    ]
+  },
+  {
+    "role": "UX Designer",
+    "category": "Design",
+    "seniority": "Senior",
+    "bullet": "Implemented a user testing framework that reduced project development cycles by 20%, optimizing resource allocation",
+    "actionVerb": "Implemented",
+    "metricType": "Percentage",
+    "skills": [
+      "User Testing",
+      "Process Improvement"
+    ]
+  },
+  {
+    "role": "UX Designer",
+    "category": "Design",
+    "seniority": "Senior",
+    "bullet": "Collaborated with cross-functional teams to align UX strategies with business objectives, boosting customer satisfaction scores by 25%",
+    "actionVerb": "Collaborated",
+    "metricType": "Percentage",
+    "skills": [
+      "Cross-functional",
+      "Strategy",
+      "CSAT"
+    ]
+  },
+  {
+    "role": "UX Designer",
+    "category": "Design",
+    "seniority": "Senior",
+    "bullet": "Managed a team of 10 designers, fostering a culture of creativity and continuous improvement, resulting in a 30% increase in team productivity",
+    "actionVerb": "Managed",
+    "metricType": "Percentage",
+    "skills": [
+      "Team Leadership",
+      "Design Management"
+    ]
+  },
+  {
+    "role": "UX Designer",
+    "category": "Design",
+    "seniority": "Senior",
+    "bullet": "Spearheaded the integration of accessibility features into all projects, ensuring compliance with ADA standards",
+    "actionVerb": "Spearheaded",
+    "metricType": "Qualitative",
+    "skills": [
+      "Accessibility",
+      "ADA Compliance"
+    ]
+  },
+  {
+    "role": "UX Designer",
+    "category": "Design",
+    "seniority": "Mid",
+    "bullet": "Led UX design for a major operating system update, which was deployed to 200 million users worldwide",
+    "actionVerb": "Led",
+    "metricType": "Count",
+    "skills": [
+      "OS Design",
+      "Scale"
+    ]
+  },
+  {
+    "role": "UX Designer",
+    "category": "Design",
+    "seniority": "Mid",
+    "bullet": "Oversaw the migration of legacy systems to modern UX frameworks, decreasing load times by 50%",
+    "actionVerb": "Oversaw",
+    "metricType": "Percentage",
+    "skills": [
+      "Migration",
+      "Performance"
+    ]
+  },
+  {
+    "role": "UX Designer",
+    "category": "Design",
+    "seniority": "Mid",
+    "bullet": "Created detailed wireframes and prototypes that streamlined the development process, reducing time to market",
+    "actionVerb": "Created",
+    "metricType": "Qualitative",
+    "skills": [
+      "Wireframes",
+      "Prototyping"
+    ]
+  },
+  {
+    "role": "UX Designer",
+    "category": "Design",
+    "seniority": "Entry",
+    "bullet": "Contributed to the design of a cloud storage solution, enhancing user interaction and doubling the user base within the first year",
+    "actionVerb": "Contributed",
+    "metricType": "Multiple",
+    "skills": [
+      "Cloud Design",
+      "User Growth"
+    ]
+  },
+  {
+    "role": "UX Designer",
+    "category": "Design",
+    "seniority": "Entry",
+    "bullet": "Optimized UI elements using predictive analytics, which increased daily active users by 20%",
+    "actionVerb": "Optimized",
+    "metricType": "Percentage",
+    "skills": [
+      "UI Optimization",
+      "DAU"
+    ]
+  },
+  {
+    "role": "UX Designer",
+    "category": "Design",
+    "seniority": "Entry",
+    "bullet": "Provided UX insights that led to a 30% reduction in customer support calls",
+    "actionVerb": "Provided",
+    "metricType": "Percentage",
+    "skills": [
+      "UX Research",
+      "Support Reduction"
+    ]
+  },
+  {
+    "role": "Financial Analyst",
+    "category": "Finance",
+    "seniority": "Senior",
+    "bullet": "Developed & implemented financial models, improving financial performance by 10%",
+    "actionVerb": "Developed",
+    "metricType": "Percentage",
+    "skills": [
+      "Financial Modeling",
+      "Performance"
+    ]
+  },
+  {
+    "role": "Financial Analyst",
+    "category": "Finance",
+    "seniority": "Senior",
+    "bullet": "Developed reporting tools and key performance metrics, providing insight into trends and potential risks/opportunities",
+    "actionVerb": "Developed",
+    "metricType": "Qualitative",
+    "skills": [
+      "Reporting",
+      "KPIs",
+      "Risk Analysis"
+    ]
+  },
+  {
+    "role": "Financial Analyst",
+    "category": "Finance",
+    "seniority": "Mid",
+    "bullet": "Developed and executed monthly forecast processes, reducing variance by 15%",
+    "actionVerb": "Developed",
+    "metricType": "Percentage",
+    "skills": [
+      "Forecasting",
+      "Variance Analysis"
+    ]
+  },
+  {
+    "role": "Financial Analyst",
+    "category": "Finance",
+    "seniority": "Mid",
+    "bullet": "Supported management in the development of budgets, forecasts, and analysis summaries",
+    "actionVerb": "Supported",
+    "metricType": "Qualitative",
+    "skills": [
+      "Budgeting",
+      "Analysis"
+    ]
+  },
+  {
+    "role": "Financial Analyst",
+    "category": "Finance",
+    "seniority": "Entry",
+    "bullet": "Improved efficiency and cost effectiveness of operations by initiating and managing financial systems",
+    "actionVerb": "Improved",
+    "metricType": "Qualitative",
+    "skills": [
+      "Financial Systems",
+      "Efficiency"
+    ]
+  },
+  {
+    "role": "Financial Analyst",
+    "category": "Finance",
+    "seniority": "Entry",
+    "bullet": "Led forecasting efforts and analysis of potential responses to Senior Leadership",
+    "actionVerb": "Led",
+    "metricType": "Qualitative",
+    "skills": [
+      "Forecasting",
+      "Executive Reporting"
+    ]
+  },
+  {
+    "role": "HR Manager",
+    "category": "Human Resources",
+    "seniority": "Senior",
+    "bullet": "Managed 5 head of departments across 300+ employees with annual revenue of up $12M",
+    "actionVerb": "Managed",
+    "metricType": "Dollar Amount",
+    "skills": [
+      "Department Leadership",
+      "Scale"
+    ]
+  },
+  {
+    "role": "HR Manager",
+    "category": "Human Resources",
+    "seniority": "Senior",
+    "bullet": "Collaborated with 3 department managers to develop initiative program training for 250+ employees which improved retention by 60%",
+    "actionVerb": "Collaborated",
+    "metricType": "Percentage",
+    "skills": [
+      "Training",
+      "Retention"
+    ]
+  },
+  {
+    "role": "HR Manager",
+    "category": "Human Resources",
+    "seniority": "Senior",
+    "bullet": "Managed payroll budgets for 300+ employees with budgets $3M",
+    "actionVerb": "Managed",
+    "metricType": "Dollar Amount",
+    "skills": [
+      "Payroll",
+      "Budget Management"
+    ]
+  },
+  {
+    "role": "HR Manager",
+    "category": "Human Resources",
+    "seniority": "Senior",
+    "bullet": "Analyzed employee feedback to develop team initiatives and performance review system which reduced staff turnover by 40%",
+    "actionVerb": "Analyzed",
+    "metricType": "Percentage",
+    "skills": [
+      "Employee Feedback",
+      "Turnover Reduction"
+    ]
+  },
+  {
+    "role": "HR Manager",
+    "category": "Human Resources",
+    "seniority": "Senior",
+    "bullet": "Led the collaboration with CEO to plan strategy for team structure and development which reduced costs by 60%",
+    "actionVerb": "Led",
+    "metricType": "Percentage",
+    "skills": [
+      "Strategic Planning",
+      "Cost Reduction"
+    ]
+  },
+  {
+    "role": "HR Manager",
+    "category": "Human Resources",
+    "seniority": "Mid",
+    "bullet": "Led coaching and mentoring for 15 team leads to increase employee learning and development which received a 100% employee satisfaction",
+    "actionVerb": "Led",
+    "metricType": "Percentage",
+    "skills": [
+      "Coaching",
+      "Employee Development"
+    ]
+  },
+  {
+    "role": "HR Manager",
+    "category": "Human Resources",
+    "seniority": "Mid",
+    "bullet": "Created training manuals used by 3000+ employees over 4 years",
+    "actionVerb": "Created",
+    "metricType": "Count",
+    "skills": [
+      "Training Materials",
+      "Scale"
+    ]
+  },
+  {
+    "role": "HR Manager",
+    "category": "Human Resources",
+    "seniority": "Mid",
+    "bullet": "Developed partnerships with 8 external collaborators to develop training processes for 500+ employees which increased employee inclusivity by 70%",
+    "actionVerb": "Developed",
+    "metricType": "Percentage",
+    "skills": [
+      "Partnerships",
+      "D&I"
+    ]
+  },
+  {
+    "role": "HR Manager",
+    "category": "Human Resources",
+    "seniority": "Entry",
+    "bullet": "Mentored and co-trained a team of 5 sales development representatives responsible for over 60% of company's total pipeline",
+    "actionVerb": "Mentored",
+    "metricType": "Percentage",
+    "skills": [
+      "Mentorship",
+      "Sales Training"
+    ]
+  },
+  {
+    "role": "HR Manager",
+    "category": "Human Resources",
+    "seniority": "Entry",
+    "bullet": "Established Equality, Diversity and Inclusion with board of 6",
+    "actionVerb": "Established",
+    "metricType": "Count",
+    "skills": [
+      "D&I",
+      "Board Development"
+    ]
+  },
+  {
+    "role": "Operations Manager",
+    "category": "Operations",
+    "seniority": "Senior",
+    "bullet": "Accountable for 3.5M monthly units at a $12M yearly revenue",
+    "actionVerb": "Accountable",
+    "metricType": "Dollar Amount",
+    "skills": [
+      "Operations Scale",
+      "Revenue"
+    ]
+  },
+  {
+    "role": "Operations Manager",
+    "category": "Operations",
+    "seniority": "Senior",
+    "bullet": "Led teams of 50+ permanent and agency staff, both operations and administrations",
+    "actionVerb": "Led",
+    "metricType": "Team Size",
+    "skills": [
+      "Team Leadership",
+      "Operations"
+    ]
+  },
+  {
+    "role": "Operations Manager",
+    "category": "Operations",
+    "seniority": "Senior",
+    "bullet": "Achieved the 2nd highest saving for 2016 at 35.1M units",
+    "actionVerb": "Achieved",
+    "metricType": "Count",
+    "skills": [
+      "Cost Savings",
+      "Efficiency"
+    ]
+  },
+  {
+    "role": "Operations Manager",
+    "category": "Operations",
+    "seniority": "Senior",
+    "bullet": "33% year-over-year improvement in department productivity",
+    "actionVerb": "Improved",
+    "metricType": "Percentage",
+    "skills": [
+      "Productivity",
+      "YoY Growth"
+    ]
+  },
+  {
+    "role": "Operations Manager",
+    "category": "Operations",
+    "seniority": "Senior",
+    "bullet": "Reorganization of employees resulted in over $50,000 in company savings",
+    "actionVerb": "Reorganized",
+    "metricType": "Dollar Amount",
+    "skills": [
+      "Restructuring",
+      "Cost Savings"
+    ]
+  },
+  {
+    "role": "Operations Manager",
+    "category": "Operations",
+    "seniority": "Mid",
+    "bullet": "Led and developed a team of 80-100 Amazon Associates in the largest North American Fulfilment Centre to meet daily rate goals",
+    "actionVerb": "Led",
+    "metricType": "Team Size",
+    "skills": [
+      "Warehouse",
+      "Team Development"
+    ]
+  },
+  {
+    "role": "Operations Manager",
+    "category": "Operations",
+    "seniority": "Mid",
+    "bullet": "Partnered with other leadership to ensure the business is operating a balanced lean shift while meeting objectives",
+    "actionVerb": "Partnered",
+    "metricType": "Qualitative",
+    "skills": [
+      "Lean Operations",
+      "Leadership"
+    ]
+  },
+  {
+    "role": "Operations Manager",
+    "category": "Operations",
+    "seniority": "Entry",
+    "bullet": "Collaborated with beneficiary centers to project demand and prepare outgoing food pallets across 9 teams at $1.5M operational cost",
+    "actionVerb": "Collaborated",
+    "metricType": "Dollar Amount",
+    "skills": [
+      "Demand Planning",
+      "Budget"
+    ]
+  },
+  {
+    "role": "Operations Manager",
+    "category": "Operations",
+    "seniority": "Entry",
+    "bullet": "Partnered with local businesses to initiate food donations as well as maintained relationships with current donors",
+    "actionVerb": "Partnered",
+    "metricType": "Qualitative",
+    "skills": [
+      "Partnerships",
+      "Community Relations"
+    ]
+  },
+  {
+    "role": "DevOps Engineer",
+    "category": "Technology",
+    "seniority": "Senior",
+    "bullet": "Automated testing and deployments via GitHub Actions, reducing release cycles from 2 days to 4 hours",
+    "actionVerb": "Automated",
+    "metricType": "Time",
+    "skills": [
+      "CI/CD",
+      "GitHub Actions"
+    ]
+  },
+  {
+    "role": "DevOps Engineer",
+    "category": "Technology",
+    "seniority": "Senior",
+    "bullet": "Designed and implemented scalable microservices architecture, enabling the application to handle 3x more concurrent users",
+    "actionVerb": "Designed",
+    "metricType": "Multiple",
+    "skills": [
+      "Microservices",
+      "Scalability"
+    ]
+  },
+  {
+    "role": "DevOps Engineer",
+    "category": "Technology",
+    "seniority": "Mid",
+    "bullet": "Implemented containerization strategy using Docker and Kubernetes, reducing deployment time by 60%",
+    "actionVerb": "Implemented",
+    "metricType": "Percentage",
+    "skills": [
+      "Docker",
+      "Kubernetes"
+    ]
+  },
+  {
+    "role": "DevOps Engineer",
+    "category": "Technology",
+    "seniority": "Mid",
+    "bullet": "Built infrastructure-as-code pipelines using Terraform, reducing infrastructure provisioning time from weeks to hours",
+    "actionVerb": "Built",
+    "metricType": "Time",
+    "skills": [
+      "Terraform",
+      "IaC"
+    ]
+  },
+  {
+    "role": "DevOps Engineer",
+    "category": "Technology",
+    "seniority": "Entry",
+    "bullet": "Monitored and maintained 99.9% uptime for production systems serving 1M+ daily active users",
+    "actionVerb": "Monitored",
+    "metricType": "Percentage",
+    "skills": [
+      "Uptime",
+      "Monitoring"
+    ]
+  },
+  {
+    "role": "Data Scientist",
+    "category": "Data/Analytics",
+    "seniority": "Senior",
+    "bullet": "Developed machine learning models that improved customer churn prediction accuracy by 35%",
+    "actionVerb": "Developed",
+    "metricType": "Percentage",
+    "skills": [
+      "ML",
+      "Churn Prediction"
+    ]
+  },
+  {
+    "role": "Data Scientist",
+    "category": "Data/Analytics",
+    "seniority": "Senior",
+    "bullet": "Built recommendation engine that increased average order value by 23%",
+    "actionVerb": "Built",
+    "metricType": "Percentage",
+    "skills": [
+      "Recommendation Systems",
+      "Revenue"
+    ]
+  },
+  {
+    "role": "Data Scientist",
+    "category": "Data/Analytics",
+    "seniority": "Mid",
+    "bullet": "Created NLP pipeline for sentiment analysis processing 50K+ customer reviews daily",
+    "actionVerb": "Created",
+    "metricType": "Count",
+    "skills": [
+      "NLP",
+      "Sentiment Analysis"
+    ]
+  },
+  {
+    "role": "Data Scientist",
+    "category": "Data/Analytics",
+    "seniority": "Mid",
+    "bullet": "Implemented A/B testing framework that improved conversion rates by 18%",
+    "actionVerb": "Implemented",
+    "metricType": "Percentage",
+    "skills": [
+      "A/B Testing",
+      "Experimentation"
+    ]
+  },
+  {
+    "role": "Data Scientist",
+    "category": "Data/Analytics",
+    "seniority": "Entry",
+    "bullet": "Analyzed large datasets (10M+ records) to identify patterns and trends for business insights",
+    "actionVerb": "Analyzed",
+    "metricType": "Count",
+    "skills": [
+      "Big Data",
+      "Pattern Analysis"
+    ]
+  },
+  {
+    "role": "Frontend Developer",
+    "category": "Technology",
+    "seniority": "Senior",
+    "bullet": "Led migration from legacy jQuery codebase to React, improving page load times by 45%",
+    "actionVerb": "Led",
+    "metricType": "Percentage",
+    "skills": [
+      "React",
+      "Migration",
+      "Performance"
+    ]
+  },
+  {
+    "role": "Frontend Developer",
+    "category": "Technology",
+    "seniority": "Senior",
+    "bullet": "Implemented responsive design system used across 15 products, reducing design inconsistencies by 80%",
+    "actionVerb": "Implemented",
+    "metricType": "Percentage",
+    "skills": [
+      "Design System",
+      "Responsive"
+    ]
+  },
+  {
+    "role": "Frontend Developer",
+    "category": "Technology",
+    "seniority": "Mid",
+    "bullet": "Optimized web performance resulting in 40% improvement in Core Web Vitals scores",
+    "actionVerb": "Optimized",
+    "metricType": "Percentage",
+    "skills": [
+      "Web Performance",
+      "Core Web Vitals"
+    ]
+  },
+  {
+    "role": "Frontend Developer",
+    "category": "Technology",
+    "seniority": "Mid",
+    "bullet": "Built reusable component library that reduced development time for new features by 30%",
+    "actionVerb": "Built",
+    "metricType": "Percentage",
+    "skills": [
+      "Component Library",
+      "Efficiency"
+    ]
+  },
+  {
+    "role": "Frontend Developer",
+    "category": "Technology",
+    "seniority": "Entry",
+    "bullet": "Developed accessible UI components meeting WCAG 2.1 AA standards",
+    "actionVerb": "Developed",
+    "metricType": "Qualitative",
+    "skills": [
+      "Accessibility",
+      "WCAG"
+    ]
+  },
+  {
+    "role": "Backend Developer",
+    "category": "Technology",
+    "seniority": "Senior",
+    "bullet": "Designed API architecture serving 10M+ requests per day with 99.99% availability",
+    "actionVerb": "Designed",
+    "metricType": "Count",
+    "skills": [
+      "API Design",
+      "High Availability"
+    ]
+  },
+  {
+    "role": "Backend Developer",
+    "category": "Technology",
+    "seniority": "Senior",
+    "bullet": "Optimized database queries reducing average response time from 2s to 200ms",
+    "actionVerb": "Optimized",
+    "metricType": "Time",
+    "skills": [
+      "Database Optimization",
+      "Performance"
+    ]
+  },
+  {
+    "role": "Backend Developer",
+    "category": "Technology",
+    "seniority": "Mid",
+    "bullet": "Implemented caching strategy that reduced server costs by 35%",
+    "actionVerb": "Implemented",
+    "metricType": "Percentage",
+    "skills": [
+      "Caching",
+      "Cost Optimization"
+    ]
+  },
+  {
+    "role": "Backend Developer",
+    "category": "Technology",
+    "seniority": "Mid",
+    "bullet": "Built authentication system handling 5M+ user sessions securely",
+    "actionVerb": "Built",
+    "metricType": "Count",
+    "skills": [
+      "Authentication",
+      "Security"
+    ]
+  },
+  {
+    "role": "Backend Developer",
+    "category": "Technology",
+    "seniority": "Entry",
+    "bullet": "Developed RESTful APIs integrating with 10+ third-party services",
+    "actionVerb": "Developed",
+    "metricType": "Count",
+    "skills": [
+      "REST APIs",
+      "Integration"
+    ]
+  },
+  {
+    "role": "Customer Success Manager",
+    "category": "Customer Success",
+    "seniority": "Senior",
+    "bullet": "Managed portfolio of 50+ enterprise accounts with $15M ARR, achieving 95% retention rate",
+    "actionVerb": "Managed",
+    "metricType": "Dollar Amount",
+    "skills": [
+      "Enterprise Accounts",
+      "Retention"
+    ]
+  },
+  {
+    "role": "Customer Success Manager",
+    "category": "Customer Success",
+    "seniority": "Senior",
+    "bullet": "Increased NPS score from 32 to 58 through proactive customer engagement programs",
+    "actionVerb": "Increased",
+    "metricType": "Score",
+    "skills": [
+      "NPS",
+      "Customer Engagement"
+    ]
+  },
+  {
+    "role": "Customer Success Manager",
+    "category": "Customer Success",
+    "seniority": "Mid",
+    "bullet": "Reduced churn by 25% through implementation of health scoring and early warning systems",
+    "actionVerb": "Reduced",
+    "metricType": "Percentage",
+    "skills": [
+      "Churn",
+      "Health Scoring"
+    ]
+  },
+  {
+    "role": "Customer Success Manager",
+    "category": "Customer Success",
+    "seniority": "Mid",
+    "bullet": "Drove $2M in expansion revenue through strategic upselling and cross-selling",
+    "actionVerb": "Drove",
+    "metricType": "Dollar Amount",
+    "skills": [
+      "Expansion Revenue",
+      "Upselling"
+    ]
+  },
+  {
+    "role": "Customer Success Manager",
+    "category": "Customer Success",
+    "seniority": "Entry",
+    "bullet": "Onboarded 100+ new customers with 90% adoption rate within first 30 days",
+    "actionVerb": "Onboarded",
+    "metricType": "Percentage",
+    "skills": [
+      "Onboarding",
+      "Adoption"
+    ]
+  },
+  {
+    "role": "Recruiter",
+    "category": "Human Resources",
+    "seniority": "Senior",
+    "bullet": "Filled 150+ positions annually with average time-to-hire of 28 days (industry avg: 42 days)",
+    "actionVerb": "Filled",
+    "metricType": "Count",
+    "skills": [
+      "Hiring",
+      "Efficiency"
+    ]
+  },
+  {
+    "role": "Recruiter",
+    "category": "Human Resources",
+    "seniority": "Senior",
+    "bullet": "Reduced cost-per-hire by 30% through optimization of sourcing channels",
+    "actionVerb": "Reduced",
+    "metricType": "Percentage",
+    "skills": [
+      "Cost Optimization",
+      "Sourcing"
+    ]
+  },
+  {
+    "role": "Recruiter",
+    "category": "Human Resources",
+    "seniority": "Mid",
+    "bullet": "Built talent pipeline of 500+ qualified candidates for technical roles",
+    "actionVerb": "Built",
+    "metricType": "Count",
+    "skills": [
+      "Talent Pipeline",
+      "Technical Recruiting"
+    ]
+  },
+  {
+    "role": "Recruiter",
+    "category": "Human Resources",
+    "seniority": "Mid",
+    "bullet": "Improved offer acceptance rate from 75% to 92% through enhanced candidate experience",
+    "actionVerb": "Improved",
+    "metricType": "Percentage",
+    "skills": [
+      "Candidate Experience",
+      "Offer Acceptance"
+    ]
+  },
+  {
+    "role": "Recruiter",
+    "category": "Human Resources",
+    "seniority": "Entry",
+    "bullet": "Screened 50+ candidates weekly maintaining quality bar with 85% interview-to-offer ratio",
+    "actionVerb": "Screened",
+    "metricType": "Count",
+    "skills": [
+      "Screening",
+      "Quality"
+    ]
+  },
+  {
+    "role": "Graphic Designer",
+    "category": "Design",
+    "seniority": "Senior",
+    "bullet": "Led brand refresh resulting in 40% increase in brand recognition scores",
+    "actionVerb": "Led",
+    "metricType": "Percentage",
+    "skills": [
+      "Branding",
+      "Recognition"
+    ]
+  },
+  {
+    "role": "Graphic Designer",
+    "category": "Design",
+    "seniority": "Senior",
+    "bullet": "Designed marketing collateral that contributed to 25% increase in lead generation",
+    "actionVerb": "Designed",
+    "metricType": "Percentage",
+    "skills": [
+      "Marketing Collateral",
+      "Lead Gen"
+    ]
+  },
+  {
+    "role": "Graphic Designer",
+    "category": "Design",
+    "seniority": "Mid",
+    "bullet": "Created visual identity system adopted across 8 product lines",
+    "actionVerb": "Created",
+    "metricType": "Count",
+    "skills": [
+      "Visual Identity",
+      "Brand System"
+    ]
+  },
+  {
+    "role": "Graphic Designer",
+    "category": "Design",
+    "seniority": "Mid",
+    "bullet": "Produced 200+ pieces of content monthly supporting marketing campaigns",
+    "actionVerb": "Produced",
+    "metricType": "Count",
+    "skills": [
+      "Content Production",
+      "Marketing"
+    ]
+  },
+  {
+    "role": "Graphic Designer",
+    "category": "Design",
+    "seniority": "Entry",
+    "bullet": "Designed social media graphics that increased engagement by 35%",
+    "actionVerb": "Designed",
+    "metricType": "Percentage",
+    "skills": [
+      "Social Media",
+      "Engagement"
+    ]
+  },
+  {
+    "role": "Content Marketing Manager",
+    "category": "Marketing",
+    "seniority": "Senior",
+    "bullet": "Grew organic traffic from 50K to 500K monthly visitors through SEO-focused content strategy",
+    "actionVerb": "Grew",
+    "metricType": "Count",
+    "skills": [
+      "SEO",
+      "Organic Traffic"
+    ]
+  },
+  {
+    "role": "Content Marketing Manager",
+    "category": "Marketing",
+    "seniority": "Senior",
+    "bullet": "Built content team of 8 writers and editors producing 100+ pieces monthly",
+    "actionVerb": "Built",
+    "metricType": "Count",
+    "skills": [
+      "Team Building",
+      "Content Production"
+    ]
+  },
+  {
+    "role": "Content Marketing Manager",
+    "category": "Marketing",
+    "seniority": "Mid",
+    "bullet": "Increased blog conversion rate from 1.5% to 4.2% through content optimization",
+    "actionVerb": "Increased",
+    "metricType": "Percentage",
+    "skills": [
+      "Conversion",
+      "Content Optimization"
+    ]
+  },
+  {
+    "role": "Content Marketing Manager",
+    "category": "Marketing",
+    "seniority": "Mid",
+    "bullet": "Launched podcast reaching 10K downloads per episode within first year",
+    "actionVerb": "Launched",
+    "metricType": "Count",
+    "skills": [
+      "Podcast",
+      "Audience Growth"
+    ]
+  },
+  {
+    "role": "Content Marketing Manager",
+    "category": "Marketing",
+    "seniority": "Entry",
+    "bullet": "Created content calendar and published 4 blog posts weekly with 95% on-time delivery",
+    "actionVerb": "Created",
+    "metricType": "Count",
+    "skills": [
+      "Content Calendar",
+      "Consistency"
+    ]
+  },
+  {
+    "role": "Accountant",
+    "category": "Finance",
+    "seniority": "Senior",
+    "bullet": "Managed month-end close process for $50M revenue business with 100% accuracy",
+    "actionVerb": "Managed",
+    "metricType": "Dollar Amount",
+    "skills": [
+      "Month-end Close",
+      "Accuracy"
+    ]
+  },
+  {
+    "role": "Accountant",
+    "category": "Finance",
+    "seniority": "Senior",
+    "bullet": "Identified $500K in tax savings through comprehensive review of deductions",
+    "actionVerb": "Identified",
+    "metricType": "Dollar Amount",
+    "skills": [
+      "Tax Savings",
+      "Analysis"
+    ]
+  },
+  {
+    "role": "Accountant",
+    "category": "Finance",
+    "seniority": "Mid",
+    "bullet": "Reduced accounts receivable aging by 25 days through improved collection processes",
+    "actionVerb": "Reduced",
+    "metricType": "Days",
+    "skills": [
+      "AR",
+      "Collections"
+    ]
+  },
+  {
+    "role": "Accountant",
+    "category": "Finance",
+    "seniority": "Mid",
+    "bullet": "Automated 80% of recurring journal entries, saving 20 hours monthly",
+    "actionVerb": "Automated",
+    "metricType": "Percentage",
+    "skills": [
+      "Automation",
+      "Efficiency"
+    ]
+  },
+  {
+    "role": "Accountant",
+    "category": "Finance",
+    "seniority": "Entry",
+    "bullet": "Processed 500+ invoices monthly with 99.5% accuracy rate",
+    "actionVerb": "Processed",
+    "metricType": "Count",
+    "skills": [
+      "Invoice Processing",
+      "Accuracy"
+    ]
+  },
+  {
+    "role": "Supply Chain Manager",
+    "category": "Operations",
+    "seniority": "Senior",
+    "bullet": "Reduced inventory carrying costs by $2M annually through demand forecasting improvements",
+    "actionVerb": "Reduced",
+    "metricType": "Dollar Amount",
+    "skills": [
+      "Inventory",
+      "Forecasting"
+    ]
+  },
+  {
+    "role": "Supply Chain Manager",
+    "category": "Operations",
+    "seniority": "Senior",
+    "bullet": "Negotiated contracts with 25+ suppliers resulting in 15% cost reduction",
+    "actionVerb": "Negotiated",
+    "metricType": "Percentage",
+    "skills": [
+      "Supplier Negotiation",
+      "Cost Savings"
+    ]
+  },
+  {
+    "role": "Supply Chain Manager",
+    "category": "Operations",
+    "seniority": "Mid",
+    "bullet": "Improved on-time delivery rate from 85% to 97% through logistics optimization",
+    "actionVerb": "Improved",
+    "metricType": "Percentage",
+    "skills": [
+      "Logistics",
+      "On-time Delivery"
+    ]
+  },
+  {
+    "role": "Supply Chain Manager",
+    "category": "Operations",
+    "seniority": "Mid",
+    "bullet": "Implemented warehouse management system reducing picking errors by 40%",
+    "actionVerb": "Implemented",
+    "metricType": "Percentage",
+    "skills": [
+      "WMS",
+      "Error Reduction"
+    ]
+  },
+  {
+    "role": "Supply Chain Manager",
+    "category": "Operations",
+    "seniority": "Entry",
+    "bullet": "Tracked and analyzed 1000+ SKUs to optimize stock levels and reduce waste",
+    "actionVerb": "Tracked",
+    "metricType": "Count",
+    "skills": [
+      "Inventory Analysis",
+      "SKU Management"
+    ]
+  },
+  {
+    "role": "Executive Assistant",
+    "category": "Administrative",
+    "seniority": "Senior",
+    "bullet": "Managed calendars for C-suite of 5 executives, coordinating 200+ meetings monthly",
+    "actionVerb": "Managed",
+    "metricType": "Count",
+    "skills": [
+      "Calendar Management",
+      "Executive Support"
+    ]
+  },
+  {
+    "role": "Executive Assistant",
+    "category": "Administrative",
+    "seniority": "Senior",
+    "bullet": "Planned and executed 12 company-wide events with budgets up to $100K",
+    "actionVerb": "Planned",
+    "metricType": "Dollar Amount",
+    "skills": [
+      "Event Planning",
+      "Budget Management"
+    ]
+  },
+  {
+    "role": "Executive Assistant",
+    "category": "Administrative",
+    "seniority": "Mid",
+    "bullet": "Reduced executive administrative overhead by 30% through process automation",
+    "actionVerb": "Reduced",
+    "metricType": "Percentage",
+    "skills": [
+      "Process Improvement",
+      "Automation"
+    ]
+  },
+  {
+    "role": "Executive Assistant",
+    "category": "Administrative",
+    "seniority": "Mid",
+    "bullet": "Coordinated international travel for 50+ trips annually, achieving 20% cost savings",
+    "actionVerb": "Coordinated",
+    "metricType": "Percentage",
+    "skills": [
+      "Travel Coordination",
+      "Cost Savings"
+    ]
+  },
+  {
+    "role": "Executive Assistant",
+    "category": "Administrative",
+    "seniority": "Entry",
+    "bullet": "Prepared board meeting materials and presentations for quarterly meetings",
+    "actionVerb": "Prepared",
+    "metricType": "Qualitative",
+    "skills": [
+      "Board Support",
+      "Presentations"
+    ]
+  },
+  {
+    "role": "QA Engineer",
+    "category": "Technology",
+    "seniority": "Senior",
+    "bullet": "Designed automated testing framework that reduced regression testing time by 70%",
+    "actionVerb": "Designed",
+    "metricType": "Percentage",
+    "skills": [
+      "Test Automation",
+      "Efficiency"
+    ]
+  },
+  {
+    "role": "QA Engineer",
+    "category": "Technology",
+    "seniority": "Senior",
+    "bullet": "Led QA team of 8 engineers ensuring quality for releases across 5 products",
+    "actionVerb": "Led",
+    "metricType": "Count",
+    "skills": [
+      "Team Leadership",
+      "Multi-product"
+    ]
+  },
+  {
+    "role": "QA Engineer",
+    "category": "Technology",
+    "seniority": "Mid",
+    "bullet": "Identified and documented 500+ bugs with 95% valid bug rate",
+    "actionVerb": "Identified",
+    "metricType": "Count",
+    "skills": [
+      "Bug Detection",
+      "Quality"
+    ]
+  },
+  {
+    "role": "QA Engineer",
+    "category": "Technology",
+    "seniority": "Mid",
+    "bullet": "Implemented CI/CD testing pipeline reducing deployment failures by 60%",
+    "actionVerb": "Implemented",
+    "metricType": "Percentage",
+    "skills": [
+      "CI/CD",
+      "Deployment Quality"
+    ]
+  },
+  {
+    "role": "QA Engineer",
+    "category": "Technology",
+    "seniority": "Entry",
+    "bullet": "Created 200+ test cases covering critical user journeys",
+    "actionVerb": "Created",
+    "metricType": "Count",
+    "skills": [
+      "Test Cases",
+      "Coverage"
+    ]
+  },
+  {
+    "role": "Business Development Manager",
+    "category": "Sales",
+    "seniority": "Senior",
+    "bullet": "Generated $5M+ in new business revenue through strategic partnerships",
+    "actionVerb": "Generated",
+    "metricType": "Dollar Amount",
+    "skills": [
+      "Revenue",
+      "Partnerships"
+    ]
+  },
+  {
+    "role": "Business Development Manager",
+    "category": "Sales",
+    "seniority": "Senior",
+    "bullet": "Expanded into 3 new markets resulting in 40% revenue growth",
+    "actionVerb": "Expanded",
+    "metricType": "Percentage",
+    "skills": [
+      "Market Expansion",
+      "Revenue Growth"
+    ]
+  },
+  {
+    "role": "Business Development Manager",
+    "category": "Sales",
+    "seniority": "Mid",
+    "bullet": "Built partnership program with 50+ channel partners",
+    "actionVerb": "Built",
+    "metricType": "Count",
+    "skills": [
+      "Channel Partners",
+      "Program Development"
+    ]
+  },
+  {
+    "role": "Business Development Manager",
+    "category": "Sales",
+    "seniority": "Mid",
+    "bullet": "Increased win rate from 25% to 45% through improved proposal process",
+    "actionVerb": "Increased",
+    "metricType": "Percentage",
+    "skills": [
+      "Win Rate",
+      "Proposals"
+    ]
+  },
+  {
+    "role": "Business Development Manager",
+    "category": "Sales",
+    "seniority": "Entry",
+    "bullet": "Qualified 100+ leads monthly with 30% conversion to opportunity",
+    "actionVerb": "Qualified",
+    "metricType": "Count",
+    "skills": [
+      "Lead Qualification",
+      "Conversion"
+    ]
+  },
+  {
+    "role": "Agile Project Manager",
+    "category": "Project Management",
+    "seniority": "Mid",
+    "bullet": "Directed a team of 10 to oversee a large-scale data governance project achieving a 25% increase in data quality",
+    "actionVerb": "Directed",
+    "metricType": "Percentage",
+    "metricValue": "25%",
+    "skills": [
+      "Team Leadership",
+      "Data Governance",
+      "Data Quality"
+    ],
+    "source": "bullet"
+  },
+  {
+    "role": "Agile Project Manager",
+    "category": "Project Management",
+    "seniority": "Mid",
+    "bullet": "Implemented a new agile workflow process that improved project delivery time by 30%",
+    "actionVerb": "Implemented",
+    "metricType": "Percentage",
+    "metricValue": "30%",
+    "skills": [
+      "Agile",
+      "Process Improvement",
+      "Project Delivery"
+    ],
+    "source": "bullet"
+  },
+  {
+    "role": "Agile Project Manager",
+    "category": "Project Management",
+    "seniority": "Mid",
+    "bullet": "Managed Data Governance capital budget, successfully allocating funds to the highest impact projects resulting in a 15% cost saving",
+    "actionVerb": "Managed",
+    "metricType": "Percentage",
+    "metricValue": "15%",
+    "skills": [
+      "Budget Management",
+      "Capital Allocation",
+      "Cost Savings"
+    ],
+    "source": "bullet"
+  },
+  {
+    "role": "Agile Project Manager",
+    "category": "Project Management",
+    "seniority": "Mid",
+    "bullet": "Developed 10+ interactive dashboards, orchestrated adoption of new data catalog, and conducted comprehensive data governance training",
+    "actionVerb": "Developed",
+    "metricType": "Count",
+    "metricValue": "10+",
+    "skills": [
+      "Dashboards",
+      "Data Catalog",
+      "Training"
+    ],
+    "source": "bullet"
+  },
+  {
+    "role": "Agile Project Manager",
+    "category": "Project Management",
+    "seniority": "Mid",
+    "bullet": "Developed 10+ interactive dashboards and conducted analytics research as Business Intelligence Analyst",
+    "actionVerb": "Developed",
+    "metricType": "Count",
+    "metricValue": "10+",
+    "skills": [
+      "Business Intelligence",
+      "Dashboards",
+      "Analytics"
+    ],
+    "source": "bullet"
+  },
+  {
+    "role": "Agile Project Manager",
+    "category": "Project Management",
+    "seniority": "Mid",
+    "bullet": "Agile Implementation Award - recognized for outstanding leadership in transitioning organizations from waterfall to agile methodologies",
+    "actionVerb": "Recognized",
+    "metricType": "Award",
+    "metricValue": "",
+    "skills": [
+      "Agile Transformation",
+      "Leadership",
+      "Change Management"
+    ],
+    "source": "achievement"
+  },
+  {
+    "role": "Agile Project Manager",
+    "category": "Project Management",
+    "seniority": "Mid",
+    "bullet": "Data Integrity Excellence - Led initiative to increase data quality for a major client's analytics division",
+    "actionVerb": "Led",
+    "metricType": "Award",
+    "metricValue": "",
+    "skills": [
+      "Data Quality",
+      "Client Management",
+      "Analytics"
+    ],
+    "source": "achievement"
+  },
+  {
+    "role": "Agile Project Manager",
+    "category": "Project Management",
+    "seniority": "Mid",
+    "bullet": "Cost Reduction Achievement - Pioneered budget management strategies saving the company 15% of the capital budget through efficient allocation",
+    "actionVerb": "Pioneered",
+    "metricType": "Percentage",
+    "metricValue": "15%",
+    "skills": [
+      "Budget Management",
+      "Cost Reduction",
+      "Strategy"
+    ],
+    "source": "achievement"
+  },
+  {
+    "role": "Agile Project Manager",
+    "category": "Project Management",
+    "seniority": "Mid",
+    "bullet": "Risk Mitigation Leader - Averted potential cost overruns exceeding $2M by addressing risks early in the project cycle",
+    "actionVerb": "Averted",
+    "metricType": "Dollar Amount",
+    "metricValue": "$2M",
+    "skills": [
+      "Risk Management",
+      "Cost Control",
+      "Proactive Planning"
+    ],
+    "source": "achievement"
+  },
+  {
+    "role": "Assistant Project Manager",
+    "category": "Project Management",
+    "seniority": "Entry",
+    "bullet": "Coordinated with cross-functional teams to ensure project deliverables met timelines at Turner Construction Company",
+    "actionVerb": "Coordinated",
+    "metricType": "Qualitative",
+    "metricValue": "",
+    "skills": [
+      "Cross-functional Teams",
+      "Project Deliverables",
+      "Timeline Management"
+    ],
+    "source": "bullet"
+  },
+  {
+    "role": "Assistant Project Manager",
+    "category": "Project Management",
+    "seniority": "Entry",
+    "bullet": "Managed project budgets exceeding $40M, consistently maintaining costs within 8% of budget projections",
+    "actionVerb": "Managed",
+    "metricType": "Dollar Amount",
+    "metricValue": "$40M",
+    "skills": [
+      "Budget Management",
+      "Cost Control",
+      "Financial Oversight"
+    ],
+    "source": "bullet"
+  },
+  {
+    "role": "Assistant Project Manager",
+    "category": "Project Management",
+    "seniority": "Entry",
+    "bullet": "Managed project schedules ensuring that key milestones were met for 10+ projects simultaneously",
+    "actionVerb": "Managed",
+    "metricType": "Count",
+    "metricValue": "10+",
+    "skills": [
+      "Schedule Management",
+      "Milestone Tracking",
+      "Multi-project"
+    ],
+    "source": "bullet"
+  },
+  {
+    "role": "Assistant Project Manager",
+    "category": "Project Management",
+    "seniority": "Entry",
+    "bullet": "Led a project team to complete a critical infrastructure project 1 month ahead of schedule",
+    "actionVerb": "Led",
+    "metricType": "Time",
+    "metricValue": "1 month",
+    "skills": [
+      "Team Leadership",
+      "Infrastructure",
+      "Schedule Acceleration"
+    ],
+    "source": "bullet"
+  },
+  {
+    "role": "Assistant Project Manager",
+    "category": "Project Management",
+    "seniority": "Entry",
+    "bullet": "Supporting day-to-day project management activities at BecMel Corporation",
+    "actionVerb": "Supporting",
+    "metricType": "Qualitative",
+    "metricValue": "",
+    "skills": [
+      "Project Support",
+      "Daily Operations"
+    ],
+    "source": "bullet"
+  },
+  {
+    "role": "Assistant Project Manager",
+    "category": "Project Management",
+    "seniority": "Entry",
+    "bullet": "Best Project Management Practices Award - For implementing project management best practices in Turner Construction Company, resulting in a 15% increase in on-time project delivery",
+    "actionVerb": "Implementing",
+    "metricType": "Percentage",
+    "metricValue": "15%",
+    "skills": [
+      "Best Practices",
+      "On-time Delivery",
+      "Process Improvement"
+    ],
+    "source": "achievement"
+  },
+  {
+    "role": "Assistant Project Manager",
+    "category": "Project Management",
+    "seniority": "Entry",
+    "bullet": "Under-Budget Project Delivery - Successfully managed a large-scale construction project under budget, saving the company 8% of project expenses",
+    "actionVerb": "Managed",
+    "metricType": "Percentage",
+    "metricValue": "8%",
+    "skills": [
+      "Budget Management",
+      "Construction",
+      "Cost Savings"
+    ],
+    "source": "achievement"
+  },
+  {
+    "role": "Assistant Project Manager",
+    "category": "Project Management",
+    "seniority": "Entry",
+    "bullet": "Project Delivery Excellence Recognition - Received company-wide recognition for leading a team to deliver a critical infrastructure project 1 month ahead of schedule",
+    "actionVerb": "Received",
+    "metricType": "Time",
+    "metricValue": "1 month",
+    "skills": [
+      "Recognition",
+      "Team Leadership",
+      "Early Delivery"
+    ],
+    "source": "achievement"
+  },
+  {
+    "role": "Assistant Project Manager",
+    "category": "Project Management",
+    "seniority": "Entry",
+    "bullet": "Improved Stakeholder Satisfaction - Instrumental in achieving a 95% stakeholder satisfaction score through effective project strategy and execution",
+    "actionVerb": "Achieved",
+    "metricType": "Percentage",
+    "metricValue": "95%",
+    "skills": [
+      "Stakeholder Management",
+      "Satisfaction",
+      "Strategy"
+    ],
+    "source": "achievement"
+  },
+  {
+    "role": "Certified Project Management Professional",
+    "category": "General",
+    "seniority": "Mid",
+    "bullet": "Accelerated outbound sales cycle by 330% by Senior IT Project Manager at Rover Games (2019 - Present)",
+    "actionVerb": "Accelerated",
+    "metricType": "Percentage",
+    "metricValue": "330%",
+    "skills": [
+      "Sales Cycle",
+      "IT Project Management",
+      "Performance Improvement"
+    ],
+    "source": "bullet"
+  },
+  {
+    "role": "Software Engineer",
+    "category": "Technology",
+    "seniority": "Mid",
+    "bullet": "Spearheaded a $12M software project from design to distribution in a 12-people team",
+    "actionVerb": "Spearheaded",
+    "metricType": "Dollar Amount",
+    "metricValue": "$12M",
+    "skills": [
+      "Project Leadership",
+      "Team Management",
+      "Full Lifecycle"
+    ],
+    "source": "bullet"
+  },
+  {
+    "role": "HR Manager",
+    "category": "Human Resources",
+    "seniority": "Mid",
+    "bullet": "Led collaboration with CEO to plan strategy for team structure and development which reduced costs by 60%",
+    "actionVerb": "Led",
+    "metricType": "Percentage",
+    "metricValue": "60%",
+    "skills": [
+      "Strategic Planning",
+      "Cost Reduction"
+    ],
+    "source": "bullet"
+  },
+  {
+    "role": "Operations Manager",
+    "category": "Operations",
+    "seniority": "Mid",
+    "bullet": "Achieved 33% year-over-year improvement in department productivity",
+    "actionVerb": "Achieved",
+    "metricType": "Percentage",
+    "metricValue": "33%",
+    "skills": [
+      "Productivity",
+      "YoY Growth"
+    ],
+    "source": "bullet"
+  },
+  {
+    "role": "Operations Manager",
+    "category": "Operations",
+    "seniority": "Mid",
+    "bullet": "Led and developed a team of 80-100 Amazon Associates in the largest North American Fulfilment Centre",
+    "actionVerb": "Led",
+    "metricType": "Team Size",
+    "metricValue": "80-100",
+    "skills": [
+      "Warehouse",
+      "Team Development",
+      "Amazon"
+    ],
+    "source": "bullet"
+  },
+  {
+    "role": "UX Designer",
+    "category": "Design",
+    "seniority": "Mid",
+    "bullet": "Directed the redesign of digital media platforms, enhancing user experience and increasing user retention rates by 15%",
+    "actionVerb": "Directed",
+    "metricType": "Percentage",
+    "metricValue": "15%",
+    "skills": [
+      "Platform Redesign",
+      "User Retention"
+    ],
+    "source": "bullet"
+  },
+  {
+    "role": "UX Designer",
+    "category": "Design",
+    "seniority": "Mid",
+    "bullet": "Implemented a user testing framework that reduced project development cycles by 20%",
+    "actionVerb": "Implemented",
+    "metricType": "Percentage",
+    "metricValue": "20%",
+    "skills": [
+      "User Testing",
+      "Process Improvement"
+    ],
+    "source": "bullet"
+  },
+  {
+    "role": "UX Designer",
+    "category": "Design",
+    "seniority": "Mid",
+    "bullet": "Managed a team of 10 designers, resulting in a 30% increase in team productivity",
+    "actionVerb": "Managed",
+    "metricType": "Percentage",
+    "metricValue": "30%",
+    "skills": [
+      "Team Leadership",
+      "Design Management"
+    ],
+    "source": "bullet"
+  },
+  {
+    "role": "UX Designer",
+    "category": "Design",
+    "seniority": "Mid",
+    "bullet": "Led UX design for a major operating system update deployed to 200 million users worldwide",
+    "actionVerb": "Led",
+    "metricType": "Count",
+    "metricValue": "200M users",
+    "skills": [
+      "OS Design",
+      "Scale"
+    ],
+    "source": "bullet"
+  },
+  {
+    "role": "Account Executive",
+    "category": "Sales",
+    "seniority": "Mid",
+    "bullet": "Established strategic partnerships with industry leaders, contributing to a 40% expansion of client base",
+    "actionVerb": "Established",
+    "metricType": "Percentage",
+    "metricValue": "40%",
+    "skills": [
+      "Partnership Development",
+      "Client Acquisition"
+    ],
+    "source": "bullet"
+  },
+  {
+    "role": "Account Executive",
+    "category": "Sales",
+    "seniority": "Mid",
+    "bullet": "Exceeded annual sales targets by 20% through strategic planning and execution",
+    "actionVerb": "Exceeded",
+    "metricType": "Percentage",
+    "metricValue": "20%",
+    "skills": [
+      "Sales Targets",
+      "Strategic Planning"
+    ],
+    "source": "bullet"
+  },
+  {
+    "role": "Business Analyst",
+    "category": "Data/Analytics",
+    "seniority": "Mid",
+    "bullet": "Implemented a strategic data integration solution that saved the company $200K annually",
+    "actionVerb": "Implemented",
+    "metricType": "Dollar Amount",
+    "metricValue": "$200K/year",
+    "skills": [
+      "Data Integration",
+      "Cost Savings"
+    ],
+    "source": "bullet"
+  }
+]

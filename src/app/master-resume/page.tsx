@@ -28,11 +28,27 @@ interface ContactInfo {
   linkedin: string;
 }
 
+interface Certification {
+  name: string;
+  issuer: string;
+  date: string;
+}
+
+interface Honor {
+  title: string;
+  issuer: string;
+  date: string;
+}
+
 interface ResumeData {
   contact_info: ContactInfo;
   work_experience: WorkExperience[];
   education: Education[];
   skills: string[];
+  certifications: Certification[];
+  languages: string[];
+  honors: Honor[];
+  profile_photo_path: string | null;
 }
 
 const emptyResume: ResumeData = {
@@ -40,6 +56,10 @@ const emptyResume: ResumeData = {
   work_experience: [],
   education: [],
   skills: [],
+  certifications: [],
+  languages: [],
+  honors: [],
+  profile_photo_path: null,
 };
 
 export default function MasterResumePage() {
@@ -53,6 +73,8 @@ export default function MasterResumePage() {
   const [saveMessage, setSaveMessage] = useState("");
   const [expandedJobs, setExpandedJobs] = useState<Set<number>>(new Set());
   const [newSkill, setNewSkill] = useState("");
+  const [newLanguage, setNewLanguage] = useState("");
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -80,6 +102,10 @@ export default function MasterResumePage() {
           work_experience: data.work_experience || [],
           education: data.education || [],
           skills: data.skills || [],
+          certifications: data.certifications || [],
+          languages: data.languages || [],
+          honors: data.honors || [],
+          profile_photo_path: data.profile_photo_path || null,
         };
         setResumeData(formatted);
         setOriginalData(formatted);
@@ -226,6 +252,111 @@ export default function MasterResumePage() {
       ...prev,
       skills: prev.skills.filter((s) => s !== skill),
     }));
+  };
+
+  // Certification handlers
+  const addCertification = () => {
+    setResumeData((prev) => ({
+      ...prev,
+      certifications: [...prev.certifications, { name: "", issuer: "", date: "" }],
+    }));
+  };
+
+  const updateCertification = (index: number, field: keyof Certification, value: string) => {
+    setResumeData((prev) => ({
+      ...prev,
+      certifications: prev.certifications.map((cert, i) =>
+        i === index ? { ...cert, [field]: value } : cert
+      ),
+    }));
+  };
+
+  const removeCertification = (index: number) => {
+    setResumeData((prev) => ({
+      ...prev,
+      certifications: prev.certifications.filter((_, i) => i !== index),
+    }));
+  };
+
+  // Language handlers
+  const addLanguage = () => {
+    if (newLanguage.trim() && !resumeData.languages.includes(newLanguage.trim())) {
+      setResumeData((prev) => ({
+        ...prev,
+        languages: [...prev.languages, newLanguage.trim()],
+      }));
+      setNewLanguage("");
+    }
+  };
+
+  const removeLanguage = (language: string) => {
+    setResumeData((prev) => ({
+      ...prev,
+      languages: prev.languages.filter((l) => l !== language),
+    }));
+  };
+
+  // Honor handlers
+  const addHonor = () => {
+    setResumeData((prev) => ({
+      ...prev,
+      honors: [...prev.honors, { title: "", issuer: "", date: "" }],
+    }));
+  };
+
+  const updateHonor = (index: number, field: keyof Honor, value: string) => {
+    setResumeData((prev) => ({
+      ...prev,
+      honors: prev.honors.map((honor, i) =>
+        i === index ? { ...honor, [field]: value } : honor
+      ),
+    }));
+  };
+
+  const removeHonor = (index: number) => {
+    setResumeData((prev) => ({
+      ...prev,
+      honors: prev.honors.filter((_, i) => i !== index),
+    }));
+  };
+
+  // Photo handlers
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingPhoto(true);
+    const formData = new FormData();
+    formData.append("photo", file);
+
+    try {
+      const response = await fetch("/api/resume/photo", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setResumeData((prev) => ({ ...prev, profile_photo_path: data.path }));
+        setOriginalData((prev) => ({ ...prev, profile_photo_path: data.path }));
+      }
+    } catch (err) {
+      console.error("Photo upload error:", err);
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const handlePhotoDelete = async () => {
+    try {
+      const response = await fetch("/api/resume/photo", { method: "DELETE" });
+      if (response.ok) {
+        setResumeData((prev) => ({ ...prev, profile_photo_path: null }));
+        setOriginalData((prev) => ({ ...prev, profile_photo_path: null }));
+      }
+    } catch (err) {
+      console.error("Photo delete error:", err);
+    }
   };
 
   const toggleJobExpanded = (index: number) => {
@@ -567,7 +698,7 @@ export default function MasterResumePage() {
         </div>
 
         {/* Skills */}
-        <div className="bg-white rounded-xl shadow p-6">
+        <div className="bg-white rounded-xl shadow p-6 mb-6">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">Skills</h2>
 
           {/* Add Skill Input */}
@@ -611,6 +742,230 @@ export default function MasterResumePage() {
               ))}
             </div>
           )}
+        </div>
+
+        {/* Certifications */}
+        <div className="bg-white rounded-xl shadow p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-800">Certifications</h2>
+            <button
+              onClick={addCertification}
+              className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center gap-1"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Add Certification
+            </button>
+          </div>
+
+          {resumeData.certifications.length === 0 ? (
+            <p className="text-gray-500 text-sm">No certifications added yet.</p>
+          ) : (
+            <div className="space-y-3">
+              {resumeData.certifications.map((cert, index) => (
+                <div key={index} className="border border-gray-200 rounded-lg p-4">
+                  <div className="flex justify-between mb-3">
+                    <span className="text-sm font-medium text-gray-500">Certification #{index + 1}</span>
+                    <button onClick={() => removeCertification(index)} className="text-red-500 hover:text-red-700">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Name</label>
+                      <input
+                        type="text"
+                        value={cert.name}
+                        onChange={(e) => updateCertification(index, "name", e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900"
+                        placeholder="AWS Solutions Architect"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Issuer</label>
+                      <input
+                        type="text"
+                        value={cert.issuer}
+                        onChange={(e) => updateCertification(index, "issuer", e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900"
+                        placeholder="Amazon Web Services"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Date</label>
+                      <input
+                        type="text"
+                        value={cert.date}
+                        onChange={(e) => updateCertification(index, "date", e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900"
+                        placeholder="2023"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Languages */}
+        <div className="bg-white rounded-xl shadow p-6 mb-6">
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">Languages</h2>
+
+          <div className="flex gap-2 mb-4">
+            <input
+              type="text"
+              value={newLanguage}
+              onChange={(e) => setNewLanguage(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addLanguage()}
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+              placeholder="Add a language..."
+            />
+            <button
+              onClick={addLanguage}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Add
+            </button>
+          </div>
+
+          {resumeData.languages.length === 0 ? (
+            <p className="text-gray-500 text-sm">No languages added yet.</p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {resumeData.languages.map((language, index) => (
+                <span
+                  key={index}
+                  className="inline-flex items-center gap-1 px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm"
+                >
+                  {language}
+                  <button onClick={() => removeLanguage(language)} className="hover:text-indigo-900">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Honors & Awards */}
+        <div className="bg-white rounded-xl shadow p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-800">Honors & Awards</h2>
+            <button
+              onClick={addHonor}
+              className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center gap-1"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Add Honor
+            </button>
+          </div>
+
+          {resumeData.honors.length === 0 ? (
+            <p className="text-gray-500 text-sm">No honors or awards added yet.</p>
+          ) : (
+            <div className="space-y-3">
+              {resumeData.honors.map((honor, index) => (
+                <div key={index} className="border border-gray-200 rounded-lg p-4">
+                  <div className="flex justify-between mb-3">
+                    <span className="text-sm font-medium text-gray-500">Honor #{index + 1}</span>
+                    <button onClick={() => removeHonor(index)} className="text-red-500 hover:text-red-700">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Title</label>
+                      <input
+                        type="text"
+                        value={honor.title}
+                        onChange={(e) => updateHonor(index, "title", e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900"
+                        placeholder="Employee of the Year"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Issuer</label>
+                      <input
+                        type="text"
+                        value={honor.issuer}
+                        onChange={(e) => updateHonor(index, "issuer", e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900"
+                        placeholder="Company Name"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Date</label>
+                      <input
+                        type="text"
+                        value={honor.date}
+                        onChange={(e) => updateHonor(index, "date", e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900"
+                        placeholder="2023"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Profile Photo */}
+        <div className="bg-white rounded-xl shadow p-6">
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">Profile Photo</h2>
+          <p className="text-gray-500 text-sm mb-4">This photo is displayed in your dashboard only, not on generated resumes.</p>
+
+          <div className="flex items-center gap-6">
+            {resumeData.profile_photo_path ? (
+              <div className="relative">
+                <img
+                  src={resumeData.profile_photo_path}
+                  alt="Profile"
+                  className="w-24 h-24 rounded-full object-cover border-2 border-gray-200"
+                />
+                <button
+                  onClick={handlePhotoDelete}
+                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            ) : (
+              <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center">
+                <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </div>
+            )}
+
+            <div>
+              <label className="cursor-pointer">
+                <span className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors inline-block">
+                  {uploadingPhoto ? "Uploading..." : resumeData.profile_photo_path ? "Change Photo" : "Upload Photo"}
+                </span>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={handlePhotoUpload}
+                  disabled={uploadingPhoto}
+                  className="hidden"
+                />
+              </label>
+              <p className="text-xs text-gray-400 mt-2">JPEG, PNG, or WebP. Max 5MB.</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

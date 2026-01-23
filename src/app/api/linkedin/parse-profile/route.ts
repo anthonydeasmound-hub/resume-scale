@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { name, headline, location, about, experience, education, skills, linkedin_username, profile_url } = body;
+    const { name, headline, location, about, experience, education, skills, certifications, languages, honors, profile_picture_url, linkedin_username, profile_url } = body;
 
     // Convert LinkedIn data to resume format
     const contactInfo = {
@@ -83,6 +83,31 @@ export async function POST(request: NextRequest) {
 
     const skillsData = skills || [];
 
+    // Process certifications (name, issuer, date)
+    const certificationsData = (certifications || []).map((cert: {
+      name?: string;
+      issuer?: string;
+      date?: string;
+    }) => ({
+      name: cert.name || "",
+      issuer: cert.issuer || "",
+      date: cert.date || "",
+    }));
+
+    // Languages are just strings
+    const languagesData = languages || [];
+
+    // Process honors (title, issuer, date)
+    const honorsData = (honors || []).map((honor: {
+      title?: string;
+      issuer?: string;
+      date?: string;
+    }) => ({
+      title: honor.title || "",
+      issuer: honor.issuer || "",
+      date: honor.date || "",
+    }));
+
     // Store the import data temporarily
     db.prepare(`
       INSERT OR REPLACE INTO linkedin_imports (user_id, profile_data, status)
@@ -92,6 +117,10 @@ export async function POST(request: NextRequest) {
       work_experience: workExperience,
       education: educationData,
       skills: skillsData,
+      certifications: certificationsData,
+      languages: languagesData,
+      honors: honorsData,
+      profile_picture_url: profile_picture_url || "",
       about: about || "",
     }));
 
@@ -102,6 +131,10 @@ export async function POST(request: NextRequest) {
         work_experience: workExperience,
         education: educationData,
         skills: skillsData,
+        certifications: certificationsData,
+        languages: languagesData,
+        honors: honorsData,
+        profile_picture_url: profile_picture_url || "",
       },
     }, { headers: corsHeaders });
   } catch (error) {
