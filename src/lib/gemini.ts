@@ -391,43 +391,59 @@ export async function generateCoverLetter(
   jobTitle: string,
   companyName: string
 ): Promise<string> {
-  const prompt = `Write the BODY ONLY of a cover letter (no greeting, no closing signature - those are handled separately).
+  // Extract key achievements with metrics from resume
+  const allBullets = resume.work_experience.flatMap(exp => exp.description || []);
+  const achievementBullets = allBullets
+    .filter(b => /\d+%|\$[\d.,]+[KMB]?|\d+\+/.test(b))
+    .slice(0, 3);
 
-CANDIDATE:
-${resume.work_experience.map(exp => `${exp.title} at ${exp.company} (${exp.start_date} - ${exp.end_date})`).join("\n")}
-Key skills: ${resume.skills.slice(0, 10).join(", ")}
+  const prompt = `**Situation**
+You are writing the BODY ONLY of a cover letter for a job application. No greeting ("Dear...") and no closing signature ("Sincerely...") - those are handled separately. The cover letter must feel authentic, energetic, and human - not robotic or generic.
 
-TARGET ROLE: ${jobTitle} at ${companyName}
+**Candidate Background**
+${resume.work_experience.map(exp => `• ${exp.title} at ${exp.company} (${exp.start_date} - ${exp.end_date})`).join("\n")}
 
-JOB REQUIREMENTS:
+Key Skills: ${resume.skills.slice(0, 10).join(", ")}
+
+Key Achievements:
+${achievementBullets.length > 0 ? achievementBullets.map(b => `• ${b}`).join("\n") : "• See work experience above"}
+
+**Target Role**
+Position: ${jobTitle} at ${companyName}
+
+Job Description:
 ${jobDescription.slice(0, 1500)}
 
-WRITE 3 PARAGRAPHS (250-300 words total):
+**Task**
+Write 3 paragraphs (250-300 words total) that create a compelling, human cover letter:
 
-Paragraph 1 - Hook & Alignment:
-- Open with WHY this specific company/role appeals to you (not generic "I'm excited")
-- Reference something specific about ${companyName} from the job description
-- State your relevant background in one sentence
+**Paragraph 1 - Attention-Grabbing Opening**
+- Start with a sentence that immediately demonstrates genuine excitement about this role
+- Show alignment with ${companyName}'s mission, values, or recent work (reference something specific from the job description)
+- Connect your passion to real value you can bring in this ${jobTitle} role
+- Feel authentic and energetic - avoid generic openings
 
-Paragraph 2 - Proof:
-- Connect 2 specific achievements from your experience to their requirements
-- Use actual numbers/results from your background
+**Paragraph 2 - Compelling Narrative**
+- Highlight your most relevant experience and connect it directly to the job requirements
+- Include 1-2 specific achievements with real numbers/metrics from your background
 - Show you understand what they need and have done it before
+- If your background seems like a transition, frame the shift as a strength
 
-Paragraph 3 - Forward-looking close:
-- What you'd bring to the team (be specific, not generic)
-- Express genuine interest in discussing further
-- Keep it confident but not arrogant
+**Paragraph 3 - Strong, Memorable Closing**
+- Be warm, confident, and leave a strong final impression
+- Explain what specific value you'd bring to the team
+- Invite the employer to connect
+- End memorably - not with a generic "I look forward to hearing from you"
 
-CRITICAL RULES:
-- DO NOT start with "I am writing to..." or "I am excited to apply..."
-- DO NOT use phrases like "I believe I would be a great fit" or "I am confident that..."
-- DO NOT include "Dear Hiring Manager" or any greeting
-- DO NOT include "Sincerely," or any signature
-- VARY sentence structure - mix short and long sentences
-- Use contractions naturally (I've, I'm, that's)
+**Critical Rules**
+- DO NOT start with "I am writing to..." or "I am excited to apply..." or "I came across..."
+- DO NOT use "I believe I would be a great fit" or "I am confident that..."
+- DO NOT sound stiff or robotic - be conversational and genuine
+- VARY sentence structure - mix short punchy sentences with longer ones
+- Use contractions naturally (I've, I'm, that's, don't)
 - Be specific, not generic - reference actual experience and actual job requirements
 - Sound like a confident professional wrote this, not an AI
+- Match a professional but warm tone
 
 Output ONLY the 3 paragraphs of body text, nothing else.`;
 
@@ -477,44 +493,38 @@ export async function generateSummaryOptions(
     ? `\nCANDIDATE'S ACTUAL METRICS (USE ONLY THESE - DO NOT INVENT):\n${userMetrics.map(m => `• ${m}`).join("\n")}\n`
     : "\n(No specific metrics found - do not invent metrics, focus on qualitative strengths)\n";
 
-  const prompt = `Write 3 professional summary options for this candidate applying to ${jobTitle} at ${companyName}.
+  const prompt = `**Situation**
+You are crafting a professional resume summary for a specific job application. This summary will appear at the top of your resume and serves as the first impression for hiring managers at the target company. The summary must immediately communicate your value proposition and relevance to the role.
 
-ABOUT ${companyName.toUpperCase()} (TARGET COMPANY):
-${companyContext}
+**Task**
+Create a compelling 3-4 sentence professional summary that synthesizes your career experience, core competencies, and notable achievements. The summary should be specifically tailored to align with the requirements and culture of the ${jobTitle} role at ${companyName}.
 
-THE CANDIDATE:
-• Most recent: ${mostRecent?.title || 'N/A'} at ${mostRecent?.company || 'N/A'}
-• Experience: ~${totalYears}+ years in ${mostRecent?.title?.split(' ').pop() || 'their field'}
-• Key skills: ${resume.skills.slice(0, 10).join(", ")}
-${achievementBullets.length > 0 ? `• Top achievements:\n  - ${achievementBullets.join("\n  - ")}` : ""}
+**Objective**
+Position yourself as the ideal candidate by demonstrating clear alignment between your professional background and the target role's requirements, while highlighting your unique value and differentiators that would make you stand out among other applicants.
+
+**Knowledge**
+Here is the information to create the summary:
+
+- **Target Role Details**: ${jobTitle} at ${companyName}
+- **Job Requirements**: ${jobDescription.slice(0, 1200)}
+- **Your Experience**: ${totalYears}+ years of experience, most recently as ${mostRecent?.title || 'N/A'} at ${mostRecent?.company || 'N/A'}
+- **Core Skills**: ${resume.skills.slice(0, 7).join(", ")}
+- **Key Achievements**: ${achievementBullets.length > 0 ? achievementBullets.join("; ") : "Not specified"}
 ${metricsSection}
-TARGET ROLE REQUIREMENTS:
-${jobDescription.slice(0, 1000)}
+- **Company Information**: ${companyContext}
 
-${roleSummaryExamples.length > 0 ? `REFERENCE EXAMPLES:
-${roleSummaryExamples.map(s => `"${s.summary}"`).join("\n")}` : ""}
+**Output Requirements**
+The summary should:
+- Be 3-4 sentences (approximately 50-80 words total)
+- Lead with your professional identity and years of experience
+- Incorporate 3-4 key skills that match the job description
+- Include at least one quantifiable achievement from the metrics provided (DO NOT invent metrics)
+- Use active, confident language with strong action verbs
+- Avoid generic phrases like "team player" or "results-driven" unless backed by specific evidence
+- Reflect terminology and keywords from the job posting to pass ATS systems
+- End with a forward-looking statement about your goal or what you bring to the company
 
-WRITE 3 SUMMARIES (2-3 sentences, 40-60 words each):
-
-Each summary MUST:
-1. Open with years of experience + specialty
-2. Reference ${companyName} or their industry specifically
-3. Include 1-2 metrics from "CANDIDATE'S ACTUAL METRICS" above - DO NOT invent new numbers
-4. Use keywords from the job description
-5. End with value proposition for THIS role at ${companyName}
-
-THREE DISTINCT ANGLES:
-• Summary 1 - INDUSTRY EXPERTISE: Lead with domain knowledge (e.g., "SaaS sales leader with 5+ years...")
-• Summary 2 - QUANTIFIED ACHIEVEMENT: Lead with biggest metric from ACTUAL METRICS (e.g., "Revenue driver who generated $4M+...")
-• Summary 3 - GROWTH/TRANSFORMATION: Lead with scale/impact from ACTUAL METRICS (e.g., "Growth-focused leader who scaled team from 5 to 20...")
-
-**METRIC RULE**: You may ONLY use metrics that appear in "CANDIDATE'S ACTUAL METRICS". Do NOT invent, estimate, or create new percentages, dollar amounts, or numbers.
-
-BAD (invented metric): "Generated $5M in revenue" (if $5M wasn't in actual metrics)
-GOOD (using actual metric): "Generated $4M+ ARR" (if $4M was in actual metrics)
-GOOD (no metric if none available): "Drove significant revenue growth across enterprise accounts"
-
-METRIC FORMAT: Always use numbers (25%, $1.2M, 10+) - never write them out
+Generate 3 different summary options, each with a slightly different angle or emphasis.
 
 RESPOND WITH ONLY A JSON ARRAY OF 3 STRINGS:
 ["Summary 1...", "Summary 2...", "Summary 3..."]`;
@@ -568,7 +578,7 @@ TARGET JOB (${jobTitle} at ${companyName}):
 ${jobDescription.slice(0, 1200)}
 
 CRITICAL INSTRUCTIONS:
-1. Each bullet must be 8-12 words (concise, fits one resume line)
+1. Each bullet should be 1-2 lines (15-30 words) - detailed enough to show impact
 2. Each bullet must describe a SPECIFIC activity, not just a result
 3. Pretend you're a ${role.title} at ${role.company}. Describe your responsibilities and achievements as if you actually held this role
 4. Include WHO you worked with (clients, teams, stakeholders)
@@ -761,7 +771,7 @@ Examples:
 REQUIREMENTS:
 - Start each bullet with a strong action verb
 - Include at least one metric (%, $, #, or timeframe)
-- Keep each bullet to 8-12 words (concise, one line)
+- Each bullet should be 1-2 lines (15-30 words) - detailed enough to show impact
 - Cover different aspects: leadership, technical work, business impact, collaboration, innovation
 
 METRIC FORMAT (CRITICAL):

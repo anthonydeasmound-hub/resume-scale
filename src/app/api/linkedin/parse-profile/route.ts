@@ -61,13 +61,34 @@ export async function POST(request: NextRequest) {
       start_date?: string;
       end_date?: string;
       description?: string;
-    }) => ({
-      company: exp.company || "",
-      title: exp.title || "",
-      start_date: exp.start_date || "",
-      end_date: exp.end_date || "",
-      description: exp.description ? [exp.description] : [],
-    }));
+    }) => {
+      // Filter out LinkedIn skill badges that look like "Quota Achievement, Sales and +5 skills"
+      // These are not actual job descriptions/bullets
+      let description: string[] = [];
+      if (exp.description) {
+        const descText = exp.description.trim();
+        // Skip if it looks like a LinkedIn skills badge:
+        // - Contains "+X skills" pattern
+        // - Is very short and comma-separated (likely just skill names)
+        // - Contains "skills" at the end
+        const isSkillsBadge =
+          /\+\d+\s*skills?/i.test(descText) ||
+          /skills?$/i.test(descText) ||
+          (descText.length < 100 && descText.split(',').length >= 2 && !descText.includes('.'));
+
+        if (!isSkillsBadge) {
+          description = [descText];
+        }
+      }
+
+      return {
+        company: exp.company || "",
+        title: exp.title || "",
+        start_date: exp.start_date || "",
+        end_date: exp.end_date || "",
+        description,
+      };
+    });
 
     const educationData = (education || []).map((edu: {
       institution?: string;

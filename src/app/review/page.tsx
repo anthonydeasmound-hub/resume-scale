@@ -453,8 +453,8 @@ function ReviewContent() {
     }
   };
 
-  // Hard limit of 10 bullets total across all roles
-  const MAX_TOTAL_BULLETS = 10;
+  // Hard limit of 12 bullets total across all roles
+  const MAX_TOTAL_BULLETS = 12;
   const INITIAL_SUGGESTIONS_SHOWN = 4;
 
   // Track which roles have expanded suggestions

@@ -75,6 +75,27 @@ function parseDateToNumber(dateStr: string): number {
   return new Date(year, month, 1).getTime();
 }
 
+/**
+ * Check if a string looks like a LinkedIn skills badge
+ * e.g., "Quota Achievement, Sales and +5 skills"
+ */
+function isLinkedInSkillsBadge(text: string): boolean {
+  if (!text) return true;
+  const trimmed = text.trim();
+  if (!trimmed) return true;
+
+  // Contains "+X skills" pattern
+  if (/\+\d+\s*skills?/i.test(trimmed)) return true;
+
+  // Ends with "skills"
+  if (/skills?$/i.test(trimmed)) return true;
+
+  // Short comma-separated text without periods (likely just skill names)
+  if (trimmed.length < 100 && trimmed.split(',').length >= 2 && !trimmed.includes('.')) return true;
+
+  return false;
+}
+
 // Sort work experience by start date (most recent first) and remove duplicates
 function processWorkExperience(experiences: LinkedInData["work_experience"]): LinkedInData["work_experience"] {
   // Remove duplicates based on company + title + dates
@@ -90,11 +111,17 @@ function processWorkExperience(experiences: LinkedInData["work_experience"]): Li
   });
 
   // Sort by start date descending (most recent first)
-  return deduped.sort((a, b) => {
+  const sorted = deduped.sort((a, b) => {
     const dateA = parseDateToNumber(a.start_date);
     const dateB = parseDateToNumber(b.start_date);
     return dateB - dateA; // Descending order
   });
+
+  // Filter out LinkedIn skills badges from descriptions
+  return sorted.map(exp => ({
+    ...exp,
+    description: exp.description.filter(d => !isLinkedInSkillsBadge(d)),
+  }));
 }
 
 function OnboardingContent() {

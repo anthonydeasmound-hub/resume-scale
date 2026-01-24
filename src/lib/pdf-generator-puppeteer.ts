@@ -76,24 +76,23 @@ function generateCoverLetterHTML(data: CoverLetterData, template: TemplateName, 
     day: 'numeric',
   });
 
-  // Always use professional fonts now
-  const fontFamily = "'Lora', serif";
-  const bodyFont = "'Poppins', sans-serif";
+  // Use Inter font to match resume
+  const fontFamily = "'Inter', sans-serif";
 
   return `
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
-  <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;600&family=Poppins:wght@400;500&family=DM+Serif+Display&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     @page { size: Letter; margin: 0; }
 
     body {
-      font-family: ${bodyFont};
-      font-size: 11pt;
-      line-height: 1.6;
+      font-family: ${fontFamily};
+      font-size: 9.5pt;
+      line-height: 1.5;
       color: #333;
       width: 8.5in;
       height: 11in;
@@ -112,29 +111,30 @@ function generateCoverLetterHTML(data: CoverLetterData, template: TemplateName, 
     .name {
       font-family: ${fontFamily};
       font-size: 24pt;
+      font-weight: 700;
       color: ${accentColor};
       margin-bottom: 8px;
     }
 
     .contact-info {
-      font-size: 10pt;
+      font-size: 9.5pt;
       color: #666;
       line-height: 1.4;
     }
 
     .date {
       margin: 30px 0;
-      font-size: 11pt;
+      font-size: 9.5pt;
     }
 
     .salutation {
       margin-bottom: 20px;
-      font-size: 11pt;
+      font-size: 9.5pt;
     }
 
     .body-paragraph {
       margin-bottom: 16px;
-      font-size: 11pt;
+      font-size: 9.5pt;
       text-align: justify;
     }
 
