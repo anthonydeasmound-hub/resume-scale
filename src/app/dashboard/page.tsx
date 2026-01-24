@@ -37,6 +37,11 @@ export default function DashboardPage() {
   const [emailUpdates, setEmailUpdates] = useState<{ company: string; type: string; summary: string }[]>([]);
   const [emailMessage, setEmailMessage] = useState("");
 
+  // Calendar check state
+  const [checkingCalendar, setCheckingCalendar] = useState(false);
+  const [calendarUpdates, setCalendarUpdates] = useState<{ company: string; type: string; summary: string; startTime: string; title: string }[]>([]);
+  const [calendarMessage, setCalendarMessage] = useState("");
+
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/");
@@ -103,6 +108,44 @@ export default function DashboardPage() {
     } finally {
       setCheckingEmails(false);
     }
+  };
+
+  const checkCalendar = async () => {
+    setCheckingCalendar(true);
+    setCalendarUpdates([]);
+    setCalendarMessage("");
+
+    try {
+      const response = await fetch("/api/calendar/check", { method: "POST" });
+      const data = await response.json();
+
+      if (response.ok) {
+        setCalendarMessage(data.message);
+        setCalendarUpdates(data.updates || []);
+        if (data.updates?.length > 0) {
+          fetchStats(); // Refresh stats if there were updates
+        }
+      } else {
+        setCalendarMessage(data.error || "Failed to check calendar");
+      }
+    } catch (err) {
+      setCalendarMessage("Failed to check calendar");
+      console.error(err);
+    } finally {
+      setCheckingCalendar(false);
+    }
+  };
+
+  const formatEventDate = (dateString: string) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -192,40 +235,62 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {/* Gmail Check Section */}
+        {/* Gmail & Calendar Check Section */}
         <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-xl font-semibold text-gray-800">Email Updates</h2>
-              <p className="text-gray-600 text-sm">Check Gmail for application status updates</p>
+              <h2 className="text-xl font-semibold text-gray-800">Application Updates</h2>
+              <p className="text-gray-600 text-sm">Check Gmail and Calendar for status updates</p>
             </div>
-            <button
-              onClick={checkEmails}
-              disabled={checkingEmails}
-              className="bg-purple-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-            >
-              {checkingEmails ? (
-                <>
-                  <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
-                  Checking...
-                </>
-              ) : (
-                <>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                  Check Emails
-                </>
-              )}
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={checkEmails}
+                disabled={checkingEmails}
+                className="bg-purple-600 text-white px-5 py-2 rounded-lg font-medium hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+              >
+                {checkingEmails ? (
+                  <>
+                    <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+                    Checking...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    Check Emails
+                  </>
+                )}
+              </button>
+              <button
+                onClick={checkCalendar}
+                disabled={checkingCalendar}
+                className="bg-teal-600 text-white px-5 py-2 rounded-lg font-medium hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+              >
+                {checkingCalendar ? (
+                  <>
+                    <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+                    Checking...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    Check Calendar
+                  </>
+                )}
+              </button>
+            </div>
           </div>
 
+          {/* Email Updates */}
           {emailMessage && (
             <p className="text-sm text-gray-600 mb-3">{emailMessage}</p>
           )}
 
           {emailUpdates.length > 0 && (
-            <div className="space-y-2">
+            <div className="space-y-2 mb-4">
               {emailUpdates.map((update, idx) => (
                 <div
                   key={idx}
@@ -240,6 +305,40 @@ export default function DashboardPage() {
                   }`}
                 >
                   <span className="font-medium">{update.company}</span>: {update.summary}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Calendar Updates */}
+          {calendarMessage && (
+            <p className="text-sm text-gray-600 mb-3">{calendarMessage}</p>
+          )}
+
+          {calendarUpdates.length > 0 && (
+            <div className="space-y-2">
+              {calendarUpdates.map((update, idx) => (
+                <div
+                  key={idx}
+                  className={`p-3 rounded-lg text-sm ${
+                    update.type === "interview"
+                      ? "bg-teal-50 text-teal-700"
+                      : update.type === "deadline"
+                      ? "bg-orange-50 text-orange-700"
+                      : "bg-blue-50 text-blue-700"
+                  }`}
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <span className="font-medium">{update.company}</span>
+                      <span className="mx-1">-</span>
+                      <span>{update.title}</span>
+                    </div>
+                    <span className="text-xs whitespace-nowrap ml-2">
+                      {formatEventDate(update.startTime)}
+                    </span>
+                  </div>
+                  <p className="text-xs mt-1 opacity-80">{update.summary}</p>
                 </div>
               ))}
             </div>

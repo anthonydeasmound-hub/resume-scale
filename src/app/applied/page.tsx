@@ -2,8 +2,11 @@
 
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import TabsNav from "@/components/TabsNav";
+import FilterBar from "@/components/applied/FilterBar";
+import JobCard from "@/components/applied/JobCard";
+import ExpandedJobCard from "@/components/applied/ExpandedJobCard";
 
 interface Job {
   id: number;
@@ -16,10 +19,21 @@ interface Job {
   interview_3: string | null;
   interview_4: string | null;
   interview_5: string | null;
+  recruiter_name: string | null;
+  recruiter_email: string | null;
+  recruiter_title: string | null;
+  recruiter_source: 'email' | 'job_description' | 'manual' | null;
   created_at: string;
 }
 
-type InterviewStatus = "pending" | "scheduled" | "completed" | "rejected";
+type JobStatus = "applied" | "interview" | "offer" | "rejected";
+
+interface FilterState {
+  status: JobStatus[];
+  dateRange: { start: string; end: string };
+  companySearch: string;
+  interviewStage: number | null;
+}
 
 const INTERVIEW_STAGES = ["interview_1", "interview_2", "interview_3", "interview_4", "interview_5"] as const;
 
@@ -28,8 +42,14 @@ export default function AppliedPage() {
   const router = useRouter();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editingJob, setEditingJob] = useState<number | null>(null);
   const [reviewCount, setReviewCount] = useState(0);
+  const [expandedJob, setExpandedJob] = useState<Job | null>(null);
+  const [filters, setFilters] = useState<FilterState>({
+    status: [],
+    dateRange: { start: "", end: "" },
+    companySearch: "",
+    interviewStage: null,
+  });
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -50,7 +70,11 @@ export default function AppliedPage() {
       if (response.ok) {
         const data = await response.json();
         const appliedJobs = data.filter(
-          (j: Job) => j.status === "applied" || j.status === "interview" || j.status === "rejected" || j.status === "offer"
+          (j: Job) =>
+            j.status === "applied" ||
+            j.status === "interview" ||
+            j.status === "rejected" ||
+            j.status === "offer"
         );
         setJobs(appliedJobs);
       }
@@ -80,67 +104,88 @@ export default function AppliedPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updates),
       });
-      fetchJobs();
+      await fetchJobs();
+      // Update expanded job if it's the one being updated
+      if (expandedJob && expandedJob.id === jobId) {
+        setExpandedJob(prev => prev ? { ...prev, ...updates } : null);
+      }
     } catch (err) {
       console.error("Failed to update job:", err);
     }
   };
 
-  const getInterviewStatus = (job: Job, stage: typeof INTERVIEW_STAGES[number]): InterviewStatus => {
-    const value = job[stage];
-    if (!value) return "pending";
-    if (value === "rejected") return "rejected";
-    if (value === "scheduled") return "scheduled";
-    return "completed";
+  const handleInterviewPrepClick = (job: Job) => {
+    setExpandedJob(job);
   };
 
-  const getStatusColor = (interviewStatus: InterviewStatus): string => {
-    switch (interviewStatus) {
-      case "completed":
-        return "bg-green-500";
-      case "scheduled":
-        return "bg-yellow-500";
-      case "rejected":
-        return "bg-red-500";
-      default:
-        return "bg-gray-200";
+  const handleStatusChange = (jobId: number, newStatus: string) => {
+    updateJob(jobId, { status: newStatus });
+  };
+
+  const handleInterviewChange = (jobId: number, stage: string, value: string | null) => {
+    updateJob(jobId, { [stage]: value });
+  };
+
+  // Get interview count for a job
+  const getInterviewCount = (job: Job): number => {
+    let count = 0;
+    for (const stage of INTERVIEW_STAGES) {
+      if (job[stage] && job[stage] !== "pending") {
+        count = parseInt(stage.split("_")[1]);
+      }
     }
+    return count;
   };
 
-  const getRowBackground = (job: Job): string => {
-    if (job.status === "rejected") return "bg-red-50";
-    if (job.status === "offer") return "bg-green-50";
-    return "bg-white";
-  };
+  // Filter jobs based on current filter state
+  const filteredJobs = useMemo(() => {
+    let result = jobs;
 
-  const cycleInterviewStatus = (job: Job, stage: typeof INTERVIEW_STAGES[number]) => {
-    const current = getInterviewStatus(job, stage);
-    let next: string | null;
-
-    switch (current) {
-      case "pending":
-        next = "scheduled";
-        break;
-      case "scheduled":
-        next = "completed";
-        break;
-      case "completed":
-        next = "rejected";
-        break;
-      case "rejected":
-        next = null;
-        break;
-      default:
-        next = null;
+    // Status filter (multi-select)
+    if (filters.status.length > 0) {
+      result = result.filter((j) => filters.status.includes(j.status as JobStatus));
     }
 
-    updateJob(job.id, { [stage]: next });
-  };
+    // Date range filter
+    if (filters.dateRange.start) {
+      const startDate = new Date(filters.dateRange.start);
+      result = result.filter((j) => {
+        if (!j.date_applied) return false;
+        return new Date(j.date_applied) >= startDate;
+      });
+    }
+    if (filters.dateRange.end) {
+      const endDate = new Date(filters.dateRange.end);
+      endDate.setHours(23, 59, 59, 999); // Include the entire end day
+      result = result.filter((j) => {
+        if (!j.date_applied) return false;
+        return new Date(j.date_applied) <= endDate;
+      });
+    }
 
-  const setJobStatus = (job: Job, newStatus: string) => {
-    updateJob(job.id, { status: newStatus });
-    setEditingJob(null);
-  };
+    // Company/title search filter
+    if (filters.companySearch) {
+      const search = filters.companySearch.toLowerCase();
+      result = result.filter(
+        (j) =>
+          j.company_name.toLowerCase().includes(search) ||
+          j.job_title.toLowerCase().includes(search)
+      );
+    }
+
+    // Interview stage filter
+    if (filters.interviewStage !== null) {
+      if (filters.interviewStage === 0) {
+        // No interviews - all stages are null or pending
+        result = result.filter((j) => getInterviewCount(j) === 0);
+      } else {
+        // Has reached at least this stage
+        result = result.filter((j) => getInterviewCount(j) >= filters.interviewStage!);
+      }
+    }
+
+    return result;
+  }, [jobs, filters]);
 
   if (status === "loading" || loading) {
     return (
@@ -156,124 +201,68 @@ export default function AppliedPage() {
 
       <div className="ml-64 p-8">
         <h1 className="text-2xl font-bold text-gray-900 mb-6">
-          Applied Jobs ({jobs.length})
+          Applied Jobs
         </h1>
 
-        {jobs.length === 0 ? (
+        {/* Filter Bar */}
+        <FilterBar
+          filters={filters}
+          onFiltersChange={setFilters}
+          totalCount={jobs.length}
+          filteredCount={filteredJobs.length}
+        />
+
+        {/* Job Cards Grid */}
+        {filteredJobs.length === 0 ? (
           <div className="bg-white rounded-xl shadow-lg p-8 text-center text-gray-500">
-            No applied jobs yet. Review and submit applications from the Review tab.
+            {jobs.length === 0
+              ? "No applied jobs yet. Review and submit applications from the Review tab."
+              : "No jobs match your current filters."}
           </div>
         ) : (
-          <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Company</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Position</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Date Applied</th>
-                    <th className="px-4 py-3 text-center text-sm font-semibold text-gray-900">Status</th>
-                    <th className="px-4 py-3 text-center text-sm font-semibold text-gray-900" colSpan={5}>
-                      Interview Progress
-                    </th>
-                  </tr>
-                  <tr className="bg-gray-50 border-b">
-                    <th colSpan={4}></th>
-                    {[1, 2, 3, 4, 5].map((num) => (
-                      <th key={num} className="px-2 py-1 text-center text-xs text-gray-500 font-normal">
-                        {num}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {jobs.map((job) => (
-                    <tr key={job.id} className={`${getRowBackground(job)} hover:bg-gray-50 transition-colors`}>
-                      <td className="px-4 py-3">
-                        <span className="font-medium text-gray-900">{job.company_name}</span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="text-gray-700">{job.job_title}</span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="text-gray-500 text-sm">
-                          {job.date_applied
-                            ? new Date(job.date_applied).toLocaleDateString()
-                            : "-"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-center relative">
-                        <button
-                          onClick={() => setEditingJob(editingJob === job.id ? null : job.id)}
-                          className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            job.status === "rejected"
-                              ? "bg-red-100 text-red-700"
-                              : job.status === "offer"
-                              ? "bg-green-100 text-green-700"
-                              : job.status === "interview"
-                              ? "bg-yellow-100 text-yellow-700"
-                              : "bg-blue-100 text-blue-700"
-                          }`}
-                        >
-                          {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
-                        </button>
-                        {editingJob === job.id && (
-                          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 bg-white rounded-lg shadow-lg border p-2 z-10 min-w-[120px]">
-                            {["applied", "interview", "rejected", "offer"].map((s) => (
-                              <button
-                                key={s}
-                                onClick={() => setJobStatus(job, s)}
-                                className={`block w-full text-left px-3 py-1 text-sm rounded hover:bg-gray-100 ${
-                                  job.status === s ? "font-medium" : ""
-                                }`}
-                              >
-                                {s.charAt(0).toUpperCase() + s.slice(1)}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </td>
-                      {INTERVIEW_STAGES.map((stage, idx) => {
-                        const interviewStatus = getInterviewStatus(job, stage);
-                        return (
-                          <td key={stage} className="px-2 py-3 text-center">
-                            <button
-                              onClick={() => cycleInterviewStatus(job, stage)}
-                              className={`w-6 h-6 rounded-full ${getStatusColor(interviewStatus)} transition-colors hover:opacity-80`}
-                              title={`Interview ${idx + 1}: ${interviewStatus}`}
-                            />
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Legend */}
-            <div className="px-4 py-3 bg-gray-50 border-t flex items-center gap-6 text-sm">
-              <span className="text-gray-500">Legend:</span>
-              <div className="flex items-center gap-2">
-                <span className="w-4 h-4 rounded-full bg-gray-200"></span>
-                <span className="text-gray-600">Pending</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-4 h-4 rounded-full bg-yellow-500"></span>
-                <span className="text-gray-600">Scheduled</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-4 h-4 rounded-full bg-green-500"></span>
-                <span className="text-gray-600">Completed</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-4 h-4 rounded-full bg-red-500"></span>
-                <span className="text-gray-600">Rejected</span>
-              </div>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {filteredJobs.map((job) => (
+              <JobCard
+                key={job.id}
+                job={job}
+                onStatusChange={handleStatusChange}
+                onInterviewChange={handleInterviewChange}
+                onInterviewPrepClick={handleInterviewPrepClick}
+              />
+            ))}
           </div>
         )}
+
+        {/* Legend */}
+        <div className="mt-6 bg-white rounded-xl shadow-md px-4 py-3 flex flex-wrap items-center gap-6 text-sm">
+          <span className="text-gray-500 font-medium">Interview Legend:</span>
+          <div className="flex items-center gap-2">
+            <span className="w-4 h-4 rounded-full bg-gray-200"></span>
+            <span className="text-gray-600">Pending</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-4 h-4 rounded-full bg-yellow-500"></span>
+            <span className="text-gray-600">Scheduled</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-4 h-4 rounded-full bg-green-500"></span>
+            <span className="text-gray-600">Completed</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-4 h-4 rounded-full bg-red-500"></span>
+            <span className="text-gray-600">Rejected</span>
+          </div>
+        </div>
       </div>
+
+      {/* Expanded Job Card Modal */}
+      {expandedJob && (
+        <ExpandedJobCard
+          job={expandedJob}
+          onClose={() => setExpandedJob(null)}
+          onUpdate={updateJob}
+        />
+      )}
     </div>
   );
 }

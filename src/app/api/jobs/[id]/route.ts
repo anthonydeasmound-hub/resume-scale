@@ -60,7 +60,12 @@ export async function PATCH(
     }
 
     // Build update query dynamically
-    const allowedFields = ["status", "resume_style", "resume_color", "tailored_resume", "cover_letter", "date_applied", "reviewed", "interview_1", "interview_2", "interview_3", "interview_4", "interview_5"];
+    const allowedFields = [
+      "status", "resume_style", "resume_color", "tailored_resume", "cover_letter",
+      "date_applied", "reviewed", "interview_1", "interview_2", "interview_3",
+      "interview_4", "interview_5", "recruiter_name", "recruiter_email",
+      "recruiter_title", "recruiter_source", "interview_guide", "interview_guide_generated_at"
+    ];
     const updateFields: string[] = [];
     const values: (string | number)[] = [];
 
