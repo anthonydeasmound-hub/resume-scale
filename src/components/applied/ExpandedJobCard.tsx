@@ -64,10 +64,6 @@ export default function ExpandedJobCard({ job, onClose, onUpdate }: ExpandedJobC
     }
   };
 
-  const handleUpdateInterview = async (stage: string, status: string | null) => {
-    await onUpdate(job.id, { [stage]: status });
-  };
-
   const handleSaveRecruiter = async (data: { recruiter_name: string; recruiter_email: string; recruiter_title: string; recruiter_source: 'manual'; }) => {
     await onUpdate(job.id, data);
   };
@@ -110,7 +106,7 @@ export default function ExpandedJobCard({ job, onClose, onUpdate }: ExpandedJobC
           </div>
 
           <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
-            {activeTab === "roadmap" && <InterviewRoadmap interviews={{ interview_1: job.interview_1, interview_2: job.interview_2, interview_3: job.interview_3, interview_4: job.interview_4, interview_5: job.interview_5 }} onUpdateInterview={handleUpdateInterview} />}
+            {activeTab === "roadmap" && <InterviewRoadmap jobId={job.id} />}
             {activeTab === "guide" && (isLoadingGuide ? <div className="flex items-center justify-center py-12"><svg className="animate-spin w-8 h-8 text-blue-600" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" /></svg></div> : <InterviewGuideDisplay jobId={job.id} guide={interviewGuide} generatedAt={guideGeneratedAt} onGenerate={handleGenerateGuide} />)}
             {activeTab === "recruiter" && <RecruiterInfo recruiterName={job.recruiter_name} recruiterEmail={job.recruiter_email} recruiterTitle={job.recruiter_title} recruiterSource={job.recruiter_source} onSave={handleSaveRecruiter} />}
           </div>

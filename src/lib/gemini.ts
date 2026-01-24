@@ -1002,6 +1002,207 @@ Return ONLY valid JSON:
 }
 
 // Generate bullet point recommendations for onboarding (no target job)
+// Enhanced email classification with interview details extraction
+export interface EnhancedEmailClassification extends EmailClassification {
+  interview_details?: {
+    interview_type: 'phone_screen' | 'technical' | 'behavioral' | 'onsite' | 'panel' | 'final' | 'other';
+    proposed_datetime: string | null; // ISO string if extractable
+    duration_minutes: number | null;
+    location: string | null;
+    meeting_link: string | null;
+    interviewer_names: string[];
+    requires_response: boolean;
+  };
+}
+
+export async function classifyEmailEnhanced(
+  email: { from: string; subject: string; body: string; snippet: string },
+  knownCompanies: string[]
+): Promise<EnhancedEmailClassification> {
+  const prompt = `Classify this email related to job applications and extract all relevant details.
+
+EMAIL:
+From: ${email.from}
+Subject: ${email.subject}
+Body: ${email.snippet} ${email.body.slice(0, 2000)}
+
+COMPANIES THE USER HAS APPLIED TO:
+${knownCompanies.join(", ")}
+
+Classify this email and extract information:
+
+1. EMAIL TYPE:
+- "confirmation": Application received/submitted confirmation
+- "rejection": The candidate was rejected or not moving forward
+- "interview": Interview invitation, scheduling, or rescheduling
+- "offer": Job offer
+- "unrelated": Not related to any job application from the list
+
+2. If type is "interview", also extract:
+- Interview type: phone_screen, technical, behavioral, onsite, panel, final, or other
+- Proposed date/time (in ISO format if clearly stated, e.g., "2024-01-15T10:00:00")
+- Duration in minutes (e.g., 30, 45, 60)
+- Location (if in-person) or meeting link (Zoom, Teams, etc.)
+- Names of interviewers mentioned
+- Whether the email requires a response to confirm/schedule
+
+3. Extract recruiter information from the email
+
+Return ONLY valid JSON:
+{
+  "type": "confirmation|rejection|interview|offer|unrelated",
+  "company": "Company name or null",
+  "confidence": 0.0 to 1.0,
+  "summary": "Brief summary",
+  "recruiter_name": "Name or null",
+  "recruiter_email": "Email or null",
+  "recruiter_title": "Title or null",
+  "interview_details": {
+    "interview_type": "phone_screen|technical|behavioral|onsite|panel|final|other",
+    "proposed_datetime": "ISO string or null",
+    "duration_minutes": number or null,
+    "location": "string or null",
+    "meeting_link": "URL or null",
+    "interviewer_names": ["name1", "name2"],
+    "requires_response": true or false
+  }
+}
+
+Only include interview_details if type is "interview".`;
+
+  try {
+    const response = await callAI(prompt);
+    const cleanedResponse = response
+      .replace(/```json\n?/g, "")
+      .replace(/```\n?/g, "")
+      .trim();
+
+    const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]);
+    }
+    return JSON.parse(cleanedResponse);
+  } catch {
+    return {
+      type: "unrelated",
+      company: null,
+      confidence: 0,
+      summary: "Failed to classify",
+    };
+  }
+}
+
+// Generate thank-you email content
+export interface GeneratedEmail {
+  subject: string;
+  body: string;
+}
+
+export async function generateThankYouEmail(
+  companyName: string,
+  jobTitle: string,
+  interviewerNames: string[],
+  interviewType: string,
+  candidateName: string,
+  notesFromInterview?: string
+): Promise<GeneratedEmail> {
+  const prompt = `Write a professional thank-you email after a job interview.
+
+CONTEXT:
+- Company: ${companyName}
+- Position: ${jobTitle}
+- Interviewer(s): ${interviewerNames.length > 0 ? interviewerNames.join(", ") : "the interviewer"}
+- Interview type: ${interviewType}
+- Candidate name: ${candidateName}
+${notesFromInterview ? `- Notes from interview: ${notesFromInterview}` : ""}
+
+REQUIREMENTS:
+1. Keep it brief (150-200 words max)
+2. Be professional but warm
+3. Reference something specific if notes are provided
+4. Reiterate interest in the role
+5. Don't be overly formal or stiff
+
+Return ONLY valid JSON:
+{
+  "subject": "Email subject line",
+  "body": "Email body text (can include line breaks with \\n)"
+}`;
+
+  try {
+    const response = await callAI(prompt);
+    const cleanedResponse = response
+      .replace(/```json\n?/g, "")
+      .replace(/```\n?/g, "")
+      .trim();
+
+    const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]);
+    }
+    return JSON.parse(cleanedResponse);
+  } catch {
+    return {
+      subject: `Thank you - ${jobTitle} Interview`,
+      body: `Thank you for taking the time to speak with me about the ${jobTitle} position at ${companyName}. I enjoyed learning more about the role and the team.\n\nI remain very interested in this opportunity and look forward to hearing from you about next steps.\n\nBest regards,\n${candidateName}`,
+    };
+  }
+}
+
+// Generate follow-up email content
+export async function generateFollowUpEmail(
+  companyName: string,
+  jobTitle: string,
+  lastContactDate: string,
+  candidateName: string,
+  recruiterName?: string,
+  context?: string
+): Promise<GeneratedEmail> {
+  const daysSince = Math.floor((Date.now() - new Date(lastContactDate).getTime()) / (1000 * 60 * 60 * 24));
+
+  const prompt = `Write a professional follow-up email for a job application.
+
+CONTEXT:
+- Company: ${companyName}
+- Position: ${jobTitle}
+- Days since last contact: ${daysSince}
+- Candidate name: ${candidateName}
+${recruiterName ? `- Recruiter name: ${recruiterName}` : ""}
+${context ? `- Additional context: ${context}` : ""}
+
+REQUIREMENTS:
+1. Keep it brief (100-150 words max)
+2. Be polite but direct - you're checking in on the status
+3. Don't be pushy or desperate
+4. Reference the timeline appropriately (if it's been a while, acknowledge it)
+5. Make it easy for them to respond
+
+Return ONLY valid JSON:
+{
+  "subject": "Email subject line",
+  "body": "Email body text (can include line breaks with \\n)"
+}`;
+
+  try {
+    const response = await callAI(prompt);
+    const cleanedResponse = response
+      .replace(/```json\n?/g, "")
+      .replace(/```\n?/g, "")
+      .trim();
+
+    const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]);
+    }
+    return JSON.parse(cleanedResponse);
+  } catch {
+    return {
+      subject: `Following up - ${jobTitle} Application`,
+      body: `${recruiterName ? `Hi ${recruiterName},` : "Hello,"}\n\nI hope this message finds you well. I wanted to follow up on my application for the ${jobTitle} position at ${companyName}.\n\nI remain very interested in this opportunity and would love to hear any updates on the hiring process when you have a chance.\n\nThank you for your time.\n\nBest regards,\n${candidateName}`,
+    };
+  }
+}
+
 export async function generateOnboardingBullets(
   role: { company: string; title: string },
   existingBullets: string[]
