@@ -1904,30 +1904,42 @@ function ReviewContent() {
                   <span className="text-xs text-gray-500">Professional template</span>
                 </div>
 
-                <div className="overflow-auto" style={{ maxHeight: "calc(100vh - 200px)" }}>
+                <div className="overflow-auto p-4 bg-gray-100" style={{ maxHeight: "calc(100vh - 200px)" }}>
                   {activeTab === "resume" && (
-                    <div className="relative" style={{ width: "100%", height: "715px" }}>
+                    <div className="flex justify-center">
                       {loadingPreview && (
                         <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 z-10">
                           <div className="animate-spin w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full" />
                         </div>
                       )}
                       {previewHtml ? (
-                        <iframe
-                          ref={iframeRef}
-                          srcDoc={previewHtml}
-                          title="Resume Preview"
+                        <div
+                          className="shadow-lg bg-white relative"
                           style={{
-                            width: "8.5in",
-                            height: "11in",
-                            transform: "scale(0.52)",
-                            transformOrigin: "top left",
-                            border: "none",
-                            background: "white",
+                            width: "425px",
+                            height: "550px",
+                            overflow: "hidden",
                           }}
-                        />
+                        >
+                          <iframe
+                            ref={iframeRef}
+                            srcDoc={previewHtml}
+                            title="Resume Preview"
+                            style={{
+                              width: "8.5in",
+                              height: "11in",
+                              transform: "scale(0.52)",
+                              transformOrigin: "top left",
+                              border: "none",
+                              background: "white",
+                              position: "absolute",
+                              top: 0,
+                              left: 0,
+                            }}
+                          />
+                        </div>
                       ) : (
-                        <div className="flex items-center justify-center h-full text-gray-400">
+                        <div className="flex items-center justify-center h-64 text-gray-400">
                           <p>Select options to preview your resume</p>
                         </div>
                       )}
