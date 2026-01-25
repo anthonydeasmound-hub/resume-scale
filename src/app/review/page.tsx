@@ -2,7 +2,8 @@
 
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useRef, useCallback, Suspense } from "react";
+import { ResumeData } from "@/types/resume";
 import TabsNav from "@/components/TabsNav";
 
 interface Job {
@@ -134,6 +135,11 @@ function ReviewContent() {
   // Cover letter
   const [coverLetter, setCoverLetter] = useState("");
   const [generatingCoverLetter, setGeneratingCoverLetter] = useState(false);
+
+  // Iframe preview
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [previewHtml, setPreviewHtml] = useState<string>("");
+  const [loadingPreview, setLoadingPreview] = useState(false);
 
   // Resume Review Score
   interface ResumeReviewResult {
@@ -682,6 +688,67 @@ function ReviewContent() {
       education: masterResume.education,
     };
   };
+
+  // Convert TailoredResume to ResumeData format for PDF template
+  const convertToResumeData = useCallback((tailored: TailoredResume, jobTitle: string): ResumeData => {
+    return {
+      contactInfo: {
+        name: tailored.contact_info.name,
+        email: tailored.contact_info.email,
+        phone: tailored.contact_info.phone,
+        location: tailored.contact_info.location,
+        linkedin: tailored.contact_info.linkedin,
+      },
+      jobTitle: jobTitle,
+      summary: tailored.summary,
+      experience: tailored.work_experience.map((exp) => ({
+        title: exp.title,
+        company: exp.company,
+        dates: `${exp.start_date} - ${exp.end_date}`,
+        description: exp.description,
+      })),
+      education: tailored.education.map((edu) => ({
+        school: edu.institution,
+        degree: edu.degree,
+        dates: edu.graduation_date,
+      })),
+      skills: tailored.skills,
+    };
+  }, []);
+
+  // Fetch preview HTML whenever resume data changes
+  useEffect(() => {
+    const fetchPreviewHtml = async () => {
+      const tailored = buildTailoredResume();
+      if (!tailored || !selectedJob) {
+        setPreviewHtml("");
+        return;
+      }
+
+      setLoadingPreview(true);
+      try {
+        const resumeData = convertToResumeData(tailored, selectedJob.job_title);
+        const response = await fetch("/api/resume/preview-html", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ data: resumeData, accentColor }),
+        });
+
+        if (response.ok) {
+          const html = await response.text();
+          setPreviewHtml(html);
+        }
+      } catch (err) {
+        console.error("Failed to fetch preview HTML:", err);
+      } finally {
+        setLoadingPreview(false);
+      }
+    };
+
+    // Debounce the fetch to avoid too many requests
+    const timeoutId = setTimeout(fetchPreviewHtml, 300);
+    return () => clearTimeout(timeoutId);
+  }, [selectedRoles, selectedSummaryIndex, summaryOptions, selectedSkills, accentColor, masterResume, selectedJob, editedBullets, convertToResumeData]);
 
   const saveChanges = async () => {
     if (!selectedJob) return;
@@ -1838,84 +1905,32 @@ function ReviewContent() {
                 </div>
 
                 <div className="overflow-auto" style={{ maxHeight: "calc(100vh - 200px)" }}>
-                  {activeTab === "resume" && previewResume && (
-                    <div className="text-xs" style={{ fontFamily: "'Inter', sans-serif", transform: "scale(0.65)", transformOrigin: "top left", width: "153.85%" }}>
-                      {/* Single column ATS layout with fixed footer */}
-                      <div style={{ padding: "24px 28px", minHeight: "715px", display: "flex", flexDirection: "column" }}>
-                        {/* Header - Name centered */}
-                        <div className="text-center" style={{ marginBottom: "6px" }}>
-                          <div style={{ fontSize: "18pt", fontWeight: 700, color: "#1a1a1a", textTransform: "uppercase", letterSpacing: "1.5px" }}>
-                            {previewResume.contact_info.name}
-                          </div>
-                          <div style={{ fontSize: "7.5pt", color: "#333", marginTop: "4px" }}>
-                            {[previewResume.contact_info.location, previewResume.contact_info.phone, previewResume.contact_info.email].filter(Boolean).join(" • ")}
-                          </div>
-                          {previewResume.contact_info.linkedin && (
-                            <div style={{ fontSize: "7.5pt", color: "#333" }}>{previewResume.contact_info.linkedin}</div>
-                          )}
+                  {activeTab === "resume" && (
+                    <div className="relative" style={{ width: "100%", height: "715px" }}>
+                      {loadingPreview && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 z-10">
+                          <div className="animate-spin w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full" />
                         </div>
-
-                        {/* Main Content - Summary and Work Experience */}
-                        <div style={{ flex: 1 }}>
-                          {/* Summary Section */}
-                          <div style={{ marginBottom: "12px" }}>
-                            <h3 style={{ fontSize: "9pt", fontWeight: 700, color: accentColor, textTransform: "uppercase", borderBottom: "1px solid #ccc", paddingBottom: "3px", marginBottom: "6px" }}>Summary</h3>
-                            <p style={{ fontSize: "7.5pt", color: "#333", lineHeight: "1.5" }}>
-                              {previewResume.summary || "Select a summary option"}
-                            </p>
-                          </div>
-
-                          {/* Work Experience Section */}
-                          <div>
-                            <h3 style={{ fontSize: "9pt", fontWeight: 700, color: accentColor, textTransform: "uppercase", borderBottom: "1px solid #ccc", paddingBottom: "3px", marginBottom: "6px" }}>Work Experience</h3>
-                            {previewResume.work_experience.length > 0 ? (
-                              previewResume.work_experience.map((exp, i) => (
-                                <div key={i} style={{ marginBottom: "10px" }}>
-                                  <div className="flex justify-between" style={{ marginBottom: "2px" }}>
-                                    <span style={{ fontSize: "7.5pt", fontWeight: 600, color: "#1a1a1a" }}>{exp.title}, {exp.company}</span>
-                                    <span style={{ fontSize: "7.5pt", color: "#333" }}>{exp.start_date} - {exp.end_date}</span>
-                                  </div>
-                                  <div style={{ fontSize: "7.5pt", color: "#333" }}>
-                                    {exp.description.map((d, j) => (
-                                      <p key={j} style={{ paddingLeft: "10px", position: "relative", marginBottom: "1px" }}>
-                                        <span style={{ position: "absolute", left: 0 }}>•</span> {d}
-                                      </p>
-                                    ))}
-                                  </div>
-                                </div>
-                              ))
-                            ) : (
-                              <p style={{ fontSize: "7.5pt", color: "#999" }}>Select roles and bullets</p>
-                            )}
-                          </div>
+                      )}
+                      {previewHtml ? (
+                        <iframe
+                          ref={iframeRef}
+                          srcDoc={previewHtml}
+                          title="Resume Preview"
+                          style={{
+                            width: "8.5in",
+                            height: "11in",
+                            transform: "scale(0.52)",
+                            transformOrigin: "top left",
+                            border: "none",
+                            background: "white",
+                          }}
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center h-full text-gray-400">
+                          <p>Select options to preview your resume</p>
                         </div>
-
-                        {/* Footer - Skills and Education pinned to bottom */}
-                        <div style={{ marginTop: "auto" }}>
-                          {/* Skills Section */}
-                          <div style={{ marginBottom: "12px" }}>
-                            <h3 style={{ fontSize: "9pt", fontWeight: 700, color: accentColor, textTransform: "uppercase", borderBottom: "1px solid #ccc", paddingBottom: "3px", marginBottom: "6px" }}>Skills</h3>
-                            {previewResume.skills.length > 0 ? (
-                              <p style={{ fontSize: "7.5pt", color: "#333" }}>
-                                {previewResume.skills.join(" | ")}
-                              </p>
-                            ) : (
-                              <p style={{ fontSize: "7.5pt", color: "#999" }}>Select skills</p>
-                            )}
-                          </div>
-
-                          {/* Education Section */}
-                          <div>
-                            <h3 style={{ fontSize: "9pt", fontWeight: 700, color: accentColor, textTransform: "uppercase", borderBottom: "1px solid #ccc", paddingBottom: "3px", marginBottom: "6px" }}>Education</h3>
-                            {previewResume.education.map((edu, i) => (
-                              <div key={i} style={{ marginBottom: "6px" }}>
-                                <div style={{ fontSize: "7.5pt", fontWeight: 600, color: "#1a1a1a" }}>{edu.degree}</div>
-                                <div style={{ fontSize: "7.5pt", color: "#333" }}>{edu.institution}</div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
+                      )}
                     </div>
                   )}
 
