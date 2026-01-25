@@ -120,6 +120,9 @@ function ReviewContent() {
   // Track which bullet is currently being edited: "roleIndex-bulletIndex" or null
   const [editingBulletKey, setEditingBulletKey] = useState<string | null>(null);
   const [editingBulletText, setEditingBulletText] = useState("");
+  // Drag and drop state
+  const [draggedBullet, setDraggedBullet] = useState<{ roleIndex: number; selectedIndex: number } | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   // Skills options
   const [skillsFromResume, setSkillsFromResume] = useState<string[]>([]);
@@ -526,32 +529,53 @@ function ReviewContent() {
     setEditingBulletText("");
   };
 
-  // Move bullet up in the selected list
-  const moveBulletUp = (roleIndex: number, selectedIndex: number) => {
-    if (selectedIndex === 0) return;
+  // Drag and drop handlers for bullet reordering
+  const handleDragStart = (roleIndex: number, selectedIndex: number) => {
+    setDraggedBullet({ roleIndex, selectedIndex });
+  };
+
+  const handleDragOver = (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault();
+    setDragOverIndex(targetIndex);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverIndex(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, roleIndex: number, targetIndex: number) => {
+    e.preventDefault();
+    if (!draggedBullet || draggedBullet.roleIndex !== roleIndex) {
+      setDraggedBullet(null);
+      setDragOverIndex(null);
+      return;
+    }
+
+    const sourceIndex = draggedBullet.selectedIndex;
+    if (sourceIndex === targetIndex) {
+      setDraggedBullet(null);
+      setDragOverIndex(null);
+      return;
+    }
+
     setSelectedRoles((prev) =>
       prev.map((r) => {
         if (r.roleIndex !== roleIndex) return r;
         const newSelected = [...r.selectedBullets];
-        [newSelected[selectedIndex - 1], newSelected[selectedIndex]] = [newSelected[selectedIndex], newSelected[selectedIndex - 1]];
+        const [removed] = newSelected.splice(sourceIndex, 1);
+        newSelected.splice(targetIndex, 0, removed);
         return { ...r, selectedBullets: newSelected };
       })
     );
+
+    setDraggedBullet(null);
+    setDragOverIndex(null);
     setHasChanges(true);
   };
 
-  // Move bullet down in the selected list
-  const moveBulletDown = (roleIndex: number, selectedIndex: number, totalSelected: number) => {
-    if (selectedIndex === totalSelected - 1) return;
-    setSelectedRoles((prev) =>
-      prev.map((r) => {
-        if (r.roleIndex !== roleIndex) return r;
-        const newSelected = [...r.selectedBullets];
-        [newSelected[selectedIndex], newSelected[selectedIndex + 1]] = [newSelected[selectedIndex + 1], newSelected[selectedIndex]];
-        return { ...r, selectedBullets: newSelected };
-      })
-    );
-    setHasChanges(true);
+  const handleDragEnd = () => {
+    setDraggedBullet(null);
+    setDragOverIndex(null);
   };
 
   const toggleSkill = (skill: string) => {
@@ -1142,13 +1166,23 @@ function ReviewContent() {
                                                   const editKey = `${selectedRole.roleIndex}-${bulletIdx}`;
                                                   const isEditing = editingBulletKey === editKey;
                                                   const isEdited = editedBullets[editKey] !== undefined;
+                                                  const isDragging = draggedBullet?.roleIndex === selectedRole.roleIndex && draggedBullet?.selectedIndex === selectedIndex;
+                                                  const isDragOver = draggedBullet?.roleIndex === selectedRole.roleIndex && dragOverIndex === selectedIndex;
 
                                                   return (
                                                     <div
                                                       key={bulletIdx}
-                                                      className={`p-2 rounded border-2 text-sm ${
+                                                      draggable={!isEditing}
+                                                      onDragStart={() => handleDragStart(selectedRole.roleIndex, selectedIndex)}
+                                                      onDragOver={(e) => handleDragOver(e, selectedIndex)}
+                                                      onDragLeave={handleDragLeave}
+                                                      onDrop={(e) => handleDrop(e, selectedRole.roleIndex, selectedIndex)}
+                                                      onDragEnd={handleDragEnd}
+                                                      className={`p-2 rounded border-2 text-sm transition-all ${
                                                         isFromMaster ? "border-blue-400 bg-blue-50" : "border-purple-400 bg-purple-50"
-                                                      } ${isEdited ? "ring-2 ring-green-300" : ""}`}
+                                                      } ${isEdited ? "ring-2 ring-green-300" : ""} ${
+                                                        isDragging ? "opacity-50 scale-95" : ""
+                                                      } ${isDragOver ? "border-dashed border-gray-500 bg-gray-100" : ""}`}
                                                     >
                                                       {isEditing ? (
                                                         /* Editing mode */
@@ -1178,28 +1212,14 @@ function ReviewContent() {
                                                       ) : (
                                                         /* Display mode */
                                                         <div className="flex items-start gap-2">
-                                                          {/* Reorder buttons */}
-                                                          <div className="flex flex-col gap-0.5 flex-shrink-0">
-                                                            <button
-                                                              onClick={(e) => { e.stopPropagation(); moveBulletUp(selectedRole.roleIndex, selectedIndex); }}
-                                                              disabled={selectedIndex === 0}
-                                                              className={`p-0.5 rounded ${selectedIndex === 0 ? "text-gray-300 cursor-not-allowed" : "text-gray-500 hover:bg-gray-200"}`}
-                                                              title="Move up"
-                                                            >
-                                                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                                                              </svg>
-                                                            </button>
-                                                            <button
-                                                              onClick={(e) => { e.stopPropagation(); moveBulletDown(selectedRole.roleIndex, selectedIndex, selectedRole.selectedBullets.length); }}
-                                                              disabled={selectedIndex === selectedRole.selectedBullets.length - 1}
-                                                              className={`p-0.5 rounded ${selectedIndex === selectedRole.selectedBullets.length - 1 ? "text-gray-300 cursor-not-allowed" : "text-gray-500 hover:bg-gray-200"}`}
-                                                              title="Move down"
-                                                            >
-                                                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                                              </svg>
-                                                            </button>
+                                                          {/* Drag handle */}
+                                                          <div
+                                                            className="flex-shrink-0 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 mt-0.5"
+                                                            title="Drag to reorder"
+                                                          >
+                                                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                              <path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-8a2 2 0 1 0-.001-4.001A2 2 0 0 0 13 6zm0 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z" />
+                                                            </svg>
                                                           </div>
                                                           {/* Checkbox */}
                                                           <div
