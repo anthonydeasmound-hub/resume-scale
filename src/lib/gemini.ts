@@ -243,6 +243,104 @@ Return ONLY valid JSON:
   }
 }
 
+// Analyze job description and compare against user's resume
+export async function analyzeJobDescription(
+  jobDescription: string,
+  jobTitle: string,
+  companyName: string,
+  resume: ParsedResume,
+  jobDetails?: JobDetailsParsed
+): Promise<JobAnalysis> {
+  // Extract all user skills and experience for comparison
+  const allBullets = resume.work_experience.flatMap(exp => exp.description || []);
+  const userSkills = resume.skills || [];
+
+  const prompt = `Analyze this job description and compare it against the candidate's resume.
+
+JOB TITLE: ${jobTitle}
+COMPANY: ${companyName}
+
+JOB DESCRIPTION:
+${jobDescription.slice(0, 3000)}
+
+${jobDetails ? `
+PARSED JOB DETAILS:
+Requirements: ${jobDetails.requirements.slice(0, 8).map(r => `• ${r}`).join('\n')}
+Responsibilities: ${jobDetails.responsibilities.slice(0, 5).map(r => `• ${r}`).join('\n')}
+Location: ${jobDetails.location || 'Not specified'}
+Work Type: ${jobDetails.work_type || 'Not specified'}
+Salary: ${jobDetails.salary_range || 'Not specified'}
+` : ''}
+
+CANDIDATE'S SKILLS:
+${userSkills.join(', ')}
+
+CANDIDATE'S EXPERIENCE:
+${allBullets.slice(0, 10).map(b => `• ${b}`).join('\n')}
+
+TASK: Perform a comprehensive analysis of the job and how well the candidate matches.
+
+1. SUMMARY (2-3 sentences): Brief overview of the role and what the company is looking for.
+
+2. KEYWORDS: Extract 10-15 key skills/technologies mentioned in the job description.
+   - Mark each as "required" (must-have) or "preferred" (nice-to-have)
+   - Check if each keyword appears in the candidate's skills or experience
+
+3. REQUIREMENTS: List 6-10 key requirements from the job.
+   - Categorize each as "required" or "preferred"
+   - For each requirement, find matching experience from the candidate's resume
+   - Mark match status: "matched" (direct match), "partial" (related experience), or "missing"
+
+4. COVERAGE SCORE: Calculate a percentage (0-100) based on how many requirements/keywords the candidate matches.
+
+Return ONLY valid JSON:
+{
+  "summary": "Brief summary of the role...",
+  "keywords": [
+    { "skill": "Python", "importance": "required", "inResume": true },
+    { "skill": "Docker", "importance": "preferred", "inResume": false }
+  ],
+  "requirements": [
+    {
+      "text": "5+ years of software engineering experience",
+      "priority": "required",
+      "matchedExperience": "6 years as Software Engineer at Tech Corp",
+      "matchStatus": "matched"
+    },
+    {
+      "text": "Experience with Kubernetes",
+      "priority": "preferred",
+      "matchedExperience": null,
+      "matchStatus": "missing"
+    }
+  ],
+  "coverageScore": 75
+}`;
+
+  try {
+    const response = await callAI(prompt);
+    const cleanedResponse = response
+      .replace(/```json\n?/g, "")
+      .replace(/```\n?/g, "")
+      .trim();
+
+    const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]);
+    }
+    return JSON.parse(cleanedResponse);
+  } catch (error) {
+    console.error("Failed to analyze job description:", error);
+    // Return a minimal analysis on failure
+    return {
+      summary: `${jobTitle} position at ${companyName}.`,
+      keywords: [],
+      requirements: [],
+      coverageScore: 0,
+    };
+  }
+}
+
 export interface ParsedResume {
   contact_info: {
     name: string;
@@ -513,8 +611,8 @@ If no recruiter info is found, return all nulls with confidence 0.`;
   }
 }
 
-// Import InterviewGuide type
-import { InterviewGuide } from "./db";
+// Import types from db
+import { InterviewGuide, JobAnalysis } from "./db";
 
 // Generate comprehensive interview preparation guide
 export async function generateInterviewGuide(

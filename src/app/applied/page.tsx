@@ -4,9 +4,26 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useMemo } from "react";
 import TabsNav from "@/components/TabsNav";
-import FilterBar from "@/components/applied/FilterBar";
-import JobCard from "@/components/applied/JobCard";
-import ExpandedJobCard from "@/components/applied/ExpandedJobCard";
+import WeekCalendar from "@/components/applied/WeekCalendar";
+import JobListRow, { JobAlert, AlertType } from "@/components/applied/JobListRow";
+
+interface InterviewStage {
+  id: number;
+  job_id: number;
+  stage_number: number;
+  stage_type: string;
+  stage_name: string | null;
+  status: string;
+  scheduled_at: string | null;
+}
+
+interface EmailAction {
+  id: number;
+  job_id: number;
+  email_type: string;
+  status: string;
+  detected_at: string | null;
+}
 
 interface Job {
   id: number;
@@ -14,28 +31,15 @@ interface Job {
   job_title: string;
   status: string;
   date_applied: string | null;
-  interview_1: string | null;
-  interview_2: string | null;
-  interview_3: string | null;
-  interview_4: string | null;
-  interview_5: string | null;
-  recruiter_name: string | null;
-  recruiter_email: string | null;
-  recruiter_title: string | null;
-  recruiter_source: 'email' | 'job_description' | 'manual' | null;
+  pinned: number;
+  archived_at: string | null;
+  last_activity_at: string | null;
   created_at: string;
+  interview_stages?: InterviewStage[];
+  email_actions?: EmailAction[];
 }
 
-type JobStatus = "applied" | "interview" | "offer" | "rejected";
-
-interface FilterState {
-  status: JobStatus[];
-  dateRange: { start: string; end: string };
-  companySearch: string;
-  interviewStage: number | null;
-}
-
-const INTERVIEW_STAGES = ["interview_1", "interview_2", "interview_3", "interview_4", "interview_5"] as const;
+type SortOption = "priority" | "date_newest" | "date_oldest" | "company" | "stage" | "last_activity";
 
 export default function AppliedPage() {
   const { data: session, status } = useSession();
@@ -43,13 +47,9 @@ export default function AppliedPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [reviewCount, setReviewCount] = useState(0);
-  const [expandedJob, setExpandedJob] = useState<Job | null>(null);
-  const [filters, setFilters] = useState<FilterState>({
-    status: [],
-    dateRange: { start: "", end: "" },
-    companySearch: "",
-    interviewStage: null,
-  });
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<SortOption>("priority");
+  const [showArchived, setShowArchived] = useState(false);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -66,7 +66,7 @@ export default function AppliedPage() {
 
   const fetchJobs = async () => {
     try {
-      const response = await fetch("/api/jobs");
+      const response = await fetch("/api/jobs?include=stages,emails");
       if (response.ok) {
         const data = await response.json();
         const appliedJobs = data.filter(
@@ -97,95 +97,228 @@ export default function AppliedPage() {
     }
   };
 
-  const updateJob = async (jobId: number, updates: Partial<Job>) => {
+  const togglePin = async (jobId: number, currentPinned: boolean, e: React.MouseEvent) => {
+    e.stopPropagation();
     try {
       await fetch(`/api/jobs/${jobId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updates),
+        body: JSON.stringify({ pinned: currentPinned ? 0 : 1 }),
       });
-      await fetchJobs();
-      // Update expanded job if it's the one being updated
-      if (expandedJob && expandedJob.id === jobId) {
-        setExpandedJob(prev => prev ? { ...prev, ...updates } : null);
-      }
-    } catch (err) {
-      console.error("Failed to update job:", err);
-    }
-  };
-
-  const handleInterviewPrepClick = (job: Job) => {
-    setExpandedJob(job);
-  };
-
-  const handleStatusChange = (jobId: number, newStatus: string) => {
-    updateJob(jobId, { status: newStatus });
-  };
-
-  const handleInterviewChange = (jobId: number, stage: string, value: string | null) => {
-    updateJob(jobId, { [stage]: value });
-  };
-
-  // Get interview count for a job
-  const getInterviewCount = (job: Job): number => {
-    let count = 0;
-    for (const stage of INTERVIEW_STAGES) {
-      if (job[stage] && job[stage] !== "pending") {
-        count = parseInt(stage.split("_")[1]);
-      }
-    }
-    return count;
-  };
-
-  // Filter jobs based on current filter state
-  const filteredJobs = useMemo(() => {
-    let result = jobs;
-
-    // Status filter (multi-select)
-    if (filters.status.length > 0) {
-      result = result.filter((j) => filters.status.includes(j.status as JobStatus));
-    }
-
-    // Date range filter
-    if (filters.dateRange.start) {
-      const startDate = new Date(filters.dateRange.start);
-      result = result.filter((j) => {
-        if (!j.date_applied) return false;
-        return new Date(j.date_applied) >= startDate;
-      });
-    }
-    if (filters.dateRange.end) {
-      const endDate = new Date(filters.dateRange.end);
-      endDate.setHours(23, 59, 59, 999); // Include the entire end day
-      result = result.filter((j) => {
-        if (!j.date_applied) return false;
-        return new Date(j.date_applied) <= endDate;
-      });
-    }
-
-    // Company/title search filter
-    if (filters.companySearch) {
-      const search = filters.companySearch.toLowerCase();
-      result = result.filter(
-        (j) =>
-          j.company_name.toLowerCase().includes(search) ||
-          j.job_title.toLowerCase().includes(search)
+      setJobs((prev) =>
+        prev.map((j) => (j.id === jobId ? { ...j, pinned: currentPinned ? 0 : 1 } : j))
       );
+    } catch (err) {
+      console.error("Failed to toggle pin:", err);
+    }
+  };
+
+  // Get alerts for a job
+  const getJobAlerts = (job: Job): JobAlert[] => {
+    const alerts: JobAlert[] = [];
+    const now = new Date();
+
+    // Check for unread emails
+    const unreadEmails = job.email_actions?.filter(
+      (e) => e.status === "detected" && e.email_type !== "confirmation"
+    );
+    if (unreadEmails && unreadEmails.length > 0) {
+      alerts.push({
+        type: "email" as AlertType,
+        message: "New email",
+        count: unreadEmails.length,
+      });
     }
 
-    // Interview stage filter
-    if (filters.interviewStage !== null) {
-      if (filters.interviewStage === 0) {
-        // No interviews - all stages are null or pending
-        result = result.filter((j) => getInterviewCount(j) === 0);
-      } else {
-        // Has reached at least this stage
-        result = result.filter((j) => getInterviewCount(j) >= filters.interviewStage!);
+    // Check for upcoming interviews (next 48 hours)
+    const upcomingInterview = job.interview_stages?.find((s) => {
+      if (s.status === "scheduled" && s.scheduled_at) {
+        const scheduled = new Date(s.scheduled_at);
+        const diff = scheduled.getTime() - now.getTime();
+        return diff > 0 && diff < 48 * 60 * 60 * 1000;
+      }
+      return false;
+    });
+    if (upcomingInterview) {
+      const scheduledDate = new Date(upcomingInterview.scheduled_at!);
+      const isToday = scheduledDate.toDateString() === now.toDateString();
+      const isTomorrow = scheduledDate.toDateString() === new Date(now.getTime() + 86400000).toDateString();
+      alerts.push({
+        type: "interview" as AlertType,
+        message: isToday ? "Interview today" : isTomorrow ? "Interview tomorrow" : "Interview soon",
+      });
+    }
+
+    // Check for follow-up needed (no activity in 7+ days for applied status)
+    if (job.status === "applied" && job.date_applied) {
+      const applied = new Date(job.date_applied);
+      const daysSince = Math.floor((now.getTime() - applied.getTime()) / (1000 * 60 * 60 * 24));
+      if (daysSince >= 7) {
+        alerts.push({
+          type: "follow_up" as AlertType,
+          message: `No response (${daysSince}d)`,
+        });
       }
     }
 
-    return result;
-  }, [jobs, filters]);
+    // Check for rejection
+    if (job.status === "rejected") {
+      alerts.push({
+        type: "rejection" as AlertType,
+        message: "Rejected",
+      });
+    }
+
+    // Check for offer
+    if (job.status === "offer") {
+      alerts.push({
+        type: "offer" as AlertType,
+        message: "Offer received",
+      });
+    }
+
+    return alerts;
+  };
+
+  // Get current interview stage for a job
+  const getCurrentStage = (job: Job): number => {
+    if (!job.interview_stages || job.interview_stages.length === 0) {
+      return job.status === "applied" ? 1 : 0;
+    }
+    const completedStages = job.interview_stages.filter((s) => s.status === "completed").length;
+    return completedStages + 1;
+  };
+
+  // Get total stages for a job
+  const getTotalStages = (job: Job): number => {
+    if (!job.interview_stages || job.interview_stages.length === 0) {
+      return 5; // Default
+    }
+    return Math.max(5, job.interview_stages.length);
+  };
+
+  // Calculate priority score for sorting
+  const getPriorityScore = (job: Job): number => {
+    let score = 0;
+    const alerts = getJobAlerts(job);
+    const now = new Date();
+
+    // Pinned jobs always first
+    if (job.pinned) score += 10000;
+
+    // Offer is highest priority
+    if (job.status === "offer") score += 5000;
+
+    // Upcoming interview in next 48 hours
+    const hasUpcomingInterview = alerts.some((a) => a.type === "interview");
+    if (hasUpcomingInterview) score += 4000;
+
+    // Unread emails (action needed)
+    const emailAlert = alerts.find((a) => a.type === "email");
+    if (emailAlert) score += 3000 + (emailAlert.count || 1) * 100;
+
+    // Interview stage (further along = higher priority)
+    score += getCurrentStage(job) * 100;
+
+    // Waiting for response but not too long
+    if (job.status === "applied" && job.date_applied) {
+      const applied = new Date(job.date_applied);
+      const daysSince = Math.floor((now.getTime() - applied.getTime()) / (1000 * 60 * 60 * 24));
+      if (daysSince >= 7 && daysSince <= 30) score += 500;
+    }
+
+    return score;
+  };
+
+  // Get upcoming interviews for calendar
+  const upcomingInterviews = useMemo(() => {
+    const interviews: {
+      id: number;
+      jobId: number;
+      companyName: string;
+      jobTitle: string;
+      stageName: string;
+      scheduledAt: string;
+    }[] = [];
+
+    jobs.forEach((job) => {
+      if (job.interview_stages) {
+        job.interview_stages.forEach((stage) => {
+          if (stage.status === "scheduled" && stage.scheduled_at) {
+            interviews.push({
+              id: stage.id,
+              jobId: job.id,
+              companyName: job.company_name,
+              jobTitle: job.job_title,
+              stageName: stage.stage_name || stage.stage_type,
+              scheduledAt: stage.scheduled_at,
+            });
+          }
+        });
+      }
+    });
+
+    return interviews.sort(
+      (a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime()
+    );
+  }, [jobs]);
+
+  // Filter and sort jobs
+  const { activeJobs, archivedJobs } = useMemo(() => {
+    // Separate archived jobs
+    const archived = jobs.filter((j) => j.archived_at || j.status === "rejected");
+    const active = jobs.filter((j) => !j.archived_at && j.status !== "rejected");
+
+    // Apply search filter
+    const filterBySearch = (list: Job[]) => {
+      if (!searchQuery) return list;
+      const query = searchQuery.toLowerCase();
+      return list.filter(
+        (j) =>
+          j.company_name.toLowerCase().includes(query) ||
+          j.job_title.toLowerCase().includes(query)
+      );
+    };
+
+    // Apply sorting
+    const sortJobs = (list: Job[]) => {
+      return [...list].sort((a, b) => {
+        switch (sortBy) {
+          case "priority":
+            return getPriorityScore(b) - getPriorityScore(a);
+          case "date_newest":
+            return (
+              new Date(b.date_applied || b.created_at).getTime() -
+              new Date(a.date_applied || a.created_at).getTime()
+            );
+          case "date_oldest":
+            return (
+              new Date(a.date_applied || a.created_at).getTime() -
+              new Date(b.date_applied || b.created_at).getTime()
+            );
+          case "company":
+            return a.company_name.localeCompare(b.company_name);
+          case "stage":
+            return getCurrentStage(b) - getCurrentStage(a);
+          case "last_activity":
+            const aActivity = a.last_activity_at || a.date_applied || a.created_at;
+            const bActivity = b.last_activity_at || b.date_applied || b.created_at;
+            return new Date(bActivity).getTime() - new Date(aActivity).getTime();
+          default:
+            return 0;
+        }
+      });
+    };
+
+    return {
+      activeJobs: sortJobs(filterBySearch(active)),
+      archivedJobs: sortJobs(filterBySearch(archived)),
+    };
+  }, [jobs, searchQuery, sortBy]);
+
+  const handleJobClick = (jobId: number) => {
+    router.push(`/applied/${jobId}`);
+  };
 
   if (status === "loading" || loading) {
     return (
@@ -200,69 +333,133 @@ export default function AppliedPage() {
       <TabsNav reviewCount={reviewCount} />
 
       <div className="ml-64 p-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">
-          Applied Jobs
-        </h1>
-
-        {/* Filter Bar */}
-        <FilterBar
-          filters={filters}
-          onFiltersChange={setFilters}
-          totalCount={jobs.length}
-          filteredCount={filteredJobs.length}
+        {/* Week Calendar */}
+        <WeekCalendar
+          interviews={upcomingInterviews}
+          onInterviewClick={handleJobClick}
         />
 
-        {/* Job Cards Grid */}
-        {filteredJobs.length === 0 ? (
+        {/* Header with search and sort */}
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-xl font-semibold text-gray-900">
+            Applications ({activeJobs.length})
+          </h1>
+
+          <div className="flex items-center gap-4">
+            {/* Search */}
+            <div className="relative">
+              <svg
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+              <input
+                type="text"
+                placeholder="Search..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent w-64"
+              />
+            </div>
+
+            {/* Sort Dropdown */}
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as SortOption)}
+              className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"
+            >
+              <option value="priority">Sort by: Priority</option>
+              <option value="date_newest">Date Applied (Newest)</option>
+              <option value="date_oldest">Date Applied (Oldest)</option>
+              <option value="company">Company (A-Z)</option>
+              <option value="stage">Interview Stage</option>
+              <option value="last_activity">Last Activity</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Job List */}
+        {activeJobs.length === 0 ? (
           <div className="bg-white rounded-xl shadow-lg p-8 text-center text-gray-500">
             {jobs.length === 0
               ? "No applied jobs yet. Review and submit applications from the Review tab."
-              : "No jobs match your current filters."}
+              : "No jobs match your search."}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filteredJobs.map((job) => (
-              <JobCard
+          <div className="space-y-2">
+            {activeJobs.map((job) => (
+              <JobListRow
                 key={job.id}
-                job={job}
-                onStatusChange={handleStatusChange}
-                onInterviewChange={handleInterviewChange}
-                onInterviewPrepClick={handleInterviewPrepClick}
+                id={job.id}
+                companyName={job.company_name}
+                jobTitle={job.job_title}
+                dateApplied={job.date_applied}
+                currentStage={getCurrentStage(job)}
+                totalStages={getTotalStages(job)}
+                pinned={!!job.pinned}
+                alerts={getJobAlerts(job)}
+                status={job.status}
+                onClick={() => handleJobClick(job.id)}
+                onPinToggle={(e) => togglePin(job.id, !!job.pinned, e)}
               />
             ))}
           </div>
         )}
 
-        {/* Legend */}
-        <div className="mt-6 bg-white rounded-xl shadow-md px-4 py-3 flex flex-wrap items-center gap-6 text-sm">
-          <span className="text-gray-500 font-medium">Interview Legend:</span>
-          <div className="flex items-center gap-2">
-            <span className="w-4 h-4 rounded-full bg-gray-200"></span>
-            <span className="text-gray-600">Pending</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-4 h-4 rounded-full bg-yellow-500"></span>
-            <span className="text-gray-600">Scheduled</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-4 h-4 rounded-full bg-green-500"></span>
-            <span className="text-gray-600">Completed</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-4 h-4 rounded-full bg-red-500"></span>
-            <span className="text-gray-600">Rejected</span>
-          </div>
-        </div>
-      </div>
+        {/* Archived Section */}
+        {archivedJobs.length > 0 && (
+          <div className="mt-8">
+            <button
+              onClick={() => setShowArchived(!showArchived)}
+              className="flex items-center gap-2 text-gray-500 hover:text-gray-700 mb-3"
+            >
+              <svg
+                className={`w-4 h-4 transition-transform ${showArchived ? "rotate-90" : ""}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
+              <span>Archived ({archivedJobs.length})</span>
+            </button>
 
-      {/* Expanded Job Card Modal */}
-      {expandedJob && (
-        <ExpandedJobCard
-          job={expandedJob}
-          onClose={() => setExpandedJob(null)}
-          onUpdate={updateJob}
-        />
-      )}
+            {showArchived && (
+              <div className="space-y-2 opacity-60">
+                {archivedJobs.map((job) => (
+                  <JobListRow
+                    key={job.id}
+                    id={job.id}
+                    companyName={job.company_name}
+                    jobTitle={job.job_title}
+                    dateApplied={job.date_applied}
+                    currentStage={getCurrentStage(job)}
+                    totalStages={getTotalStages(job)}
+                    pinned={!!job.pinned}
+                    alerts={getJobAlerts(job)}
+                    status={job.status}
+                    onClick={() => handleJobClick(job.id)}
+                    onPinToggle={(e) => togglePin(job.id, !!job.pinned, e)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

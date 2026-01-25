@@ -142,12 +142,47 @@ for (const col of interviewGuideColumns) {
   }
 }
 
+// Add job analysis column for existing databases
+try {
+  db.exec(`ALTER TABLE job_applications ADD COLUMN job_analysis TEXT`);
+} catch {
+  // Column already exists
+}
+
 // Add archived_at column for auto-archiving rejections
 try {
   db.exec(`ALTER TABLE job_applications ADD COLUMN archived_at DATETIME`);
 } catch {
   // Column already exists
 }
+
+// Add pinned column for priority jobs
+try {
+  db.exec(`ALTER TABLE job_applications ADD COLUMN pinned INTEGER DEFAULT 0`);
+} catch {
+  // Column already exists
+}
+
+// Add last_activity_at column for sorting
+try {
+  db.exec(`ALTER TABLE job_applications ADD COLUMN last_activity_at DATETIME`);
+} catch {
+  // Column already exists
+}
+
+// Create job_notes table
+db.exec(`
+  CREATE TABLE IF NOT EXISTS job_notes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    job_id INTEGER NOT NULL,
+    content TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (job_id) REFERENCES job_applications(id) ON DELETE CASCADE
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_job_notes_job_id ON job_notes(job_id);
+`);
 
 // Create dynamic interview stages table
 db.exec(`
@@ -322,9 +357,42 @@ export interface JobApplication {
   recruiter_source: 'email' | 'job_description' | 'manual' | null;
   interview_guide: string | null;
   interview_guide_generated_at: string | null;
+  job_analysis: string | null;
   archived_at: string | null;
+  pinned: number; // 0 = not pinned, 1 = pinned
+  last_activity_at: string | null;
   created_at: string;
   updated_at: string;
+}
+
+// Job Note type
+export interface JobNote {
+  id: number;
+  job_id: number;
+  content: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// Job Analysis Types
+export interface JobAnalysisKeyword {
+  skill: string;
+  importance: 'required' | 'preferred';
+  inResume: boolean;
+}
+
+export interface JobAnalysisRequirement {
+  text: string;
+  priority: 'required' | 'preferred';
+  matchedExperience: string | null;
+  matchStatus: 'matched' | 'partial' | 'missing';
+}
+
+export interface JobAnalysis {
+  summary: string;
+  keywords: JobAnalysisKeyword[];
+  requirements: JobAnalysisRequirement[];
+  coverageScore: number;
 }
 
 // Interview Guide Types
