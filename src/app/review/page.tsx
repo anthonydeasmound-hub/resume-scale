@@ -115,6 +115,11 @@ function ReviewContent() {
 
   // Work experience selections
   const [selectedRoles, setSelectedRoles] = useState<SelectedRole[]>([]);
+  // Track edited bullets: key is "roleIndex-bulletIndex", value is edited text
+  const [editedBullets, setEditedBullets] = useState<Record<string, string>>({});
+  // Track which bullet is currently being edited: "roleIndex-bulletIndex" or null
+  const [editingBulletKey, setEditingBulletKey] = useState<string | null>(null);
+  const [editingBulletText, setEditingBulletText] = useState("");
 
   // Skills options
   const [skillsFromResume, setSkillsFromResume] = useState<string[]>([]);
@@ -490,6 +495,65 @@ function ReviewContent() {
     setHasChanges(true);
   };
 
+  // Get bullet text, checking for edits first
+  const getBulletText = (roleIndex: number, bulletIndex: number, bulletOptions: string[]): string => {
+    const key = `${roleIndex}-${bulletIndex}`;
+    return editedBullets[key] ?? bulletOptions[bulletIndex];
+  };
+
+  // Start editing a bullet
+  const startEditingBullet = (roleIndex: number, bulletIndex: number, currentText: string) => {
+    const key = `${roleIndex}-${bulletIndex}`;
+    setEditingBulletKey(key);
+    setEditingBulletText(currentText);
+  };
+
+  // Save edited bullet
+  const saveEditedBullet = () => {
+    if (!editingBulletKey) return;
+    setEditedBullets((prev) => ({
+      ...prev,
+      [editingBulletKey]: editingBulletText,
+    }));
+    setEditingBulletKey(null);
+    setEditingBulletText("");
+    setHasChanges(true);
+  };
+
+  // Cancel editing
+  const cancelEditingBullet = () => {
+    setEditingBulletKey(null);
+    setEditingBulletText("");
+  };
+
+  // Move bullet up in the selected list
+  const moveBulletUp = (roleIndex: number, selectedIndex: number) => {
+    if (selectedIndex === 0) return;
+    setSelectedRoles((prev) =>
+      prev.map((r) => {
+        if (r.roleIndex !== roleIndex) return r;
+        const newSelected = [...r.selectedBullets];
+        [newSelected[selectedIndex - 1], newSelected[selectedIndex]] = [newSelected[selectedIndex], newSelected[selectedIndex - 1]];
+        return { ...r, selectedBullets: newSelected };
+      })
+    );
+    setHasChanges(true);
+  };
+
+  // Move bullet down in the selected list
+  const moveBulletDown = (roleIndex: number, selectedIndex: number, totalSelected: number) => {
+    if (selectedIndex === totalSelected - 1) return;
+    setSelectedRoles((prev) =>
+      prev.map((r) => {
+        if (r.roleIndex !== roleIndex) return r;
+        const newSelected = [...r.selectedBullets];
+        [newSelected[selectedIndex], newSelected[selectedIndex + 1]] = [newSelected[selectedIndex + 1], newSelected[selectedIndex]];
+        return { ...r, selectedBullets: newSelected };
+      })
+    );
+    setHasChanges(true);
+  };
+
   const toggleSkill = (skill: string) => {
     setSelectedSkills((prev) =>
       prev.includes(skill) ? prev.filter((s) => s !== skill) : [...prev, skill]
@@ -582,7 +646,7 @@ function ReviewContent() {
         title: masterRole.title,
         start_date: masterRole.start_date,
         end_date: masterRole.end_date,
-        description: r.selectedBullets.map((i) => r.bulletOptions[i]),
+        description: r.selectedBullets.map((i) => getBulletText(r.roleIndex, i, r.bulletOptions)),
       };
     });
 
@@ -1066,36 +1130,113 @@ function ReviewContent() {
                                           {/* Selected bullets at top */}
                                           <div className="mb-3">
                                             <p className="text-xs font-medium text-gray-600 mb-2">
-                                              Selected ({selectedRole.selectedBullets.length}) - click to remove:
+                                              Selected ({selectedRole.selectedBullets.length}) - drag to reorder, click edit to modify:
                                             </p>
                                             <div className="space-y-2">
                                               {selectedRole.selectedBullets.length === 0 ? (
                                                 <p className="text-xs text-gray-400 italic">No bullets selected yet</p>
                                               ) : (
-                                                selectedRole.selectedBullets.map((bulletIdx) => {
-                                                  const bullet = selectedRole.bulletOptions[bulletIdx];
+                                                selectedRole.selectedBullets.map((bulletIdx, selectedIndex) => {
+                                                  const bulletText = getBulletText(selectedRole.roleIndex, bulletIdx, selectedRole.bulletOptions);
                                                   const isFromMaster = bulletIdx < selectedRole.masterBullets.length;
+                                                  const editKey = `${selectedRole.roleIndex}-${bulletIdx}`;
+                                                  const isEditing = editingBulletKey === editKey;
+                                                  const isEdited = editedBullets[editKey] !== undefined;
+
                                                   return (
                                                     <div
                                                       key={bulletIdx}
-                                                      onClick={() => toggleBullet(selectedRole.roleIndex, bulletIdx)}
-                                                      className={`p-2 rounded border-2 cursor-pointer text-sm ${
+                                                      className={`p-2 rounded border-2 text-sm ${
                                                         isFromMaster ? "border-blue-400 bg-blue-50" : "border-purple-400 bg-purple-50"
-                                                      }`}
+                                                      } ${isEdited ? "ring-2 ring-green-300" : ""}`}
                                                     >
-                                                      <div className="flex items-start gap-2">
-                                                        <div className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 mt-0.5 ${
-                                                          isFromMaster ? "bg-blue-500" : "bg-purple-500"
-                                                        }`}>
-                                                          <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                                          </svg>
+                                                      {isEditing ? (
+                                                        /* Editing mode */
+                                                        <div className="space-y-2">
+                                                          <textarea
+                                                            value={editingBulletText}
+                                                            onChange={(e) => setEditingBulletText(e.target.value)}
+                                                            className="w-full p-2 border rounded text-sm resize-none"
+                                                            rows={3}
+                                                            autoFocus
+                                                          />
+                                                          <div className="flex justify-end gap-2">
+                                                            <button
+                                                              onClick={cancelEditingBullet}
+                                                              className="px-2 py-1 text-xs text-gray-600 hover:bg-gray-200 rounded"
+                                                            >
+                                                              Cancel
+                                                            </button>
+                                                            <button
+                                                              onClick={saveEditedBullet}
+                                                              className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
+                                                            >
+                                                              Save
+                                                            </button>
+                                                          </div>
                                                         </div>
-                                                        <span className="text-gray-700 flex-1">{bullet}</span>
-                                                        <span className={`text-xs px-1.5 py-0.5 rounded ${isFromMaster ? "bg-blue-100 text-blue-600" : "bg-purple-100 text-purple-600"}`}>
-                                                          {isFromMaster ? "Resume" : "AI"}
-                                                        </span>
-                                                      </div>
+                                                      ) : (
+                                                        /* Display mode */
+                                                        <div className="flex items-start gap-2">
+                                                          {/* Reorder buttons */}
+                                                          <div className="flex flex-col gap-0.5 flex-shrink-0">
+                                                            <button
+                                                              onClick={(e) => { e.stopPropagation(); moveBulletUp(selectedRole.roleIndex, selectedIndex); }}
+                                                              disabled={selectedIndex === 0}
+                                                              className={`p-0.5 rounded ${selectedIndex === 0 ? "text-gray-300 cursor-not-allowed" : "text-gray-500 hover:bg-gray-200"}`}
+                                                              title="Move up"
+                                                            >
+                                                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                                              </svg>
+                                                            </button>
+                                                            <button
+                                                              onClick={(e) => { e.stopPropagation(); moveBulletDown(selectedRole.roleIndex, selectedIndex, selectedRole.selectedBullets.length); }}
+                                                              disabled={selectedIndex === selectedRole.selectedBullets.length - 1}
+                                                              className={`p-0.5 rounded ${selectedIndex === selectedRole.selectedBullets.length - 1 ? "text-gray-300 cursor-not-allowed" : "text-gray-500 hover:bg-gray-200"}`}
+                                                              title="Move down"
+                                                            >
+                                                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                              </svg>
+                                                            </button>
+                                                          </div>
+                                                          {/* Checkbox */}
+                                                          <div
+                                                            onClick={() => toggleBullet(selectedRole.roleIndex, bulletIdx)}
+                                                            className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 mt-0.5 cursor-pointer ${
+                                                              isFromMaster ? "bg-blue-500" : "bg-purple-500"
+                                                            }`}
+                                                            title="Click to remove"
+                                                          >
+                                                            <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                                            </svg>
+                                                          </div>
+                                                          {/* Bullet text */}
+                                                          <span className="text-gray-700 flex-1">{bulletText}</span>
+                                                          {/* Labels and edit button */}
+                                                          <div className="flex items-center gap-1 flex-shrink-0">
+                                                            {isEdited && (
+                                                              <span className="text-xs px-1.5 py-0.5 rounded bg-green-100 text-green-600">
+                                                                Edited
+                                                              </span>
+                                                            )}
+                                                            <span className={`text-xs px-1.5 py-0.5 rounded ${isFromMaster ? "bg-blue-100 text-blue-600" : "bg-purple-100 text-purple-600"}`}>
+                                                              {isFromMaster ? "Resume" : "AI"}
+                                                            </span>
+                                                            <button
+                                                              onClick={(e) => { e.stopPropagation(); startEditingBullet(selectedRole.roleIndex, bulletIdx, bulletText); }}
+                                                              className="p-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded"
+                                                              title="Edit bullet"
+                                                            >
+                                                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                              </svg>
+                                                            </button>
+                                                          </div>
+                                                        </div>
+                                                      )}
                                                     </div>
                                                   );
                                                 })
