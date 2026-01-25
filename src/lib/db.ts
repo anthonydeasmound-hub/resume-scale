@@ -184,6 +184,24 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_job_notes_job_id ON job_notes(job_id);
 `);
 
+// Create bullet_feedback table for learning user preferences
+db.exec(`
+  CREATE TABLE IF NOT EXISTS bullet_feedback (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    role_title TEXT NOT NULL,
+    company TEXT,
+    bullet_text TEXT NOT NULL,
+    feedback TEXT NOT NULL,
+    was_user_written INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_bullet_feedback_user_id ON bullet_feedback(user_id);
+  CREATE INDEX IF NOT EXISTS idx_bullet_feedback_role ON bullet_feedback(role_title);
+`);
+
 // Create dynamic interview stages table
 db.exec(`
   CREATE TABLE IF NOT EXISTS interview_stages (
@@ -372,6 +390,18 @@ export interface JobNote {
   content: string;
   created_at: string;
   updated_at: string;
+}
+
+// Bullet Feedback type for learning user preferences
+export interface BulletFeedback {
+  id: number;
+  user_id: number;
+  role_title: string;
+  company: string | null;
+  bullet_text: string;
+  feedback: 'up' | 'down';
+  was_user_written: number; // 0 = AI generated, 1 = user written
+  created_at: string;
 }
 
 // Job Analysis Types

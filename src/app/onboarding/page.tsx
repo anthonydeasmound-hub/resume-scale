@@ -140,6 +140,7 @@ function OnboardingContent() {
   const [aiRecommendations, setAiRecommendations] = useState<Record<number, string[]>>({});
   const [loadingRecommendations, setLoadingRecommendations] = useState<Record<number, boolean>>({});
   const [expandedSuggestions, setExpandedSuggestions] = useState<Record<number, boolean>>({});
+  const [regeneratingBullets, setRegeneratingBullets] = useState<Record<string, boolean>>({}); // key: "jobIdx-recIdx"
   const fetchedJobsRef = useRef<Set<number>>(new Set());
 
   // Skill suggestions state
@@ -269,6 +270,84 @@ function OnboardingContent() {
       console.error("Failed to fetch AI recommendations:", err);
     } finally {
       setLoadingRecommendations((prev) => ({ ...prev, [jobIdx]: false }));
+    }
+  };
+
+  const handleBulletFeedback = async (
+    jobIdx: number,
+    recIdx: number,
+    bullet: string,
+    feedback: 'up' | 'down',
+    exp: { company: string; title: string; description: string[] }
+  ) => {
+    const key = `${jobIdx}-${recIdx}`;
+
+    if (feedback === 'up') {
+      // Add bullet to work experience
+      if (editableData) {
+        const currentBulletCount = exp.description.filter(b => b.trim() !== "").length;
+        if (currentBulletCount < MAX_BULLETS_PER_ROLE) {
+          const updated = { ...editableData };
+          const emptyIdx = updated.work_experience[jobIdx].description.findIndex(
+            (b) => b.trim() === ""
+          );
+          if (emptyIdx !== -1) {
+            updated.work_experience[jobIdx].description[emptyIdx] = bullet;
+          } else {
+            updated.work_experience[jobIdx].description.push(bullet);
+          }
+          setEditableData(updated);
+        }
+      }
+
+      // Remove from suggestions
+      setAiRecommendations((prev) => ({
+        ...prev,
+        [jobIdx]: prev[jobIdx].filter((_, i) => i !== recIdx),
+      }));
+
+      // Record positive feedback (fire and forget)
+      fetch("/api/ai/regenerate-bullet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          role: { company: exp.company, title: exp.title },
+          rejectedBullet: bullet,
+          existingBullets: exp.description.filter(b => b.trim() !== ""),
+          feedback: 'up',
+        }),
+      }).catch(console.error);
+    } else {
+      // Thumbs down - regenerate
+      setRegeneratingBullets((prev) => ({ ...prev, [key]: true }));
+
+      try {
+        const response = await fetch("/api/ai/regenerate-bullet", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            role: { company: exp.company, title: exp.title },
+            rejectedBullet: bullet,
+            existingBullets: exp.description.filter(b => b.trim() !== ""),
+            feedback: 'down',
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.bullet) {
+            // Replace the rejected bullet with the new one
+            setAiRecommendations((prev) => ({
+              ...prev,
+              [jobIdx]: prev[jobIdx].map((b, i) => (i === recIdx ? data.bullet : b)),
+            }));
+          }
+        }
+      } catch (err) {
+        console.error("Failed to regenerate bullet:", err);
+      } finally {
+        setRegeneratingBullets((prev) => ({ ...prev, [key]: false }));
+      }
     }
   };
 
@@ -723,46 +802,61 @@ function OnboardingContent() {
                                   Remove a bullet to add more suggestions
                                 </p>
                               )}
-                              {suggestionsToShow.map((rec, recIdx) => (
-                                <button
-                                  key={recIdx}
-                                  disabled={isAtLimit}
-                                  onClick={() => {
-                                    if (isAtLimit) return;
-                                    const updated = { ...editableData };
-                                    // Find the first empty bullet to fill, or add new one
-                                    const emptyIdx = updated.work_experience[jobIdx].description.findIndex(
-                                      (b) => b.trim() === ""
-                                    );
-                                    if (emptyIdx !== -1) {
-                                      // Fill empty bullet
-                                      updated.work_experience[jobIdx].description[emptyIdx] = rec;
-                                    } else if (currentBulletCount < MAX_BULLETS_PER_ROLE) {
-                                      // Append as new bullet only if under limit
-                                      updated.work_experience[jobIdx].description.push(rec);
-                                    }
-                                    setEditableData(updated);
-                                    // Remove used recommendation
-                                    setAiRecommendations((prev) => ({
-                                      ...prev,
-                                      [jobIdx]: prev[jobIdx].filter((_, i) => i !== recIdx),
-                                    }));
-                                  }}
-                                  className={`w-full text-left px-3 py-2 border rounded-lg text-sm transition-colors group ${
-                                    isAtLimit
-                                      ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
-                                      : "bg-purple-50 hover:bg-purple-100 border-purple-200 text-gray-700"
-                                  }`}
-                                >
-                                  <span className={isAtLimit ? "text-gray-300 mr-2" : "text-purple-400 mr-2"}>+</span>
-                                  {rec}
-                                  {!isAtLimit && (
-                                    <span className="text-xs text-purple-500 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                      Click to add
-                                    </span>
-                                  )}
-                                </button>
-                              ))}
+                              {suggestionsToShow.map((rec, recIdx) => {
+                                const isRegenerating = regeneratingBullets[`${jobIdx}-${recIdx}`];
+                                return (
+                                  <div
+                                    key={recIdx}
+                                    className={`w-full px-3 py-2 border rounded-lg text-sm transition-colors ${
+                                      isAtLimit
+                                        ? "bg-gray-100 border-gray-200 text-gray-400"
+                                        : "bg-purple-50 border-purple-200 text-gray-700"
+                                    }`}
+                                  >
+                                    <div className="flex items-start gap-2">
+                                      <span className="flex-1">
+                                        {isRegenerating ? (
+                                          <span className="flex items-center gap-2 text-gray-500">
+                                            <span className="animate-spin w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full" />
+                                            Generating new suggestion...
+                                          </span>
+                                        ) : (
+                                          rec
+                                        )}
+                                      </span>
+                                      {!isRegenerating && (
+                                        <div className="flex items-center gap-1 shrink-0">
+                                          {/* Thumbs up - accept */}
+                                          <button
+                                            disabled={isAtLimit}
+                                            onClick={() => handleBulletFeedback(jobIdx, recIdx, rec, 'up', exp)}
+                                            className={`p-1.5 rounded-full transition-colors ${
+                                              isAtLimit
+                                                ? "text-gray-300 cursor-not-allowed"
+                                                : "text-green-500 hover:bg-green-100 hover:text-green-600"
+                                            }`}
+                                            title={isAtLimit ? "Remove a bullet first" : "Add this bullet"}
+                                          >
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
+                                            </svg>
+                                          </button>
+                                          {/* Thumbs down - regenerate */}
+                                          <button
+                                            onClick={() => handleBulletFeedback(jobIdx, recIdx, rec, 'down', exp)}
+                                            className="p-1.5 rounded-full text-red-400 hover:bg-red-100 hover:text-red-500 transition-colors"
+                                            title="Generate a different suggestion"
+                                          >
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.096c.5 0 .905-.405.905-.904 0-.715.211-1.413.608-2.008L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5" />
+                                            </svg>
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
                               {hasMoreSuggestions && !isExpanded && (
                                 <button
                                   onClick={() => setExpandedSuggestions(prev => ({ ...prev, [jobIdx]: true }))}
