@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { contact_info, work_experience, skills, education, certifications, languages, honors, profile_photo_path, raw_text } = await request.json();
+    const { contact_info, work_experience, skills, education, certifications, languages, honors, profile_photo_path, raw_text, summary, resume_style } = await request.json();
 
     // Get or create user
     let user = db.prepare("SELECT id FROM users WHERE email = ?").get(session.user.email) as { id: number } | undefined;
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
         UPDATE resumes
         SET contact_info = ?, work_experience = ?, skills = ?, education = ?,
             certifications = ?, languages = ?, honors = ?, profile_photo_path = ?,
-            raw_text = ?, updated_at = CURRENT_TIMESTAMP
+            raw_text = ?, summary = ?, resume_style = ?, updated_at = CURRENT_TIMESTAMP
         WHERE user_id = ?
       `).run(
         JSON.stringify(contact_info),
@@ -44,13 +44,15 @@ export async function POST(request: NextRequest) {
         honors ? JSON.stringify(honors) : null,
         profile_photo_path || null,
         raw_text,
+        summary || null,
+        resume_style || 'basic',
         user.id
       );
     } else {
       // Insert new resume
       db.prepare(`
-        INSERT INTO resumes (user_id, contact_info, work_experience, skills, education, certifications, languages, honors, profile_photo_path, raw_text)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO resumes (user_id, contact_info, work_experience, skills, education, certifications, languages, honors, profile_photo_path, raw_text, summary, resume_style)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         user.id,
         JSON.stringify(contact_info),
@@ -61,7 +63,9 @@ export async function POST(request: NextRequest) {
         languages ? JSON.stringify(languages) : null,
         honors ? JSON.stringify(honors) : null,
         profile_photo_path || null,
-        raw_text
+        raw_text,
+        summary || null,
+        resume_style || 'basic'
       );
     }
 

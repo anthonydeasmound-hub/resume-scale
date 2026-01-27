@@ -19,6 +19,63 @@ async function getCompanyContext(company: string): Promise<string> {
   return await callAI(prompt);
 }
 
+// Parse date string like "Apr 2023" or "Present" into a Date
+function parseDateString(dateStr: string): Date {
+  if (!dateStr) return new Date();
+  const lower = dateStr.toLowerCase().trim();
+  if (lower === "present" || lower === "current" || lower === "") return new Date();
+
+  const months: Record<string, number> = {
+    jan: 0, january: 0, feb: 1, february: 1, mar: 2, march: 2,
+    apr: 3, april: 3, may: 4, jun: 5, june: 5, jul: 6, july: 6,
+    aug: 7, august: 7, sep: 8, september: 8, oct: 9, october: 9,
+    nov: 10, november: 10, dec: 11, december: 11
+  };
+
+  const parts = dateStr.trim().split(/[\s,]+/);
+  let month = 0;
+  let year = new Date().getFullYear();
+
+  for (const part of parts) {
+    const monthNum = months[part.toLowerCase()];
+    if (monthNum !== undefined) {
+      month = monthNum;
+    } else if (/^\d{4}$/.test(part)) {
+      year = parseInt(part);
+    }
+  }
+
+  return new Date(year, month, 1);
+}
+
+// Calculate total years of experience from work history
+function calculateYearsOfExperience(workExperience: Array<{ start_date: string; end_date: string }>): number {
+  if (!workExperience || workExperience.length === 0) return 0;
+
+  // Find earliest start date and latest end date
+  let earliestStart = new Date();
+  let latestEnd = new Date(0);
+
+  for (const exp of workExperience) {
+    const startDate = parseDateString(exp.start_date);
+    const endDate = parseDateString(exp.end_date);
+
+    if (startDate < earliestStart) {
+      earliestStart = startDate;
+    }
+    if (endDate > latestEnd) {
+      latestEnd = endDate;
+    }
+  }
+
+  // Calculate years difference
+  const msPerYear = 1000 * 60 * 60 * 24 * 365.25;
+  const years = Math.floor((latestEnd.getTime() - earliestStart.getTime()) / msPerYear);
+
+  // Return at least 1 year if they have work experience
+  return Math.max(1, years);
+}
+
 // Role-specific task templates
 const roleTaskTemplates: Record<string, string[]> = {
   "account development representative": [
@@ -777,11 +834,9 @@ export async function generateSummaryOptions(
     .filter(b => /\d+%|\$[\d.,]+[KMB]?|\d+\+/.test(b)) // Has metrics
     .slice(0, 2);
 
-  // Calculate years of experience
+  // Calculate years of experience from actual dates
   const mostRecent = resume.work_experience[0];
-  const totalYears = resume.work_experience.length > 0
-    ? Math.max(2, resume.work_experience.length * 2) // Rough estimate
-    : 3;
+  const totalYears = calculateYearsOfExperience(resume.work_experience);
 
   // Get role-specific summary examples
   const roleSummaryExamples = getRoleSummaries(jobTitle).slice(0, 2);

@@ -6,6 +6,8 @@ import { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { ResumeData } from "@/types/resume";
 import TabsNav from "@/components/TabsNav";
 import JobAnalysisPanel from "@/components/review/JobAnalysisPanel";
+import ATSScoreCard from "@/components/review/ATSScoreCard";
+import { ATSScore } from "@/lib/ats-scorer";
 
 interface Job {
   id: number;
@@ -168,6 +170,10 @@ function ReviewContent() {
   // Job details sidebar
   const [showJobDetails, setShowJobDetails] = useState(true);
   const [showFullDescription, setShowFullDescription] = useState(false);
+
+  // ATS Score
+  const [atsScore, setAtsScore] = useState<ATSScore | null>(null);
+  const [loadingAts, setLoadingAts] = useState(false);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -625,6 +631,51 @@ function ReviewContent() {
       console.error("Failed to generate cover letter:", err);
     } finally {
       setGeneratingCoverLetter(false);
+    }
+  };
+
+  const calculateAtsScore = async () => {
+    if (!selectedJob || !masterResume || selectedRoles.length === 0) return;
+    setLoadingAts(true);
+
+    try {
+      // Build resume content for scoring
+      const resumeContent = {
+        summary: selectedSummaryIndex !== null ? summaryOptions[selectedSummaryIndex] : undefined,
+        experience: selectedRoles.map((r) => {
+          const masterRole = masterResume.work_experience[r.roleIndex];
+          return {
+            title: masterRole.title,
+            company: masterRole.company,
+            bullets: r.selectedBullets.map((i) => getBulletText(r.roleIndex, i, r.bulletOptions)),
+          };
+        }),
+        skills: selectedSkills,
+        education: masterResume.education.map(e => ({
+          degree: e.degree,
+          field: e.field,
+          institution: e.institution,
+        })),
+      };
+
+      const response = await fetch("/api/ats/score", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          resume: resumeContent,
+          jobDescription: selectedJob.job_description,
+          jobTitle: selectedJob.job_title,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setAtsScore(data);
+      }
+    } catch (err) {
+      console.error("Failed to calculate ATS score:", err);
+    } finally {
+      setLoadingAts(false);
     }
   };
 
@@ -1570,6 +1621,14 @@ function ReviewContent() {
                         ))}
                       </div>
                     </div>
+
+                    {/* ATS Compatibility Score */}
+                    <ATSScoreCard
+                      score={atsScore}
+                      loading={loadingAts}
+                      onCalculate={calculateAtsScore}
+                      disabled={selectedRoles.length === 0 || !selectedJob}
+                    />
 
                     {/* Resume Quality Score */}
                     <div className="bg-white rounded-xl shadow overflow-hidden">

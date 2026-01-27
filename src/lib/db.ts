@@ -1,7 +1,7 @@
 import Database from "better-sqlite3";
 import path from "path";
 
-const dbPath = path.join(process.cwd(), "data", "resumescale.db");
+const dbPath = path.join(process.cwd(), "data", "resumegenie.db");
 
 // Ensure data directory exists
 import fs from "fs";
@@ -95,11 +95,14 @@ const newResumeColumns = [
   { name: 'languages', type: 'TEXT' },
   { name: 'honors', type: 'TEXT' },
   { name: 'profile_photo_path', type: 'TEXT' },
+  { name: 'summary', type: 'TEXT' },
+  { name: 'resume_style', type: 'TEXT', default: "'basic'" },
 ];
 
 for (const col of newResumeColumns) {
   try {
-    db.exec(`ALTER TABLE resumes ADD COLUMN ${col.name} ${col.type}`);
+    const defaultClause = (col as { default?: string }).default ? ` DEFAULT ${(col as { default?: string }).default}` : '';
+    db.exec(`ALTER TABLE resumes ADD COLUMN ${col.name} ${col.type}${defaultClause}`);
   } catch {
     // Column already exists
   }
@@ -345,6 +348,8 @@ export interface Resume {
   languages: string | null;
   honors: string | null;
   profile_photo_path: string | null;
+  summary: string | null;
+  resume_style: string;
   raw_text: string | null;
   created_at: string;
   updated_at: string;

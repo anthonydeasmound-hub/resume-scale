@@ -1,7 +1,7 @@
-// ResumeScale LinkedIn Job Saver Content Script
+// ResumeGenie LinkedIn Job Saver Content Script
 
 (function() {
-  console.log('[ResumeScale] Content script loaded on:', window.location.href);
+  console.log('[ResumeGenie] Content script loaded on:', window.location.href);
 
   let notifiedJobs = new Set();
   let lastCheckedUrl = '';
@@ -10,7 +10,7 @@
   chrome.storage.local.get(['notifiedJobs'], (result) => {
     if (result.notifiedJobs && Array.isArray(result.notifiedJobs)) {
       notifiedJobs = new Set(result.notifiedJobs);
-      console.log('[ResumeScale] Loaded', notifiedJobs.size, 'previously notified jobs');
+      console.log('[ResumeGenie] Loaded', notifiedJobs.size, 'previously notified jobs');
     }
   });
 
@@ -30,7 +30,7 @@
     if (titleMatch) {
       jobTitle = titleMatch[1].trim();
       companyName = titleMatch[2].trim();
-      console.log('[ResumeScale] Found from page title:', jobTitle, 'at', companyName);
+      console.log('[ResumeGenie] Found from page title:', jobTitle, 'at', companyName);
     }
 
     // Method 2: Find the job details panel and extract from there
@@ -71,7 +71,7 @@
 
           if (looksLikeTitle) {
             jobTitle = text;
-            console.log('[ResumeScale] Found job title via DOM scan:', jobTitle, 'fontSize:', fontSize, 'fontWeight:', fontWeight, 'rect.left:', rect.left);
+            console.log('[ResumeGenie] Found job title via DOM scan:', jobTitle, 'fontSize:', fontSize, 'fontWeight:', fontWeight, 'rect.left:', rect.left);
             break;
           }
         }
@@ -86,7 +86,7 @@
         const text = link.textContent?.trim();
         if (text && text.length > 1 && text.length < 60 && !text.match(/^(follow|see|view|show)/i)) {
           companyName = text;
-          console.log('[ResumeScale] Found company via link:', companyName);
+          console.log('[ResumeGenie] Found company via link:', companyName);
           break;
         }
       }
@@ -129,7 +129,7 @@
             const desc = parent.innerText?.trim() || '';
             if (desc.length > 100) {
               jobDescription = desc;
-              console.log('[ResumeScale] Found job description via "About the job" section, length:', desc.length);
+              console.log('[ResumeGenie] Found job description via "About the job" section, length:', desc.length);
               break;
             }
           }
@@ -151,7 +151,7 @@
           // Check it's not just navigation or other UI
           if (!text.match(/^(easy apply|save|share|show|hide|premium|people you)/i)) {
             jobDescription = text;
-            console.log('[ResumeScale] Found job description via text block scan, length:', text.length);
+            console.log('[ResumeGenie] Found job description via text block scan, length:', text.length);
             break;
           }
         }
@@ -261,31 +261,31 @@
   }
 
   function showJobNotification(jobTitle) {
-    console.log('[ResumeScale] showJobNotification called with:', jobTitle);
+    console.log('[ResumeGenie] showJobNotification called with:', jobTitle);
 
     // Remove any existing notification
-    const existing = document.querySelector('.resumescale-job-notification');
+    const existing = document.querySelector('.resumegenie-job-notification');
     if (existing) existing.remove();
 
     const notification = document.createElement('div');
-    notification.className = 'resumescale-job-notification';
+    notification.className = 'resumegenie-job-notification';
     notification.innerHTML = `
-      <div class="resumescale-notif-icon">
+      <div class="resumegenie-notif-icon">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
           <polyline points="17 21 17 13 7 13 7 21"></polyline>
           <polyline points="7 3 7 8 15 8"></polyline>
         </svg>
       </div>
-      <div class="resumescale-notif-content">
-        <div class="resumescale-notif-title">Import "${jobTitle}"</div>
-        <div class="resumescale-notif-subtitle">Click the ResumeScale extension</div>
+      <div class="resumegenie-notif-content">
+        <div class="resumegenie-notif-title">Import "${jobTitle}"</div>
+        <div class="resumegenie-notif-subtitle">Click the ResumeGenie extension</div>
       </div>
-      <button class="resumescale-notif-close">&times;</button>
+      <button class="resumegenie-notif-close">&times;</button>
     `;
 
     // Close button handler
-    notification.querySelector('.resumescale-notif-close').addEventListener('click', (e) => {
+    notification.querySelector('.resumegenie-notif-close').addEventListener('click', (e) => {
       e.stopPropagation();
       notification.remove();
     });
@@ -293,7 +293,7 @@
     // Auto-hide after 5 seconds
     setTimeout(() => {
       if (notification.parentNode) {
-        notification.classList.add('resumescale-notif-fadeout');
+        notification.classList.add('resumegenie-notif-fadeout');
         setTimeout(() => notification.remove(), 300);
       }
     }, 5000);
@@ -302,9 +302,9 @@
   }
 
   function checkForNewJob() {
-    console.log('[ResumeScale] Checking for new job...');
+    console.log('[ResumeGenie] Checking for new job...');
     const jobData = extractJobData();
-    console.log('[ResumeScale] Extracted job data:', {
+    console.log('[ResumeGenie] Extracted job data:', {
       title: jobData.job_title,
       company: jobData.company_name,
       hasDescription: jobData.job_description.length > 0
@@ -313,16 +313,16 @@
     if (jobData.job_title && jobData.job_title.length > 0) {
       // Create a unique key for this job
       const jobKey = `${jobData.job_title}|${jobData.company_name}`;
-      console.log('[ResumeScale] Job key:', jobKey, 'Already notified:', notifiedJobs.has(jobKey));
+      console.log('[ResumeGenie] Job key:', jobKey, 'Already notified:', notifiedJobs.has(jobKey));
 
       if (!notifiedJobs.has(jobKey)) {
         notifiedJobs.add(jobKey);
         saveNotifiedJobs(); // Persist to Chrome storage
-        console.log('[ResumeScale] Showing notification for:', jobData.job_title);
+        console.log('[ResumeGenie] Showing notification for:', jobData.job_title);
         showJobNotification(jobData.job_title);
       }
     } else {
-      console.log('[ResumeScale] No job title found. Page title:', document.title);
+      console.log('[ResumeGenie] No job title found. Page title:', document.title);
     }
   }
 
@@ -352,9 +352,9 @@
   });
 
   // Initial check after page loads
-  console.log('[ResumeScale] Will check for job in 1.5 seconds...');
+  console.log('[ResumeGenie] Will check for job in 1.5 seconds...');
   setTimeout(() => {
-    console.log('[ResumeScale] Running initial job check');
+    console.log('[ResumeGenie] Running initial job check');
     checkForNewJob();
   }, 1500);
 

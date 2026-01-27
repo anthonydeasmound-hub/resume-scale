@@ -1,8 +1,8 @@
-# ResumeScale Architecture
+# ResumeGenie Architecture
 
 ## Overview
 
-ResumeScale is a local-first application that helps users create ATS-optimized resumes and cover letters tailored to specific job applications. It uses AI (Gemini) to parse resumes, research companies, and generate personalized documents.
+ResumeGenie is a local-first application that helps users create ATS-optimized resumes and cover letters tailored to specific job applications. It uses AI (Gemini) to parse resumes, research companies, and generate personalized documents.
 
 ## Tech Stack
 

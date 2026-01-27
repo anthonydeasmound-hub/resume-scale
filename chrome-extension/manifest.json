@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "ResumeScale Job Saver",
+  "name": "ResumeGenie Job Saver",
   "version": "1.0.0",
-  "description": "Save job listings to ResumeScale with one click",
+  "description": "Save job listings to ResumeGenie with one click",
   "permissions": [
     "storage",
     "activeTab"

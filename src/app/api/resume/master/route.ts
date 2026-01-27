@@ -30,6 +30,8 @@ export async function GET() {
       languages: string | null;
       honors: string | null;
       profile_photo_path: string | null;
+      summary: string | null;
+      resume_style: string | null;
       created_at: string;
       updated_at: string;
     } | undefined;
@@ -48,6 +50,8 @@ export async function GET() {
       languages: resume.languages ? JSON.parse(resume.languages) : [],
       honors: resume.honors ? JSON.parse(resume.honors) : [],
       profile_photo_path: resume.profile_photo_path,
+      summary: resume.summary || "",
+      resume_style: resume.resume_style || "basic",
       created_at: resume.created_at,
       updated_at: resume.updated_at,
     });

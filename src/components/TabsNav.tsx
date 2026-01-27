@@ -74,7 +74,7 @@ export default function TabsNav({ reviewCount = 0 }: { reviewCount?: number }) {
       {/* Logo */}
       <div className="p-6 border-b border-gray-200">
         <Link href="/dashboard" className="text-xl font-bold text-gray-900">
-          ResumeScale
+          ResumeGenie
         </Link>
       </div>
 

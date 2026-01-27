@@ -1,4 +1,4 @@
-# ResumeScale - Claude Code Instructions
+# ResumeGenie - Claude Code Instructions
 
 ## Project Overview
 Job application management app with AI-powered resume and cover letter generation.

@@ -39,7 +39,7 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "ResumeScale - AI-Powered Job Applications",
+  title: "ResumeGenie - AI-Powered Job Applications",
   description: "Scale your job applications with AI-optimized resumes and cover letters",
 };
 

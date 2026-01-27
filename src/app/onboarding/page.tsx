@@ -44,7 +44,35 @@ interface LinkedInData {
   profile_picture_url?: string;
 }
 
-type Step = "connect" | "import" | "work-experience" | "achievements" | "skills" | "certifications" | "languages" | "honors" | "saving";
+type Step = "entry" | "upload" | "connect" | "import" | "template" | "contact" | "work-experience" | "achievements" | "skills" | "education" | "certifications" | "languages" | "honors" | "summary" | "saving";
+
+type EntryPath = "upload" | "linkedin" | "fresh" | null;
+
+// Template definitions
+interface Template {
+  id: string;
+  name: string;
+  category: "professional" | "modern" | "creative" | "technical" | "executive";
+  description: string;
+  layout: "single" | "two-column-left" | "two-column-right";
+}
+
+const TEMPLATES: Template[] = [
+  { id: "executive", name: "Executive", category: "professional", description: "Traditional corporate style", layout: "single" },
+  { id: "horizon", name: "Horizon", category: "modern", description: "Clean, contemporary design", layout: "two-column-left" },
+  { id: "canvas", name: "Canvas", category: "creative", description: "Bold and artistic", layout: "two-column-right" },
+  { id: "terminal", name: "Terminal", category: "technical", description: "Developer-focused minimal", layout: "single" },
+  { id: "summit", name: "Summit", category: "executive", description: "C-suite elegance", layout: "single" },
+  { id: "cornerstone", name: "Cornerstone", category: "professional", description: "Balanced two-column", layout: "two-column-left" },
+];
+
+const COLORS = [
+  { id: "blue", hex: "#2563eb", name: "Blue" },
+  { id: "emerald", hex: "#059669", name: "Emerald" },
+  { id: "violet", hex: "#7c3aed", name: "Violet" },
+  { id: "rose", hex: "#e11d48", name: "Rose" },
+  { id: "slate", hex: "#475569", name: "Slate" },
+];
 
 // Helper to parse date string like "Apr 2023" into sortable value
 function parseDateToNumber(dateStr: string): number {
@@ -129,7 +157,8 @@ function OnboardingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [step, setStep] = useState<Step>("connect");
+  const [step, setStep] = useState<Step>("entry");
+  const [entryPath, setEntryPath] = useState<EntryPath>(null);
   const [token, setToken] = useState("");
   const [tokenCopied, setTokenCopied] = useState(false);
   const [linkedinData, setLinkedinData] = useState<LinkedInData | null>(null);
@@ -153,6 +182,29 @@ function OnboardingContent() {
   const [loadingSkillSuggestions, setLoadingSkillSuggestions] = useState(false);
   const [expandedSkillCategory, setExpandedSkillCategory] = useState<Record<string, boolean>>({});
   const skillSuggestionsFetchedRef = useRef(false);
+
+  // Summary and template state
+  const [summaryOptions, setSummaryOptions] = useState<string[]>([]);
+  const [selectedSummary, setSelectedSummary] = useState("");
+  const [loadingSummary, setLoadingSummary] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState("executive");
+  const [selectedColor, setSelectedColor] = useState("#2563eb");
+  const [templateCategory, setTemplateCategory] = useState<string>("all");
+  const [templateOptions, setTemplateOptions] = useState({
+    showPhoto: false,
+    showSkillBars: true,
+    showIcons: true,
+  });
+  const [previewHtml, setPreviewHtml] = useState("");
+  const [loadingPreview, setLoadingPreview] = useState(false);
+  const [previewScale, setPreviewScale] = useState(0.52);
+  const summaryFetchedRef = useRef(false);
+  const previewDebounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Fresh builder AI suggestions state
+  const [freshBulletSuggestions, setFreshBulletSuggestions] = useState<Record<number, string[]>>({});
+  const [loadingFreshSuggestions, setLoadingFreshSuggestions] = useState<Record<number, boolean>>({});
+  const bulletSuggestionDebounceRef = useRef<Record<number, NodeJS.Timeout>>({});
 
   // Constants for limits
   const MAX_BULLETS_PER_ROLE = 4;
@@ -206,6 +258,164 @@ function OnboardingContent() {
     }
   }, [step, editableData]);
 
+  // Fetch summary suggestions when entering summary step
+  useEffect(() => {
+    if (step === "summary" && editableData && !summaryFetchedRef.current) {
+      summaryFetchedRef.current = true;
+      fetchSummaryOptions();
+    }
+  }, [step, editableData]);
+
+  // Update preview when data changes (debounced)
+  useEffect(() => {
+    const contentSteps = ["template", "contact", "work-experience", "achievements", "skills", "education", "certifications", "languages", "honors", "summary"];
+    if (contentSteps.includes(step) && editableData) {
+      // Clear existing timeout
+      if (previewDebounceRef.current) {
+        clearTimeout(previewDebounceRef.current);
+      }
+      // Set new timeout for debounced update
+      previewDebounceRef.current = setTimeout(() => {
+        fetchPreviewHtml();
+      }, 300);
+    }
+    return () => {
+      if (previewDebounceRef.current) {
+        clearTimeout(previewDebounceRef.current);
+      }
+    };
+  }, [editableData, selectedSummary, selectedTemplate, selectedColor, step]);
+
+  // Fetch preview immediately when entering a content step
+  useEffect(() => {
+    const contentSteps = ["template", "contact", "work-experience", "achievements", "skills", "education", "certifications", "languages", "honors", "summary"];
+    if (contentSteps.includes(step) && editableData) {
+      fetchPreviewHtml();
+    }
+  }, [step]);
+
+  const fetchSummaryOptions = async () => {
+    if (!editableData) return;
+    setLoadingSummary(true);
+
+    try {
+      const response = await fetch("/api/ai/generate-summary", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          resume: {
+            work_experience: editableData.work_experience,
+            skills: editableData.skills,
+            education: editableData.education,
+          },
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setSummaryOptions(data.summaries);
+        if (data.summaries.length > 0) {
+          setSelectedSummary(data.summaries[0]);
+        }
+      } else {
+        console.error("Failed to fetch summary options:", await response.text());
+      }
+    } catch (err) {
+      console.error("Error fetching summary options:", err);
+    } finally {
+      setLoadingSummary(false);
+    }
+  };
+
+  const fetchPreviewHtml = async () => {
+    if (!editableData) return;
+    setLoadingPreview(true);
+
+    try {
+      // Transform data to match ResumeData type expected by the template
+      const transformedData = {
+        contactInfo: {
+          name: editableData.contact_info.name || "",
+          email: editableData.contact_info.email || "",
+          phone: editableData.contact_info.phone || "",
+          location: editableData.contact_info.location || "",
+          linkedin: editableData.contact_info.linkedin || "",
+        },
+        jobTitle: editableData.work_experience[0]?.title || "",
+        summary: selectedSummary,
+        experience: editableData.work_experience.map(exp => ({
+          title: exp.title,
+          company: exp.company,
+          dates: `${exp.start_date} - ${exp.end_date}`,
+          description: exp.description.filter(d => d.trim() !== ""),
+        })),
+        education: editableData.education.map(edu => ({
+          school: edu.institution,
+          degree: edu.degree,
+          dates: edu.graduation_date,
+          specialty: edu.field,
+        })),
+        skills: editableData.skills,
+      };
+
+      const response = await fetch("/api/resume/preview-html", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          data: transformedData,
+          templateId: selectedTemplate,
+          accentColor: selectedColor,
+        }),
+      });
+
+      if (response.ok) {
+        const html = await response.text();
+        setPreviewHtml(html);
+      }
+    } catch (err) {
+      console.error("Error fetching preview:", err);
+    } finally {
+      setLoadingPreview(false);
+    }
+  };
+
+  // Fetch AI bullet suggestions for a specific job (fresh builder)
+  const fetchFreshBulletSuggestions = async (jobIdx: number, jobTitle: string, company: string) => {
+    if (!jobTitle || jobTitle.length < 3) return;
+
+    setLoadingFreshSuggestions(prev => ({ ...prev, [jobIdx]: true }));
+
+    try {
+      const response = await fetch("/api/ai/suggest-bullets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobTitle, company }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setFreshBulletSuggestions(prev => ({ ...prev, [jobIdx]: data.bullets || [] }));
+      }
+    } catch (err) {
+      console.error("Error fetching bullet suggestions:", err);
+    } finally {
+      setLoadingFreshSuggestions(prev => ({ ...prev, [jobIdx]: false }));
+    }
+  };
+
+  // Debounced trigger for bullet suggestions
+  const triggerBulletSuggestions = (jobIdx: number, jobTitle: string, company: string) => {
+    // Clear existing timeout for this job
+    if (bulletSuggestionDebounceRef.current[jobIdx]) {
+      clearTimeout(bulletSuggestionDebounceRef.current[jobIdx]);
+    }
+
+    // Set new timeout
+    bulletSuggestionDebounceRef.current[jobIdx] = setTimeout(() => {
+      fetchFreshBulletSuggestions(jobIdx, jobTitle, company);
+    }, 500);
+  };
+
   const fetchSkillSuggestions = async () => {
     if (!editableData) return;
     setLoadingSkillSuggestions(true);
@@ -242,10 +452,16 @@ function OnboardingContent() {
     jobIdx: number,
     exp: { company: string; title: string; description: string[] }
   ) => {
+    // Skip if company or title is empty
+    if (!exp.company?.trim() || !exp.title?.trim()) {
+      console.log("Skipping AI recommendations - missing company or title for job", jobIdx);
+      return;
+    }
+
     setLoadingRecommendations((prev) => ({ ...prev, [jobIdx]: true }));
 
     const requestBody = {
-      role: { company: exp.company, title: exp.title },
+      role: { company: exp.company.trim(), title: exp.title.trim() },
       existingBullets: exp.description.filter((b) => b.trim() !== ""),
     };
     console.log("Fetching AI recommendations for:", requestBody);
@@ -380,7 +596,7 @@ function OnboardingContent() {
         processedData.languages = processedData.languages || [];
         processedData.honors = processedData.honors || [];
         setEditableData(processedData);
-        setStep("work-experience");
+        setStep("template");
       } else if (response.status === 404) {
         setError("No imported data found. Please try importing again.");
         setStep("import");
@@ -410,7 +626,7 @@ function OnboardingContent() {
   const handleImportLinkedIn = () => {
     // Open LinkedIn profile with auto-import parameter
     // The Chrome extension will detect this and capture the page
-    window.open("https://www.linkedin.com/in/me?resumescale_import=auto", "_blank");
+    window.open("https://www.linkedin.com/in/me?resumegenie_import=auto", "_blank");
   };
 
   const handleSave = async () => {
@@ -431,6 +647,8 @@ function OnboardingContent() {
           certifications: editableData.certifications,
           languages: editableData.languages,
           honors: editableData.honors,
+          summary: selectedSummary,
+          resume_style: selectedTemplate,
         }),
       });
 
@@ -439,7 +657,7 @@ function OnboardingContent() {
       router.push("/dashboard");
     } catch (err) {
       setError("Failed to save profile. Please try again.");
-      setStep("honors");
+      setStep("summary");
       console.error(err);
     }
   };
@@ -458,59 +676,92 @@ function OnboardingContent() {
 
   const getStepNumber = () => {
     switch (step) {
-      case "connect": return 1;
-      case "import": return 1;
-      case "work-experience": return 2;
-      case "achievements": return 3;
-      case "skills": return 4;
-      case "certifications": return 5;
-      case "languages": return 6;
-      case "honors": return 7;
-      case "saving": return 8;
-      default: return 1;
+      case "entry": return 0;
+      case "upload": return 0;
+      case "connect": return 0;
+      case "import": return 0;
+      case "template": return 1;
+      case "contact": return 2;
+      case "work-experience": return 3;
+      case "achievements": return 4;
+      case "skills": return 5;
+      case "education": return 6;
+      case "certifications": return 7;
+      case "languages": return 8;
+      case "honors": return 9;
+      case "summary": return 10;
+      case "saving": return 11;
+      default: return 0;
     }
   };
 
-  const stepLabels = ["Import", "Experience", "Achievements", "Skills", "Certs", "Languages", "Honors", "Complete"];
+  // Steps shown in progress bar (after entry/import)
+  const getVisibleSteps = () => {
+    if (entryPath === "fresh") {
+      return ["Template", "Contact", "Experience", "Achievements", "Skills", "Education", "Certs", "Languages", "Honors", "Summary"];
+    }
+    // For upload/linkedin, contact is pre-filled so we skip it
+    return ["Template", "Experience", "Achievements", "Skills", "Education", "Certs", "Languages", "Honors", "Summary"];
+  };
+
+  const stepLabels = getVisibleSteps();
+
+  // Determine if we should show side-by-side layout with preview
+  const showPreviewLayout = ["template", "contact", "work-experience", "achievements", "skills", "education", "certifications", "languages", "honors", "summary"].includes(step);
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-2xl mx-auto px-4">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Welcome to ResumeScale</h1>
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className={`mx-auto px-4 ${showPreviewLayout ? "max-w-7xl" : "max-w-2xl"}`}>
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-gray-900">Welcome to ResumeGenie</h1>
           <p className="text-gray-600 mt-2">
-            Connect your LinkedIn to import your profile
+            {step === "entry" ? "Let's build your professional resume" : "Complete your profile"}
           </p>
         </div>
 
-        {/* Progress indicator */}
-        <div className="flex items-center mb-8 overflow-x-auto">
-          {[1, 2, 3, 4, 5, 6, 7, 8].map((num, idx) => (
-            <div key={num} className="flex items-center flex-1 min-w-0">
-              <div className="flex flex-col items-center">
-                <div
-                  className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium ${
-                    getStepNumber() > num
-                      ? "bg-green-500 text-white"
-                      : getStepNumber() === num
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-200 text-gray-500"
-                  }`}
-                >
-                  {getStepNumber() > num ? "✓" : num}
+        {/* Progress indicator - only show after entry/import steps */}
+        {!["entry", "upload", "connect", "import", "saving"].includes(step) && (
+        <div className="flex items-center mb-6 overflow-x-auto pb-2">
+          {stepLabels.map((label, idx) => {
+            const stepNum = idx + 1;
+            const currentNum = getStepNumber();
+            const isComplete = currentNum > stepNum;
+            const isCurrent = currentNum === stepNum;
+
+            return (
+              <div key={label} className="flex items-center flex-1 min-w-0">
+                <div className="flex flex-col items-center">
+                  <div
+                    className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium transition-all duration-300 ${
+                      isComplete
+                        ? "bg-green-500 text-white"
+                        : isCurrent
+                        ? "bg-blue-600 text-white ring-4 ring-blue-100"
+                        : "bg-gray-200 text-gray-500"
+                    }`}
+                  >
+                    {isComplete ? (
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    ) : stepNum}
+                  </div>
+                  <span className={`text-xs mt-1.5 whitespace-nowrap ${isCurrent ? "text-blue-600 font-medium" : "text-gray-500"}`}>
+                    {label}
+                  </span>
                 </div>
-                <span className="text-[10px] text-gray-500 mt-1 whitespace-nowrap">{stepLabels[idx]}</span>
+                {idx < stepLabels.length - 1 && (
+                  <div
+                    className={`flex-1 h-0.5 mx-2 mb-5 min-w-4 transition-colors duration-300 ${
+                      isComplete ? "bg-green-500" : "bg-gray-200"
+                    }`}
+                  />
+                )}
               </div>
-              {idx < 7 && (
-                <div
-                  className={`flex-1 h-0.5 mx-1 mb-4 min-w-2 ${
-                    getStepNumber() > num ? "bg-green-500" : "bg-gray-200"
-                  }`}
-                />
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
+        )}
 
         {error && (
           <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
@@ -521,6 +772,181 @@ function OnboardingContent() {
             >
               ×
             </button>
+          </div>
+        )}
+
+        {/* Side-by-side layout wrapper for content steps */}
+        <div className={showPreviewLayout ? "grid grid-cols-1 lg:grid-cols-2 gap-6" : ""}>
+          {/* Left column: Form content */}
+          <div>
+
+        {/* Entry Step: Choose how to get started */}
+        {step === "entry" && (
+          <div className="bg-white rounded-xl shadow-lg p-8">
+            <h2 className="text-2xl font-semibold text-gray-800 mb-2 text-center">
+              How would you like to get started?
+            </h2>
+            <p className="text-gray-500 text-center mb-8">
+              Choose the option that works best for you
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Upload Resume Option */}
+              <button
+                onClick={() => {
+                  setEntryPath("upload");
+                  setStep("upload");
+                }}
+                className="group p-6 rounded-xl border-2 border-gray-200 hover:border-blue-500 hover:shadow-lg transition-all duration-200 text-left"
+              >
+                <div className="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center mb-4 group-hover:bg-blue-500 group-hover:text-white transition-colors">
+                  <svg className="w-7 h-7 text-blue-600 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-800 mb-2">Upload Resume</h3>
+                <p className="text-sm text-gray-500">
+                  Upload your existing resume (PDF, DOCX) or paste the text. Our AI will extract your information.
+                </p>
+              </button>
+
+              {/* Import LinkedIn Option */}
+              <button
+                onClick={() => {
+                  setEntryPath("linkedin");
+                  setStep("connect");
+                }}
+                className="group p-6 rounded-xl border-2 border-gray-200 hover:border-blue-500 hover:shadow-lg transition-all duration-200 text-left"
+              >
+                <div className="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center mb-4 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                  <svg className="w-7 h-7 text-blue-700 group-hover:text-white" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-800 mb-2">Import from LinkedIn</h3>
+                <p className="text-sm text-gray-500">
+                  Automatically import your work history, education, and skills from your LinkedIn profile.
+                </p>
+              </button>
+
+              {/* Start Fresh Option */}
+              <button
+                onClick={() => {
+                  setEntryPath("fresh");
+                  // For now, go to work-experience with empty data
+                  // Phase 3 will implement the full fresh builder
+                  setEditableData({
+                    contact_info: {
+                      name: session?.user?.name || "",
+                      email: session?.user?.email || "",
+                      phone: "",
+                      location: "",
+                      linkedin: "",
+                    },
+                    work_experience: [],
+                    education: [],
+                    skills: [],
+                    certifications: [],
+                    languages: [],
+                    honors: [],
+                  });
+                  setStep("template");
+                }}
+                className="group p-6 rounded-xl border-2 border-gray-200 hover:border-green-500 hover:shadow-lg transition-all duration-200 text-left"
+              >
+                <div className="w-14 h-14 bg-green-100 rounded-xl flex items-center justify-center mb-4 group-hover:bg-green-500 group-hover:text-white transition-colors">
+                  <svg className="w-7 h-7 text-green-600 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-800 mb-2">Start Fresh</h3>
+                <p className="text-sm text-gray-500">
+                  Build your resume from scratch with AI-powered suggestions to help you along the way.
+                </p>
+              </button>
+            </div>
+
+            <p className="text-xs text-gray-400 text-center mt-8">
+              Don&apos;t worry, you can always edit your information later
+            </p>
+          </div>
+        )}
+
+        {/* Upload Resume Step */}
+        {step === "upload" && (
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">
+              Upload Your Resume
+            </h2>
+            <p className="text-gray-600 mb-6 text-sm">
+              Upload a PDF or DOCX file, or paste your resume text below.
+            </p>
+
+            {/* File upload area */}
+            <div className="mb-6">
+              <label className="block border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 transition-colors cursor-pointer">
+                <svg className="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                <p className="text-gray-600 mb-2">Drop your resume here or click to browse</p>
+                <p className="text-xs text-gray-400">Supports PDF, DOCX, and TXT files</p>
+                <input
+                  type="file"
+                  accept=".pdf,.docx,.doc,.txt"
+                  className="hidden"
+                  onChange={(e) => {
+                    // TODO: Implement file upload in Phase 2
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      console.log("File selected:", file.name);
+                      // For now, show a message that this is coming soon
+                      setError("File upload coming soon! Please paste your resume text below for now.");
+                    }
+                  }}
+                />
+              </label>
+            </div>
+
+            <div className="relative mb-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-200"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-4 bg-white text-gray-500">or paste your resume</span>
+              </div>
+            </div>
+
+            {/* Text paste area */}
+            <div className="mb-6">
+              <textarea
+                placeholder="Paste your resume text here..."
+                rows={8}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                onChange={(e) => {
+                  // Store the pasted text for processing
+                  // TODO: Implement text parsing in Phase 2
+                }}
+              />
+            </div>
+
+            <div className="flex gap-4">
+              <button
+                onClick={() => setStep("entry")}
+                className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+              >
+                Back
+              </button>
+              <button
+                onClick={() => {
+                  // TODO: Process the uploaded/pasted resume
+                  // For now, show message that this is in progress
+                  setError("Resume parsing coming soon! Try LinkedIn import or Start Fresh for now.");
+                }}
+                className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+              >
+                Continue
+              </button>
+            </div>
           </div>
         )}
 
@@ -562,7 +988,7 @@ function OnboardingContent() {
               <h4 className="font-medium text-amber-800 text-sm mb-2">Before you click:</h4>
               <ol className="text-sm text-amber-700 list-decimal list-inside space-y-1">
                 <li>Make sure you&apos;re logged into LinkedIn</li>
-                <li>Make sure the ResumeScale Chrome extension is installed and connected</li>
+                <li>Make sure the ResumeGenie Chrome extension is installed and connected</li>
                 <li>The extension will capture your profile and redirect you back here</li>
               </ol>
             </div>
@@ -573,10 +999,296 @@ function OnboardingContent() {
 
             <div className="flex gap-4">
               <button
-                onClick={handleSkip}
+                onClick={() => setStep("entry")}
                 className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors"
               >
-                Skip for now
+                Back
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Template Selection Step */}
+        {step === "template" && (
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-gray-800">Choose Your Template</h2>
+                <p className="text-gray-600 text-sm">Pick a design that fits your style</p>
+              </div>
+            </div>
+
+            {/* Category Filter */}
+            <div className="flex flex-wrap gap-2 mb-6">
+              {["all", "professional", "modern", "creative", "technical", "executive"].map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setTemplateCategory(cat)}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                    templateCategory === cat
+                      ? "bg-indigo-600 text-white"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                </button>
+              ))}
+            </div>
+
+            {/* Template Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+              {TEMPLATES.filter(t => templateCategory === "all" || t.category === templateCategory).map((template) => (
+                <button
+                  key={template.id}
+                  onClick={() => setSelectedTemplate(template.id)}
+                  className={`p-4 rounded-xl border-2 transition-all duration-200 text-left ${
+                    selectedTemplate === template.id
+                      ? "border-indigo-500 bg-indigo-50 ring-2 ring-indigo-200"
+                      : "border-gray-200 hover:border-gray-300 hover:shadow-md"
+                  }`}
+                >
+                  {/* Template Preview Thumbnail */}
+                  <div className="aspect-[8.5/11] bg-gray-100 rounded-lg mb-3 relative overflow-hidden">
+                    <div className="absolute inset-2 bg-white rounded shadow-sm">
+                      {/* Simplified template preview based on layout */}
+                      {template.layout === "single" ? (
+                        <div className="p-2">
+                          <div className="h-3 bg-gray-300 rounded w-1/2 mb-2" style={{ backgroundColor: selectedTemplate === template.id ? selectedColor : undefined }} />
+                          <div className="h-1.5 bg-gray-200 rounded w-3/4 mb-1" />
+                          <div className="h-1.5 bg-gray-200 rounded w-2/3 mb-3" />
+                          <div className="space-y-2">
+                            <div className="h-1 bg-gray-200 rounded" />
+                            <div className="h-1 bg-gray-200 rounded w-5/6" />
+                            <div className="h-1 bg-gray-200 rounded w-4/5" />
+                          </div>
+                        </div>
+                      ) : template.layout === "two-column-left" ? (
+                        <div className="flex h-full">
+                          <div className="w-1/3 p-1.5" style={{ backgroundColor: selectedTemplate === template.id ? `${selectedColor}20` : "#f3f4f6" }}>
+                            <div className="h-2 bg-gray-300 rounded w-full mb-2" style={{ backgroundColor: selectedTemplate === template.id ? selectedColor : undefined }} />
+                            <div className="space-y-1">
+                              <div className="h-1 bg-gray-200 rounded" />
+                              <div className="h-1 bg-gray-200 rounded w-4/5" />
+                            </div>
+                          </div>
+                          <div className="flex-1 p-1.5">
+                            <div className="h-1.5 bg-gray-200 rounded w-3/4 mb-2" />
+                            <div className="space-y-1">
+                              <div className="h-1 bg-gray-200 rounded" />
+                              <div className="h-1 bg-gray-200 rounded w-5/6" />
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex h-full">
+                          <div className="flex-1 p-1.5">
+                            <div className="h-2 bg-gray-300 rounded w-1/2 mb-2" style={{ backgroundColor: selectedTemplate === template.id ? selectedColor : undefined }} />
+                            <div className="space-y-1">
+                              <div className="h-1 bg-gray-200 rounded" />
+                              <div className="h-1 bg-gray-200 rounded w-5/6" />
+                            </div>
+                          </div>
+                          <div className="w-1/3 p-1.5" style={{ backgroundColor: selectedTemplate === template.id ? `${selectedColor}20` : "#f3f4f6" }}>
+                            <div className="space-y-1">
+                              <div className="h-1 bg-gray-200 rounded" />
+                              <div className="h-1 bg-gray-200 rounded w-4/5" />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    {selectedTemplate === template.id && (
+                      <div className="absolute top-2 right-2 w-6 h-6 bg-indigo-600 rounded-full flex items-center justify-center">
+                        <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                  <h3 className="font-medium text-gray-800 text-sm">{template.name}</h3>
+                  <p className="text-xs text-gray-500">{template.description}</p>
+                </button>
+              ))}
+            </div>
+
+            {/* Color Selection */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-3">Accent Color</label>
+              <div className="flex gap-3">
+                {COLORS.map((color) => (
+                  <button
+                    key={color.id}
+                    onClick={() => setSelectedColor(color.hex)}
+                    className={`w-10 h-10 rounded-full transition-all duration-200 ${
+                      selectedColor === color.hex
+                        ? "ring-2 ring-offset-2 ring-gray-400 scale-110"
+                        : "hover:scale-105"
+                    }`}
+                    style={{ backgroundColor: color.hex }}
+                    title={color.name}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Template Options */}
+            <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+              <label className="block text-sm font-medium text-gray-700 mb-3">Options</label>
+              <div className="space-y-3">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={templateOptions.showPhoto}
+                    onChange={(e) => setTemplateOptions({ ...templateOptions, showPhoto: e.target.checked })}
+                    className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                  />
+                  <span className="text-sm text-gray-700">Include photo placeholder</span>
+                </label>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={templateOptions.showSkillBars}
+                    onChange={(e) => setTemplateOptions({ ...templateOptions, showSkillBars: e.target.checked })}
+                    className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                  />
+                  <span className="text-sm text-gray-700">Show skill proficiency bars</span>
+                </label>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={templateOptions.showIcons}
+                    onChange={(e) => setTemplateOptions({ ...templateOptions, showIcons: e.target.checked })}
+                    className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                  />
+                  <span className="text-sm text-gray-700">Use section icons</span>
+                </label>
+              </div>
+            </div>
+
+            <div className="flex gap-4">
+              <button
+                onClick={() => setStep("entry")}
+                className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+              >
+                Back
+              </button>
+              <button
+                onClick={() => setStep(entryPath === "fresh" ? "contact" : "work-experience")}
+                className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+              >
+                Continue
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Contact Info Step (for fresh path) */}
+        {step === "contact" && editableData && (
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-gray-800">Contact Information</h2>
+                <p className="text-gray-600 text-sm">How can employers reach you?</p>
+              </div>
+            </div>
+
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                <input
+                  type="text"
+                  value={editableData.contact_info.name}
+                  onChange={(e) => {
+                    const updated = { ...editableData };
+                    updated.contact_info.name = e.target.value;
+                    setEditableData(updated);
+                  }}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="John Doe"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={editableData.contact_info.email}
+                    onChange={(e) => {
+                      const updated = { ...editableData };
+                      updated.contact_info.email = e.target.value;
+                      setEditableData(updated);
+                    }}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="john@example.com"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                  <input
+                    type="tel"
+                    value={editableData.contact_info.phone}
+                    onChange={(e) => {
+                      const updated = { ...editableData };
+                      updated.contact_info.phone = e.target.value;
+                      setEditableData(updated);
+                    }}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="(555) 123-4567"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                <input
+                  type="text"
+                  value={editableData.contact_info.location}
+                  onChange={(e) => {
+                    const updated = { ...editableData };
+                    updated.contact_info.location = e.target.value;
+                    setEditableData(updated);
+                  }}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="San Francisco, CA"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">LinkedIn (optional)</label>
+                <input
+                  type="url"
+                  value={editableData.contact_info.linkedin}
+                  onChange={(e) => {
+                    const updated = { ...editableData };
+                    updated.contact_info.linkedin = e.target.value;
+                    setEditableData(updated);
+                  }}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="linkedin.com/in/johndoe"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-4">
+              <button
+                onClick={() => setStep("template")}
+                className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+              >
+                Back
+              </button>
+              <button
+                onClick={() => setStep("work-experience")}
+                className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+              >
+                Continue
               </button>
             </div>
           </div>
@@ -625,6 +1337,13 @@ function OnboardingContent() {
                             updated.work_experience[idx].title = e.target.value;
                             setEditableData(updated);
                           }}
+                          onBlur={() => {
+                            // Trigger AI suggestions for fresh path when job title is entered
+                            if (entryPath === "fresh" && exp.title && exp.title.length >= 3) {
+                              triggerBulletSuggestions(idx, exp.title, exp.company);
+                            }
+                          }}
+                          placeholder="e.g., Software Engineer"
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
                       </div>
@@ -638,6 +1357,13 @@ function OnboardingContent() {
                             updated.work_experience[idx].company = e.target.value;
                             setEditableData(updated);
                           }}
+                          onBlur={() => {
+                            // Re-trigger suggestions with company context
+                            if (entryPath === "fresh" && exp.title && exp.title.length >= 3) {
+                              triggerBulletSuggestions(idx, exp.title, exp.company);
+                            }
+                          }}
+                          placeholder="e.g., Google"
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
                       </div>
@@ -670,16 +1396,167 @@ function OnboardingContent() {
                         />
                       </div>
                     </div>
+
+                    {/* AI Bullet Suggestions for Fresh Path */}
+                    {entryPath === "fresh" && (
+                      <div className="mt-4 pt-4 border-t border-gray-200">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                            <span className="text-sm font-medium text-gray-700">AI Suggestions</span>
+                          </div>
+                          {exp.title && exp.title.length >= 3 && (
+                            <button
+                              onClick={() => fetchFreshBulletSuggestions(idx, exp.title, exp.company)}
+                              disabled={loadingFreshSuggestions[idx]}
+                              className="text-xs text-blue-600 hover:text-blue-700 disabled:opacity-50"
+                            >
+                              {loadingFreshSuggestions[idx] ? "Generating..." : "Regenerate"}
+                            </button>
+                          )}
+                        </div>
+
+                        {loadingFreshSuggestions[idx] ? (
+                          <div className="flex items-center justify-center py-6">
+                            <div className="animate-spin w-5 h-5 border-2 border-purple-600 border-t-transparent rounded-full" />
+                            <span className="ml-2 text-sm text-gray-500">Generating suggestions...</span>
+                          </div>
+                        ) : freshBulletSuggestions[idx]?.length > 0 ? (
+                          <div className="space-y-2">
+                            <p className="text-xs text-gray-500 mb-2">Click to add to your resume:</p>
+                            {freshBulletSuggestions[idx].map((bullet, bulletIdx) => (
+                              <button
+                                key={bulletIdx}
+                                onClick={() => {
+                                  const updated = { ...editableData };
+                                  if (!updated.work_experience[idx].description.includes(bullet)) {
+                                    updated.work_experience[idx].description = [
+                                      ...updated.work_experience[idx].description,
+                                      bullet
+                                    ];
+                                    setEditableData(updated);
+                                    // Remove the suggestion after adding
+                                    setFreshBulletSuggestions(prev => ({
+                                      ...prev,
+                                      [idx]: prev[idx].filter((_, i) => i !== bulletIdx)
+                                    }));
+                                  }
+                                }}
+                                className="w-full text-left p-3 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg text-sm text-gray-700 transition-colors group"
+                              >
+                                <div className="flex items-start gap-2">
+                                  <svg className="w-4 h-4 text-purple-500 mt-0.5 flex-shrink-0 group-hover:text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                  </svg>
+                                  <span>{bullet}</span>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        ) : exp.title && exp.title.length >= 3 ? (
+                          <div className="text-center py-4">
+                            <p className="text-xs text-gray-400 mb-2">No suggestions yet</p>
+                            <button
+                              onClick={() => fetchFreshBulletSuggestions(idx, exp.title, exp.company)}
+                              className="text-xs text-blue-600 hover:text-blue-700"
+                            >
+                              Generate suggestions
+                            </button>
+                          </div>
+                        ) : (
+                          <p className="text-xs text-gray-400 text-center py-4">
+                            Enter a job title to get AI-powered bullet suggestions
+                          </p>
+                        )}
+
+                        {/* Show already added bullets */}
+                        {exp.description.length > 0 && (
+                          <div className="mt-4">
+                            <p className="text-xs font-medium text-gray-600 mb-2">Added bullets ({exp.description.length}):</p>
+                            <div className="space-y-1">
+                              {exp.description.map((bullet, bulletIdx) => (
+                                <div key={bulletIdx} className="flex items-start gap-2 p-2 bg-green-50 border border-green-200 rounded-lg">
+                                  <svg className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                  </svg>
+                                  <span className="text-sm text-gray-700 flex-1">{bullet}</span>
+                                  <button
+                                    onClick={() => {
+                                      const updated = { ...editableData };
+                                      updated.work_experience[idx].description = updated.work_experience[idx].description.filter((_, i) => i !== bulletIdx);
+                                      setEditableData(updated);
+                                    }}
+                                    className="text-gray-400 hover:text-red-500 transition-colors"
+                                  >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))}
+
+                {/* Add Position button for fresh path */}
+                {entryPath === "fresh" && (
+                  <button
+                    onClick={() => {
+                      const updated = { ...editableData };
+                      updated.work_experience = [...updated.work_experience, {
+                        company: "",
+                        title: "",
+                        start_date: "",
+                        end_date: "Present",
+                        description: [],
+                      }];
+                      setEditableData(updated);
+                    }}
+                    className="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-600 hover:border-blue-400 hover:text-blue-600 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    Add Another Position
+                  </button>
+                )}
               </div>
             ) : (
-              <p className="text-sm text-gray-400 mb-6 text-center py-8">No work experience found</p>
+              <div className="text-center py-8">
+                <p className="text-sm text-gray-400 mb-4">No work experience added yet</p>
+                {entryPath === "fresh" && (
+                  <button
+                    onClick={() => {
+                      const updated = { ...editableData };
+                      updated.work_experience = [{
+                        company: "",
+                        title: "",
+                        start_date: "",
+                        end_date: "Present",
+                        description: [],
+                      }];
+                      setEditableData(updated);
+                    }}
+                    className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors inline-flex items-center gap-2"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    Add Your First Position
+                  </button>
+                )}
+              </div>
             )}
 
             <div className="flex gap-4">
               <button
-                onClick={() => setStep("import")}
+                onClick={() => setStep(entryPath === "fresh" ? "contact" : "template")}
                 className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors"
               >
                 Back
@@ -1150,6 +2027,135 @@ function OnboardingContent() {
                 Back
               </button>
               <button
+                onClick={() => setStep("education")}
+                className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+              >
+                Continue
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Education Step */}
+        {step === "education" && editableData && (
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 14l9-5-9-5-9 5 9 5z" />
+                  <path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-gray-800">Education</h2>
+                <p className="text-gray-600 text-sm">Add your educational background</p>
+              </div>
+            </div>
+
+            <div className="space-y-4 mb-6">
+              {editableData.education.map((edu, idx) => (
+                <div key={idx} className="p-4 bg-gray-50 rounded-lg relative">
+                  <button
+                    onClick={() => {
+                      const updated = { ...editableData };
+                      updated.education = updated.education.filter((_, i) => i !== idx);
+                      setEditableData(updated);
+                    }}
+                    className="absolute top-2 right-2 text-gray-400 hover:text-red-500 transition-colors"
+                    title="Remove education"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="col-span-2">
+                      <label className="block text-xs text-gray-500 mb-1">School/University</label>
+                      <input
+                        type="text"
+                        value={edu.institution}
+                        onChange={(e) => {
+                          const updated = { ...editableData };
+                          updated.education[idx].institution = e.target.value;
+                          setEditableData(updated);
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Stanford University"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Degree</label>
+                      <input
+                        type="text"
+                        value={edu.degree}
+                        onChange={(e) => {
+                          const updated = { ...editableData };
+                          updated.education[idx].degree = e.target.value;
+                          setEditableData(updated);
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Bachelor of Science"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Field of Study</label>
+                      <input
+                        type="text"
+                        value={edu.field}
+                        onChange={(e) => {
+                          const updated = { ...editableData };
+                          updated.education[idx].field = e.target.value;
+                          setEditableData(updated);
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Computer Science"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Graduation Date</label>
+                      <input
+                        type="text"
+                        value={edu.graduation_date}
+                        onChange={(e) => {
+                          const updated = { ...editableData };
+                          updated.education[idx].graduation_date = e.target.value;
+                          setEditableData(updated);
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="May 2020"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {editableData.education.length === 0 && (
+                <p className="text-sm text-gray-400 text-center py-8">No education added yet</p>
+              )}
+            </div>
+
+            <button
+              onClick={() => {
+                const updated = { ...editableData };
+                updated.education = [...updated.education, { institution: "", degree: "", field: "", graduation_date: "" }];
+                setEditableData(updated);
+              }}
+              className="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-600 hover:border-blue-400 hover:text-blue-600 transition-colors mb-6 flex items-center justify-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Add Education
+            </button>
+
+            <div className="flex gap-4">
+              <button
+                onClick={() => setStep("skills")}
+                className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+              >
+                Back
+              </button>
+              <button
                 onClick={() => setStep("certifications")}
                 className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
               >
@@ -1252,7 +2258,7 @@ function OnboardingContent() {
 
             <div className="flex gap-4">
               <button
-                onClick={() => setStep("skills")}
+                onClick={() => setStep("education")}
                 className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors"
               >
                 Back
@@ -1451,10 +2457,6 @@ function OnboardingContent() {
               + Add Honor/Award
             </button>
 
-            <p className="text-sm text-gray-500 mb-4 text-center">
-              You can edit this information anytime in the Master Resume tab.
-            </p>
-
             <div className="flex gap-4">
               <button
                 onClick={() => setStep("languages")}
@@ -1463,8 +2465,210 @@ function OnboardingContent() {
                 Back
               </button>
               <button
-                onClick={handleSave}
+                onClick={() => setStep("summary")}
                 className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+              >
+                Continue
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 8: Summary & Template */}
+        {step === "summary" && editableData && (
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-gray-800">Finalize Your Resume</h2>
+                <p className="text-gray-600 text-sm">Choose your summary and template</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Left column: Summary & Template selection */}
+              <div className="space-y-6">
+                {/* Summary Section */}
+                <div>
+                  <h3 className="font-medium text-gray-800 mb-3">Professional Summary</h3>
+                  {loadingSummary ? (
+                    <div className="flex items-center gap-2 text-sm text-gray-500 py-4">
+                      <span className="animate-spin w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full" />
+                      Generating summary options...
+                    </div>
+                  ) : summaryOptions.length > 0 ? (
+                    <div className="space-y-3">
+                      {summaryOptions.map((summary, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => setSelectedSummary(summary)}
+                          className={`w-full text-left p-3 rounded-lg border-2 transition-colors text-sm ${
+                            selectedSummary === summary
+                              ? "border-indigo-500 bg-indigo-50"
+                              : "border-gray-200 hover:border-gray-300"
+                          }`}
+                        >
+                          <div className="flex items-start gap-2">
+                            <div className={`w-4 h-4 rounded-full border-2 mt-0.5 flex-shrink-0 ${
+                              selectedSummary === summary
+                                ? "border-indigo-500 bg-indigo-500"
+                                : "border-gray-300"
+                            }`}>
+                              {selectedSummary === summary && (
+                                <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
+                              )}
+                            </div>
+                            <span className="text-gray-700">{summary}</span>
+                          </div>
+                        </button>
+                      ))}
+                      <div className="pt-2">
+                        <label className="block text-xs text-gray-500 mb-1">Or edit your summary:</label>
+                        <textarea
+                          value={selectedSummary}
+                          onChange={(e) => setSelectedSummary(e.target.value)}
+                          rows={3}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-sm text-gray-500">
+                      <p className="mb-2">No summary generated yet.</p>
+                      <button
+                        onClick={fetchSummaryOptions}
+                        className="text-indigo-600 hover:text-indigo-700 font-medium"
+                      >
+                        Generate summaries
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Template Section */}
+                <div>
+                  <h3 className="font-medium text-gray-800 mb-3">Resume Template</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={() => setSelectedTemplate("basic")}
+                      className={`p-4 rounded-lg border-2 transition-colors ${
+                        selectedTemplate === "basic"
+                          ? "border-indigo-500 bg-indigo-50"
+                          : "border-gray-200 hover:border-gray-300"
+                      }`}
+                    >
+                      <div className="w-full h-24 bg-gray-100 rounded mb-2 flex items-center justify-center">
+                        <svg className="w-12 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      </div>
+                      <p className="text-sm font-medium text-gray-700">Basic</p>
+                      <p className="text-xs text-gray-500">Clean and professional</p>
+                    </button>
+                    {/* Placeholder for future templates */}
+                    <div className="p-4 rounded-lg border-2 border-dashed border-gray-200 opacity-50">
+                      <div className="w-full h-24 bg-gray-50 rounded mb-2 flex items-center justify-center">
+                        <span className="text-xs text-gray-400">Coming soon</span>
+                      </div>
+                      <p className="text-sm font-medium text-gray-400">More templates</p>
+                      <p className="text-xs text-gray-400">Stay tuned</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right column: Live Preview */}
+              <div className="lg:sticky lg:top-4">
+                <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+                  <div className="bg-gray-100 px-4 py-2 border-b flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">Live Preview</span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setPreviewScale(Math.max(0.3, previewScale - 0.1))}
+                        className="p-1 hover:bg-gray-200 rounded text-gray-600"
+                        title="Zoom out"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                        </svg>
+                      </button>
+                      <span className="text-xs text-gray-500 w-12 text-center">{Math.round(previewScale * 100)}%</span>
+                      <button
+                        onClick={() => setPreviewScale(Math.min(1, previewScale + 0.1))}
+                        className="p-1 hover:bg-gray-200 rounded text-gray-600"
+                        title="Zoom in"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="overflow-auto p-4 bg-gray-100" style={{ maxHeight: "550px" }}>
+                    <div className="flex justify-center">
+                      {loadingPreview && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 z-10">
+                          <div className="animate-spin w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full" />
+                        </div>
+                      )}
+                      {previewHtml ? (
+                        <div
+                          className="shadow-lg bg-white relative"
+                          style={{
+                            width: `${8.5 * previewScale}in`,
+                            height: `${11 * previewScale}in`,
+                            overflow: "hidden",
+                          }}
+                        >
+                          <iframe
+                            srcDoc={previewHtml}
+                            title="Resume Preview"
+                            style={{
+                              width: "8.5in",
+                              height: "11in",
+                              transform: `scale(${previewScale})`,
+                              transformOrigin: "top left",
+                              border: "none",
+                              background: "white",
+                              position: "absolute",
+                              top: 0,
+                              left: 0,
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center h-64 text-gray-400">
+                          <p>{selectedSummary ? "Loading preview..." : "Select a summary to see preview"}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-sm text-gray-500 mt-6 mb-4 text-center">
+              You can edit this information anytime in the Master Resume tab.
+            </p>
+
+            <div className="flex gap-4">
+              <button
+                onClick={() => setStep("honors")}
+                className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+              >
+                Back
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={!selectedSummary}
+                className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Confirm & Continue
               </button>
@@ -1479,6 +2683,104 @@ function OnboardingContent() {
             <p className="text-gray-600">Saving your profile...</p>
           </div>
         )}
+
+          </div>
+          {/* End of left column */}
+
+          {/* Right column: Live Preview */}
+          {showPreviewLayout && (
+            <div className="hidden lg:block">
+              <div className="sticky top-8">
+                <div className="bg-white rounded-xl shadow-lg p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-medium text-gray-700">Live Preview</h3>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setPreviewScale(Math.max(0.3, previewScale - 0.1))}
+                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors"
+                        title="Zoom out"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                        </svg>
+                      </button>
+                      <span className="text-xs text-gray-500 w-12 text-center">{Math.round(previewScale * 100)}%</span>
+                      <button
+                        onClick={() => setPreviewScale(Math.min(1, previewScale + 0.1))}
+                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors"
+                        title="Zoom in"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div
+                    className="bg-gray-100 rounded-lg overflow-hidden"
+                    style={{
+                      height: `${11 * 96 * previewScale + 32}px`,
+                    }}
+                  >
+                    {loadingPreview && !previewHtml ? (
+                      <div className="flex items-center justify-center h-full">
+                        <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full" />
+                      </div>
+                    ) : previewHtml ? (
+                      <div className="flex justify-center">
+                        <div
+                          className="bg-white shadow-lg"
+                          style={{
+                            width: `${8.5 * 96 * previewScale}px`,
+                            height: `${11 * 96 * previewScale}px`,
+                            overflow: 'hidden',
+                          }}
+                        >
+                          <iframe
+                            srcDoc={previewHtml}
+                            title="Resume Preview"
+                            style={{
+                              width: `${8.5 * 96}px`,
+                              height: `${11 * 96}px`,
+                              transform: `scale(${previewScale})`,
+                              transformOrigin: 'top left',
+                              border: 'none',
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center h-full text-gray-400 p-4 text-center">
+                        <svg className="w-12 h-12 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <p className="text-sm">Your resume preview will appear here</p>
+                        <p className="text-xs mt-1">Add some content to see it</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Template info */}
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    <div className="flex items-center justify-between text-xs text-gray-500">
+                      <span>Template: {TEMPLATES.find(t => t.id === selectedTemplate)?.name || selectedTemplate}</span>
+                      <div className="flex items-center gap-2">
+                        <span>Color:</span>
+                        <div
+                          className="w-4 h-4 rounded-full border border-gray-200"
+                          style={{ backgroundColor: selectedColor }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+        {/* End of grid wrapper */}
+
       </div>
     </div>
   );

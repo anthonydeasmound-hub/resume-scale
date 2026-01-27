@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import TabsNav from "@/components/TabsNav";
 
 interface WorkExperience {
@@ -49,6 +49,8 @@ interface ResumeData {
   languages: string[];
   honors: Honor[];
   profile_photo_path: string | null;
+  summary: string;
+  resume_style: string;
 }
 
 const emptyResume: ResumeData = {
@@ -60,6 +62,8 @@ const emptyResume: ResumeData = {
   languages: [],
   honors: [],
   profile_photo_path: null,
+  summary: "",
+  resume_style: "basic",
 };
 
 export default function MasterResumePage() {
@@ -75,6 +79,12 @@ export default function MasterResumePage() {
   const [newSkill, setNewSkill] = useState("");
   const [newLanguage, setNewLanguage] = useState("");
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+  // Preview state
+  const [previewHtml, setPreviewHtml] = useState("");
+  const [loadingPreview, setLoadingPreview] = useState(false);
+  const [previewScale, setPreviewScale] = useState(0.52);
+  const previewDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -92,6 +102,73 @@ export default function MasterResumePage() {
     setHasChanges(JSON.stringify(resumeData) !== JSON.stringify(originalData));
   }, [resumeData, originalData]);
 
+  // Fetch preview when resume data changes (debounced)
+  const fetchPreviewHtml = useCallback(async () => {
+    if (!resumeData.contact_info.name && resumeData.work_experience.length === 0) {
+      return; // Don't fetch if no data
+    }
+
+    setLoadingPreview(true);
+    try {
+      // Transform data to match ResumeData type expected by the template
+      const transformedData = {
+        contactInfo: {
+          name: resumeData.contact_info.name || "",
+          email: resumeData.contact_info.email || "",
+          phone: resumeData.contact_info.phone || "",
+          location: resumeData.contact_info.location || "",
+          linkedin: resumeData.contact_info.linkedin || "",
+        },
+        jobTitle: resumeData.work_experience[0]?.title || "",
+        summary: resumeData.summary || "",
+        experience: resumeData.work_experience.map(exp => ({
+          title: exp.title,
+          company: exp.company,
+          dates: `${exp.start_date} - ${exp.end_date}`,
+          description: exp.description.filter(d => d.trim() !== ""),
+        })),
+        education: resumeData.education.map(edu => ({
+          school: edu.institution,
+          degree: edu.degree,
+          dates: edu.graduation_date,
+          specialty: edu.field,
+        })),
+        skills: resumeData.skills,
+      };
+
+      const response = await fetch("/api/resume/preview-html", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ data: transformedData }),
+      });
+
+      if (response.ok) {
+        const html = await response.text();
+        setPreviewHtml(html);
+      }
+    } catch (err) {
+      console.error("Error fetching preview:", err);
+    } finally {
+      setLoadingPreview(false);
+    }
+  }, [resumeData]);
+
+  useEffect(() => {
+    // Debounce preview fetching
+    if (previewDebounceRef.current) {
+      clearTimeout(previewDebounceRef.current);
+    }
+    previewDebounceRef.current = setTimeout(() => {
+      fetchPreviewHtml();
+    }, 300);
+
+    return () => {
+      if (previewDebounceRef.current) {
+        clearTimeout(previewDebounceRef.current);
+      }
+    };
+  }, [fetchPreviewHtml]);
+
   const fetchResumeData = async () => {
     try {
       const response = await fetch("/api/resume/master");
@@ -106,6 +183,8 @@ export default function MasterResumePage() {
           languages: data.languages || [],
           honors: data.honors || [],
           profile_photo_path: data.profile_photo_path || null,
+          summary: data.summary || "",
+          resume_style: data.resume_style || "basic",
         };
         setResumeData(formatted);
         setOriginalData(formatted);
@@ -412,6 +491,10 @@ export default function MasterResumePage() {
           </div>
         </div>
 
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Left side - Form */}
+          <div className="space-y-6">
+
         {/* Contact Information */}
         <div className="bg-white rounded-xl shadow p-6 mb-6">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">Contact Information</h2>
@@ -465,6 +548,52 @@ export default function MasterResumePage() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                 placeholder="https://linkedin.com/in/johndoe"
               />
+            </div>
+          </div>
+        </div>
+
+        {/* Professional Summary */}
+        <div className="bg-white rounded-xl shadow p-6 mb-6">
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">Professional Summary</h2>
+          <textarea
+            value={resumeData.summary}
+            onChange={(e) => setResumeData(prev => ({ ...prev, summary: e.target.value }))}
+            rows={4}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+            placeholder="Write a brief professional summary highlighting your key skills and experience..."
+          />
+          <p className="text-xs text-gray-500 mt-2">
+            This summary will be displayed at the top of your resume. It should be 2-4 sentences that highlight your expertise and career goals.
+          </p>
+        </div>
+
+        {/* Resume Template */}
+        <div className="bg-white rounded-xl shadow p-6 mb-6">
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">Resume Template</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <button
+              onClick={() => setResumeData(prev => ({ ...prev, resume_style: "basic" }))}
+              className={`p-4 rounded-lg border-2 transition-colors ${
+                resumeData.resume_style === "basic"
+                  ? "border-blue-500 bg-blue-50"
+                  : "border-gray-200 hover:border-gray-300"
+              }`}
+            >
+              <div className="w-full h-20 bg-gray-100 rounded mb-2 flex items-center justify-center">
+                <svg className="w-10 h-14 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <p className="text-sm font-medium text-gray-700">Basic</p>
+              <p className="text-xs text-gray-500">Clean and professional</p>
+            </button>
+            {/* Placeholder for future templates */}
+            <div className="p-4 rounded-lg border-2 border-dashed border-gray-200 opacity-50">
+              <div className="w-full h-20 bg-gray-50 rounded mb-2 flex items-center justify-center">
+                <span className="text-xs text-gray-400">Coming soon</span>
+              </div>
+              <p className="text-sm font-medium text-gray-400">More templates</p>
+              <p className="text-xs text-gray-400">Stay tuned</p>
             </div>
           </div>
         </div>
@@ -967,6 +1096,83 @@ export default function MasterResumePage() {
             </div>
           </div>
         </div>
+
+          </div>
+          {/* End of Left side - Form */}
+
+          {/* Right side - Live Preview */}
+          <div className="lg:sticky lg:top-8 h-fit">
+            <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+              <div className="bg-gray-100 px-4 py-2 border-b flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-700">Live Preview</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setPreviewScale(Math.max(0.3, previewScale - 0.1))}
+                    className="p-1 hover:bg-gray-200 rounded text-gray-600"
+                    title="Zoom out"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                    </svg>
+                  </button>
+                  <span className="text-xs text-gray-500 w-12 text-center">{Math.round(previewScale * 100)}%</span>
+                  <button
+                    onClick={() => setPreviewScale(Math.min(1, previewScale + 0.1))}
+                    className="p-1 hover:bg-gray-200 rounded text-gray-600"
+                    title="Zoom in"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <div className="overflow-auto p-4 bg-gray-100" style={{ maxHeight: "calc(100vh - 180px)" }}>
+                <div className="flex justify-center">
+                  {loadingPreview && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 z-10">
+                      <div className="animate-spin w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full" />
+                    </div>
+                  )}
+                  {previewHtml ? (
+                    <div
+                      className="shadow-lg bg-white relative"
+                      style={{
+                        width: `${8.5 * previewScale}in`,
+                        height: `${11 * previewScale}in`,
+                        overflow: "hidden",
+                      }}
+                    >
+                      <iframe
+                        srcDoc={previewHtml}
+                        title="Resume Preview"
+                        style={{
+                          width: "8.5in",
+                          height: "11in",
+                          transform: `scale(${previewScale})`,
+                          transformOrigin: "top left",
+                          border: "none",
+                          background: "white",
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center h-64 text-gray-400">
+                      <p>Add content to preview your resume</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+          {/* End of Right side - Live Preview */}
+        </div>
+        {/* End of grid */}
+
       </div>
     </div>
   );
