@@ -11,7 +11,28 @@ import {
   getBadSummaries,
   getSkillsForRole,
   findSimilarRole,
+  detectSeniority,
+  fuzzyMatch,
 } from "./resume-examples";
+
+// Import role tasks data from JSON
+import roleTasksData from "@/data/resume-examples/role-tasks.json";
+
+// Type definitions for role tasks JSON structure
+interface RoleTaskConfig {
+  displayName: string;
+  category: string;
+  aliases: string[];
+  seniorityTasks: {
+    entry: string[];
+    mid: string[];
+    senior: string[];
+    executive: string[];
+  };
+  industryVariants: Record<string, string[]>;
+}
+
+type RoleTasksData = Record<string, RoleTaskConfig>;
 
 // Initialize Groq client
 const groqApiKey = process.env.GROQ_API_KEY;
@@ -46,165 +67,222 @@ async function getCompanyContext(company: string): Promise<string> {
   return await callAI(prompt);
 }
 
-// Role-specific task templates - what does this role actually DO day-to-day?
-const roleTaskTemplates: Record<string, string[]> = {
-  // Sales roles
-  "account development representative": [
-    "Cold calling and prospecting potential clients",
-    "Qualifying inbound leads and scheduling demos",
-    "Managing CRM pipeline and tracking outreach metrics",
-    "Collaborating with Account Executives on deals",
-    "Conducting discovery calls to understand client needs",
-    "Building email sequences and outreach campaigns",
-  ],
-  "account executive": [
-    "Running product demos and presentations",
-    "Negotiating contracts and closing deals",
-    "Managing full sales cycle from prospect to close",
-    "Building relationships with key stakeholders",
-    "Forecasting and pipeline management",
-    "Upselling and cross-selling to existing accounts",
-  ],
-  "sales development representative": [
-    "Prospecting and cold outreach via phone/email",
-    "Qualifying leads using BANT/MEDDIC frameworks",
-    "Setting meetings for Account Executives",
-    "Researching target accounts and contacts",
-    "Tracking activities in Salesforce/HubSpot",
-    "Hitting daily/weekly outreach quotas",
-  ],
-  "business development": [
-    "Identifying new market opportunities",
-    "Building strategic partnerships",
-    "Creating pitch decks and proposals",
-    "Networking at industry events",
-    "Negotiating partnership agreements",
-    "Analyzing market trends and competitors",
-  ],
-  // Engineering roles
-  "software engineer": [
-    "Designing and implementing features",
-    "Writing unit tests and integration tests",
-    "Code reviews and technical documentation",
-    "Debugging and resolving production issues",
-    "Collaborating with product and design teams",
-    "Optimizing application performance",
-  ],
-  "frontend engineer": [
-    "Building responsive UI components",
-    "Implementing designs from Figma/Sketch",
-    "Optimizing page load and rendering performance",
-    "Writing accessible, cross-browser compatible code",
-    "Integrating with REST/GraphQL APIs",
-    "Managing state with Redux/Context",
-  ],
-  "backend engineer": [
-    "Designing and building APIs",
-    "Managing databases and data models",
-    "Implementing authentication and authorization",
-    "Optimizing query performance",
-    "Setting up CI/CD pipelines",
-    "Monitoring and alerting systems",
-  ],
-  // Marketing roles
-  "marketing manager": [
-    "Planning and executing marketing campaigns",
-    "Managing marketing budget and ROI tracking",
-    "Coordinating with sales on lead generation",
-    "Analyzing campaign performance metrics",
-    "Managing agency and vendor relationships",
-    "Creating marketing collateral and content",
-  ],
-  "product marketing": [
-    "Creating positioning and messaging",
-    "Launching new products and features",
-    "Developing sales enablement materials",
-    "Conducting competitive analysis",
-    "Gathering customer feedback and insights",
-    "Training sales teams on product value props",
-  ],
-  // Product roles
-  "product manager": [
-    "Defining product roadmap and priorities",
-    "Writing PRDs and user stories",
-    "Conducting user research and interviews",
-    "Analyzing product metrics and KPIs",
-    "Coordinating cross-functional teams",
-    "Making data-driven prioritization decisions",
-  ],
-  // Operations roles
-  "operations manager": [
-    "Streamlining workflows and processes",
-    "Managing team schedules and resources",
-    "Tracking KPIs and performance metrics",
-    "Implementing process improvements",
-    "Coordinating with vendors and suppliers",
-    "Creating SOPs and documentation",
-  ],
-  "project manager": [
-    "Creating project plans and timelines",
-    "Running standups and status meetings",
-    "Managing stakeholder expectations",
-    "Tracking deliverables and milestones",
-    "Identifying and mitigating risks",
-    "Allocating resources across projects",
-  ],
-  // Customer-facing roles
-  "customer success": [
-    "Onboarding new customers",
-    "Conducting quarterly business reviews",
-    "Monitoring customer health scores",
-    "Driving product adoption and usage",
-    "Handling escalations and renewals",
-    "Identifying upsell opportunities",
-  ],
-  "account manager": [
-    "Managing portfolio of client accounts",
-    "Building relationships with stakeholders",
-    "Conducting regular check-ins and reviews",
-    "Identifying growth opportunities",
-    "Resolving client issues and concerns",
-    "Coordinating with internal teams on delivery",
-  ],
-};
+// Cast imported role tasks data
+const roleTasks: RoleTasksData = roleTasksData as RoleTasksData;
 
-// Find matching role tasks
-function getRoleTasks(title: string): string[] {
-  const titleLower = title.toLowerCase();
+/**
+ * Detect industry from company name using common patterns
+ */
+function detectIndustry(company: string): string | null {
+  const companyLower = company.toLowerCase();
 
-  // Direct match
-  for (const [role, tasks] of Object.entries(roleTaskTemplates)) {
-    if (titleLower.includes(role) || role.includes(titleLower)) {
-      return tasks;
-    }
-  }
-
-  // Partial keyword matching
-  const keywords: Record<string, string> = {
-    "sdr": "sales development representative",
-    "adr": "account development representative",
-    "ae": "account executive",
-    "bdr": "business development",
-    "pm": "product manager",
-    "swe": "software engineer",
-    "csm": "customer success",
-    "sales": "account executive",
-    "engineer": "software engineer",
-    "developer": "software engineer",
-    "marketing": "marketing manager",
-    "operations": "operations manager",
-    "project": "project manager",
-    "account": "account manager",
-    "customer": "customer success",
+  const industryPatterns: Record<string, string[]> = {
+    saas: ['salesforce', 'hubspot', 'zendesk', 'slack', 'notion', 'asana', 'monday', 'atlassian', 'datadog', 'snowflake', 'stripe', 'twilio', 'okta', 'workday', 'servicenow'],
+    fintech: ['stripe', 'plaid', 'square', 'paypal', 'venmo', 'robinhood', 'coinbase', 'affirm', 'klarna', 'chime', 'sofi', 'brex', 'ramp', 'mercury', 'bank', 'financial', 'capital', 'credit', 'lending', 'payment'],
+    healthcare: ['hospital', 'health', 'medical', 'clinic', 'pharma', 'biotech', 'healthcare', 'care', 'patient', 'clinical', 'therapeutic', 'oscar', 'united health', 'cigna', 'humana', 'anthem'],
+    ecommerce: ['amazon', 'shopify', 'ebay', 'etsy', 'wayfair', 'chewy', 'instacart', 'doordash', 'uber eats', 'grubhub', 'retail', 'commerce', 'store', 'shop', 'market'],
+    media: ['netflix', 'spotify', 'disney', 'hulu', 'youtube', 'tiktok', 'meta', 'twitter', 'snap', 'pinterest', 'media', 'entertainment', 'streaming', 'content', 'news'],
+    enterprise: ['ibm', 'oracle', 'sap', 'microsoft', 'cisco', 'dell', 'hp', 'vmware', 'redhat', 'enterprise'],
+    startup: ['seed', 'series a', 'series b', 'early stage', 'venture', 'startup', 'stealth'],
+    consulting: ['mckinsey', 'bain', 'bcg', 'deloitte', 'accenture', 'kpmg', 'pwc', 'ey', 'consulting', 'advisory'],
+    agency: ['agency', 'creative', 'marketing agency', 'design agency', 'digital agency'],
   };
 
-  for (const [keyword, role] of Object.entries(keywords)) {
-    if (titleLower.includes(keyword)) {
-      return roleTaskTemplates[role] || [];
+  for (const [industry, patterns] of Object.entries(industryPatterns)) {
+    for (const pattern of patterns) {
+      if (companyLower.includes(pattern)) {
+        return industry;
+      }
     }
   }
 
-  return [];
+  return null;
+}
+
+/**
+ * Find matching role config from role-tasks.json
+ * Uses multi-stage matching: key match -> alias match -> fuzzy match
+ */
+function findRoleConfig(title: string): { key: string; config: RoleTaskConfig } | null {
+  const titleLower = title.toLowerCase();
+  const normalizedTitle = titleLower.replace(/[^a-z0-9\s]/g, '').trim();
+
+  // Stage 1: Direct key match
+  for (const [key, config] of Object.entries(roleTasks)) {
+    const normalizedKey = key.replace(/_/g, ' ');
+    if (normalizedTitle.includes(normalizedKey) || normalizedKey.includes(normalizedTitle)) {
+      return { key, config };
+    }
+  }
+
+  // Stage 2: Alias matching
+  for (const [key, config] of Object.entries(roleTasks)) {
+    for (const alias of config.aliases) {
+      const aliasLower = alias.toLowerCase();
+      if (normalizedTitle.includes(aliasLower) || aliasLower.includes(normalizedTitle)) {
+        return { key, config };
+      }
+    }
+  }
+
+  // Stage 3: Fuzzy matching on display names
+  const displayNames = Object.entries(roleTasks).map(([key, config]) => ({
+    key,
+    config,
+    name: config.displayName,
+  }));
+
+  const fuzzyResult = fuzzyMatch(
+    title,
+    displayNames.map(d => d.name),
+    0.6
+  );
+
+  if (fuzzyResult) {
+    const found = displayNames.find(d => d.name === fuzzyResult);
+    if (found) {
+      return { key: found.key, config: found.config };
+    }
+  }
+
+  // Stage 4: Keyword-based fallback
+  const keywordMapping: Record<string, string> = {
+    'engineer': 'software_engineer',
+    'developer': 'software_engineer',
+    'swe': 'software_engineer',
+    'frontend': 'frontend_engineer',
+    'backend': 'backend_engineer',
+    'devops': 'devops_engineer',
+    'sre': 'sre',
+    'data': 'data_engineer',
+    'ml': 'ml_engineer',
+    'machine learning': 'ml_engineer',
+    'product manager': 'product_manager',
+    'pm': 'product_manager',
+    'designer': 'product_designer',
+    'ux': 'ux_designer',
+    'sales': 'account_executive',
+    'ae': 'account_executive',
+    'sdr': 'sales_development_representative',
+    'bdr': 'sales_development_representative',
+    'marketing': 'marketing_manager',
+    'recruiter': 'recruiter',
+    'hr': 'people_ops_manager',
+    'operations': 'operations_manager',
+    'project': 'project_manager',
+    'customer success': 'customer_success_manager',
+    'csm': 'customer_success_manager',
+    'consultant': 'management_consultant',
+    'analyst': 'data_analyst',
+    'finance': 'fpa_analyst',
+    'accounting': 'controller',
+  };
+
+  for (const [keyword, roleKey] of Object.entries(keywordMapping)) {
+    if (normalizedTitle.includes(keyword)) {
+      const config = roleTasks[roleKey];
+      if (config) {
+        return { key: roleKey, config };
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Get role tasks with seniority and industry awareness
+ * Falls back to dynamic AI generation if no template match
+ */
+function getRoleTasks(title: string, company?: string): string[] {
+  const roleConfig = findRoleConfig(title);
+
+  if (!roleConfig) {
+    console.log(`[getRoleTasks] No template found for: ${title}`);
+    return [];
+  }
+
+  // Detect seniority from title
+  const seniority = detectSeniority(title);
+  console.log(`[getRoleTasks] Matched ${title} to ${roleConfig.config.displayName} (${seniority})`);
+
+  // Get seniority-appropriate tasks
+  const seniorityTasks = roleConfig.config.seniorityTasks[seniority] || roleConfig.config.seniorityTasks.mid;
+  let tasks = [...seniorityTasks];
+
+  // Add industry-specific tasks if company is provided
+  if (company) {
+    const industry = detectIndustry(company);
+    if (industry && roleConfig.config.industryVariants[industry]) {
+      const industryTasks = roleConfig.config.industryVariants[industry];
+      console.log(`[getRoleTasks] Adding ${industryTasks.length} ${industry} industry tasks`);
+      tasks = [...tasks, ...industryTasks];
+    }
+  }
+
+  return tasks;
+}
+
+/**
+ * Generate dynamic role tasks using AI when no template exists
+ * This is the fallback when template matching fails
+ */
+async function generateDynamicRoleTasks(title: string, company: string): Promise<string[]> {
+  console.log(`[generateDynamicRoleTasks] Generating tasks for: ${title} at ${company}`);
+
+  const prompt = `Generate 6 typical day-to-day tasks for a ${title} at ${company}.
+
+REQUIREMENTS:
+1. Be specific to what this role actually does daily
+2. Include both tactical and strategic activities
+3. Include collaboration with other teams/stakeholders
+4. Include metrics/reporting activities where relevant
+5. Be realistic and grounded in actual job responsibilities
+
+EXAMPLES OF GOOD TASK DESCRIPTIONS:
+- "Designing and implementing features in collaboration with product team"
+- "Running weekly sales pipeline reviews with team leads"
+- "Conducting user research interviews and synthesizing findings"
+
+RESPOND WITH ONLY A JSON ARRAY:
+["Task 1", "Task 2", "Task 3", "Task 4", "Task 5", "Task 6"]`;
+
+  try {
+    const response = await callAI(prompt);
+    const cleanedResponse = response
+      .replace(/```json\n?/g, "")
+      .replace(/```\n?/g, "")
+      .trim();
+
+    const jsonMatch = cleanedResponse.match(/\[[\s\S]*\]/);
+    if (jsonMatch) {
+      const tasks = JSON.parse(jsonMatch[0]);
+      console.log(`[generateDynamicRoleTasks] Generated ${tasks.length} tasks`);
+      return tasks;
+    }
+    return JSON.parse(cleanedResponse);
+  } catch (error) {
+    console.error("[generateDynamicRoleTasks] Error:", error);
+    return [];
+  }
+}
+
+/**
+ * Get role tasks with fallback chain:
+ * 1. Template match (from role-tasks.json)
+ * 2. Dynamic AI generation
+ */
+async function getRoleTasksWithFallback(title: string, company: string): Promise<string[]> {
+  // Try template match first
+  const templateTasks = getRoleTasks(title, company);
+
+  if (templateTasks.length > 0) {
+    return templateTasks;
+  }
+
+  // Fallback to dynamic AI generation
+  console.log(`[getRoleTasksWithFallback] No template found, using AI generation for: ${title}`);
+  return await generateDynamicRoleTasks(title, company);
 }
 
 // Extract metrics from bullet points (percentages, dollar amounts, numbers)
@@ -311,7 +389,7 @@ YOUR TASK
 1. Analyze the original bullet for weaknesses
 2. Rewrite it following the STAR+Metric formula
 3. Keep it realistic and truthful to the original context
-4. Make it 8-12 words (concise, one resume line)
+4. Make it 1-2 lines (15-30 words) - detailed enough to show full impact
 5. Include at least ONE quantifiable metric using NUMERIC format (25%, $1M, 10+)
 6. Start with a POWER ACTION VERB
 
@@ -443,37 +521,34 @@ export async function generateEnhancedOnboardingBullets(
   const context = buildEnhancementContext(role.title);
   const exampleBulletsText = formatBulletsForPrompt(context.exampleBullets.slice(0, 8));
 
-  // Get company context and role-specific tasks
+  // Get company context and role-specific tasks (with AI fallback)
   let companyContext: string;
-  let roleTasks: string[];
+  let roleTaskList: string[];
 
   try {
-    [companyContext, roleTasks] = await Promise.all([
+    [companyContext, roleTaskList] = await Promise.all([
       getCompanyContext(role.company),
-      Promise.resolve(getRoleTasks(role.title)),
+      getRoleTasksWithFallback(role.title, role.company),
     ]);
   } catch (contextError) {
     console.error("[generateEnhancedOnboardingBullets] Error getting context:", contextError);
     // Fallback to generic context
     companyContext = `${role.company} is a company where the candidate worked.`;
-    roleTasks = [];
+    roleTaskList = [];
   }
 
   // Debug logging
   console.log(`[generateEnhancedOnboardingBullets] Role: ${role.title} at ${role.company}`);
   console.log(`[generateEnhancedOnboardingBullets] Company context: ${companyContext.slice(0, 100)}...`);
-  console.log(`[generateEnhancedOnboardingBullets] Role tasks: ${roleTasks.length} found`);
+  console.log(`[generateEnhancedOnboardingBullets] Role tasks: ${roleTaskList.length} found`);
 
-  // Infer seniority from title
-  const titleLower = role.title.toLowerCase();
-  let seniorityLevel = "mid-level";
-  if (titleLower.includes("senior") || titleLower.includes("sr.") || titleLower.includes("lead") || titleLower.includes("principal")) {
-    seniorityLevel = "senior";
-  } else if (titleLower.includes("director") || titleLower.includes("vp") || titleLower.includes("head of") || titleLower.includes("chief")) {
-    seniorityLevel = "executive";
-  } else if (titleLower.includes("junior") || titleLower.includes("jr.") || titleLower.includes("associate") || titleLower.includes("entry")) {
-    seniorityLevel = "entry-level";
-  }
+  // Use the improved seniority detection
+  const seniority = detectSeniority(role.title);
+  const seniorityLevel = seniority === 'entry' ? 'entry-level' :
+                          seniority === 'executive' ? 'executive' :
+                          seniority === 'senior' ? 'senior' : 'mid-level';
+
+  console.log(`[generateEnhancedOnboardingBullets] Detected seniority: ${seniorityLevel}`);
 
   const prompt = `You are a ${role.title} at ${role.company}. Write 8 resume bullet points describing your SPECIFIC work at this company.
 
@@ -481,7 +556,7 @@ ABOUT ${role.company.toUpperCase()}:
 ${companyContext}
 
 YOUR DAY-TO-DAY ACTIVITIES AS ${role.title.toUpperCase()}:
-${roleTasks.length > 0 ? roleTasks.map(t => `• ${t}`).join("\n") : "• Research the typical responsibilities for this role"}
+${roleTaskList.length > 0 ? roleTaskList.map(t => `• ${t}`).join("\n") : "• Research the typical responsibilities for this role"}
 
 SENIORITY: ${seniorityLevel}
 
@@ -489,15 +564,14 @@ ${existingBullets.length > 0 ? `EXISTING BULLETS (DO NOT DUPLICATE):
 ${existingBullets.map((d, i) => `${i + 1}. ${d}`).join("\n")}
 
 ` : ""}CRITICAL INSTRUCTIONS:
-1. Each bullet must be 8-12 words (concise, fits one resume line)
+1. Each bullet should be 1-2 lines (15-30 words) - detailed enough to show impact
 2. Each bullet must describe a SPECIFIC activity you did, not just a result
 3. Reference ${role.company}'s actual product/service/industry in at least 3 bullets
 4. Include WHO you worked with (clients, teams, stakeholders)
 5. Include WHAT tools/methods you used
 6. Include the RESULT with a metric
 
-BAD (too long): "Prospected 200+ enterprise accounts using the platform, generating $1.2M pipeline in 6 months"
-GOOD (concise): "Prospected 200+ accounts via ${role.company} platform, generating $1.2M pipeline"
+GOOD: "Prospected 200+ enterprise accounts using ${role.company}'s platform, generating $1.2M in qualified pipeline within 6 months through strategic outbound campaigns"
 
 BAD (generic): "Exceeded sales targets by 30%"
 GOOD (specific): "Booked 15+ demos weekly, exceeding quota 30% for 4 quarters"

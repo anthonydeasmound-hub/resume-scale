@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { fetchRecentEmails } from "@/lib/gmail";
-import { classifyEmail } from "@/lib/gemini";
-import db from "@/lib/db";
+import { classifyEmailEnhanced } from "@/lib/gemini";
+import db, { StageType } from "@/lib/db";
 
 interface JobApplication {
   id: number;
@@ -11,7 +11,6 @@ interface JobApplication {
   status: string;
   recruiter_name: string | null;
   recruiter_email: string | null;
-  recruiter_title: string | null;
 }
 
 export async function POST() {
@@ -30,8 +29,7 @@ export async function POST() {
 
     // Get all job applications
     const jobs = db.prepare(`
-      SELECT id, company_name, status, recruiter_name, recruiter_email, recruiter_title
-      FROM job_applications
+      SELECT id, company_name, status, recruiter_name, recruiter_email FROM job_applications
       WHERE user_id = ? AND status IN ('applied', 'interview')
     `).all(user.id) as JobApplication[];
 
@@ -44,11 +42,11 @@ export async function POST() {
     // Fetch recent emails
     const emails = await fetchRecentEmails(session.accessToken);
 
-    const updates: { company: string; type: string; summary: string }[] = [];
+    const updates: { company: string; type: string; summary: string; stageCreated?: boolean }[] = [];
 
     // Classify each email and update job status
     for (const email of emails) {
-      const classification = await classifyEmail(email, companyNames);
+      const classification = await classifyEmailEnhanced(email, companyNames);
 
       if (classification.type === "unrelated" || !classification.company || classification.confidence < 0.7) {
         continue;
@@ -61,83 +59,144 @@ export async function POST() {
 
       if (!matchingJob) continue;
 
-      // Determine new status
+      // Check if we've already processed this email (by gmail_message_id if available)
+      // For now, use subject + company as a simple dedup
+      const existingEmail = db.prepare(`
+        SELECT id FROM email_actions
+        WHERE job_id = ? AND subject = ? AND direction = 'inbound'
+      `).get(matchingJob.id, email.subject);
+
+      if (existingEmail) continue;
+
+      // Record the detected email
+      db.prepare(`
+        INSERT INTO email_actions (job_id, email_type, direction, subject, body, status, detected_at)
+        VALUES (?, ?, 'inbound', ?, ?, 'detected', CURRENT_TIMESTAMP)
+      `).run(
+        matchingJob.id,
+        classification.type,
+        email.subject,
+        email.snippet
+      );
+
+      // Update recruiter info if extracted and not already set
+      if (classification.recruiter_name && !matchingJob.recruiter_name) {
+        db.prepare(`
+          UPDATE job_applications
+          SET recruiter_name = ?, recruiter_email = ?, recruiter_title = ?, recruiter_source = 'email', updated_at = CURRENT_TIMESTAMP
+          WHERE id = ?
+        `).run(
+          classification.recruiter_name,
+          classification.recruiter_email || null,
+          classification.recruiter_title || null,
+          matchingJob.id
+        );
+      }
+
+      // Determine new status and create interview stage if needed
       let newStatus: string | null = null;
-      let interviewUpdate: Record<string, string> = {};
-      let recruiterUpdate: Record<string, string> = {};
+      let stageCreated = false;
 
       switch (classification.type) {
         case "confirmation":
           // Already applied, no change needed
           break;
+
         case "rejection":
           newStatus = "rejected";
+          // Schedule auto-archive after 24 hours
+          db.prepare(`
+            UPDATE job_applications
+            SET archived_at = datetime('now', '+24 hours'), updated_at = CURRENT_TIMESTAMP
+            WHERE id = ? AND archived_at IS NULL
+          `).run(matchingJob.id);
           break;
+
         case "interview":
           newStatus = "interview";
-          // Find next empty interview slot
-          const job = db.prepare("SELECT * FROM job_applications WHERE id = ?").get(matchingJob.id) as Record<string, string | null>;
-          for (let i = 1; i <= 5; i++) {
-            if (!job[`interview_${i}`]) {
-              interviewUpdate[`interview_${i}`] = "scheduled";
-              break;
+
+          // Create a new dynamic interview stage
+          if (classification.interview_details) {
+            const details = classification.interview_details;
+
+            // Get next stage number
+            const maxStage = db.prepare(`
+              SELECT MAX(stage_number) as max_num FROM interview_stages WHERE job_id = ?
+            `).get(matchingJob.id) as { max_num: number | null };
+            const stageNumber = (maxStage?.max_num || 0) + 1;
+
+            // Map interview type
+            const stageType: StageType = details.interview_type || 'other';
+
+            // Insert new stage
+            const stageResult = db.prepare(`
+              INSERT INTO interview_stages (job_id, stage_number, stage_type, stage_name, status, scheduled_at, source, source_email_id)
+              VALUES (?, ?, ?, ?, ?, ?, 'email', ?)
+            `).run(
+              matchingJob.id,
+              stageNumber,
+              stageType,
+              null, // Will use default name based on type
+              details.proposed_datetime ? 'scheduled' : 'pending',
+              details.proposed_datetime || null,
+              email.subject // Use subject as source reference
+            );
+
+            stageCreated = true;
+
+            // If we have datetime info, create a calendar event
+            if (details.proposed_datetime) {
+              const startTime = new Date(details.proposed_datetime);
+              const duration = details.duration_minutes || 60;
+              const endTime = new Date(startTime.getTime() + duration * 60 * 1000);
+
+              db.prepare(`
+                INSERT INTO calendar_events (job_id, stage_id, title, start_time, end_time, location, meeting_link, sync_status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 'local')
+              `).run(
+                matchingJob.id,
+                stageResult.lastInsertRowid,
+                `Interview - ${matchingJob.company_name}`,
+                startTime.toISOString(),
+                endTime.toISOString(),
+                details.location || null,
+                details.meeting_link || null
+              );
             }
+          } else {
+            // No detailed info, still create a pending stage
+            const maxStage = db.prepare(`
+              SELECT MAX(stage_number) as max_num FROM interview_stages WHERE job_id = ?
+            `).get(matchingJob.id) as { max_num: number | null };
+            const stageNumber = (maxStage?.max_num || 0) + 1;
+
+            db.prepare(`
+              INSERT INTO interview_stages (job_id, stage_number, stage_type, status, source)
+              VALUES (?, ?, 'other', 'pending', 'email')
+            `).run(matchingJob.id, stageNumber);
+
+            stageCreated = true;
           }
           break;
+
         case "offer":
           newStatus = "offer";
           break;
       }
 
-      // Save recruiter info if extracted and not already saved
-      if (classification.recruiter_name && !matchingJob.recruiter_name) {
-        recruiterUpdate.recruiter_name = classification.recruiter_name;
-      }
-      if (classification.recruiter_email && !matchingJob.recruiter_email) {
-        recruiterUpdate.recruiter_email = classification.recruiter_email;
-      }
-      if (classification.recruiter_title && !matchingJob.recruiter_title) {
-        recruiterUpdate.recruiter_title = classification.recruiter_title;
-      }
-      if (Object.keys(recruiterUpdate).length > 0) {
-        recruiterUpdate.recruiter_source = 'email';
-      }
+      if (newStatus) {
+        db.prepare(`
+          UPDATE job_applications
+          SET status = ?, updated_at = CURRENT_TIMESTAMP
+          WHERE id = ?
+        `).run(newStatus, matchingJob.id);
 
-      if (newStatus || Object.keys(interviewUpdate).length > 0 || Object.keys(recruiterUpdate).length > 0) {
-        const updateFields: string[] = [];
-        const values: (string | number)[] = [];
-
-        if (newStatus) {
-          updateFields.push("status = ?");
-          values.push(newStatus);
-        }
-
-        for (const [key, value] of Object.entries(interviewUpdate)) {
-          updateFields.push(`${key} = ?`);
-          values.push(value);
-        }
-
-        for (const [key, value] of Object.entries(recruiterUpdate)) {
-          updateFields.push(`${key} = ?`);
-          values.push(value);
-        }
-
-        if (updateFields.length > 0) {
-          updateFields.push("updated_at = CURRENT_TIMESTAMP");
-          values.push(matchingJob.id);
-
-          db.prepare(`
-            UPDATE job_applications
-            SET ${updateFields.join(", ")}
-            WHERE id = ?
-          `).run(...values);
-
-          updates.push({
-            company: classification.company,
-            type: classification.type,
-            summary: classification.summary,
-          });
-        }
+        updates.push({
+          company: classification.company,
+          type: classification.type,
+          summary: classification.summary,
+          stageCreated,
+        });
       }
     }
 

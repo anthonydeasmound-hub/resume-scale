@@ -1,19 +1,29 @@
 {
   "manifest_version": 3,
-  "name": "ResumeScale Job Saver",
-  "version": "1.0.0",
-  "description": "Save job listings to ResumeScale with one click",
+  "name": "ResumeGenie Job Saver",
+  "version": "1.1.0",
+  "description": "Save job listings to ResumeGenie with one click",
   "permissions": [
     "storage",
-    "activeTab"
+    "activeTab",
+    "sidePanel"
   ],
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
   "host_permissions": [
     "http://localhost:3000/*",
     "https://www.linkedin.com/*",
-    "https://linkedin.com/*"
+    "https://linkedin.com/*",
+    "https://www.indeed.com/*",
+    "https://indeed.com/*",
+    "https://www.glassdoor.com/*",
+    "https://glassdoor.com/*"
   ],
   "action": {
-    "default_popup": "popup.html",
     "default_icon": {
       "16": "icons/icon16.png",
       "48": "icons/icon48.png",
@@ -37,6 +47,22 @@
       "js": ["profile-import.js"],
       "css": ["content.css"],
       "run_at": "document_end"
+    },
+    {
+      "matches": [
+        "https://www.indeed.com/*",
+        "https://indeed.com/*"
+      ],
+      "js": ["content-indeed.js"],
+      "css": ["content.css"]
+    },
+    {
+      "matches": [
+        "https://www.glassdoor.com/*",
+        "https://glassdoor.com/*"
+      ],
+      "js": ["content-glassdoor.js"],
+      "css": ["content.css"]
     }
   ],
   "icons": {

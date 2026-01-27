@@ -1,0 +1,2250 @@
+{
+  "software_engineer": {
+    "displayName": "Software Engineer",
+    "category": "Technology",
+    "aliases": ["swe", "developer", "programmer", "software developer", "coder"],
+    "seniorityTasks": {
+      "entry": [
+        "Writing unit tests and integration tests for assigned features",
+        "Implementing features from detailed specifications and designs",
+        "Fixing bugs and resolving issues from QA testing",
+        "Participating in code reviews and learning from feedback",
+        "Documenting code and updating technical documentation",
+        "Attending daily standups and sprint planning meetings"
+      ],
+      "mid": [
+        "Designing and implementing features independently",
+        "Mentoring junior engineers and conducting code reviews",
+        "Collaborating with product managers on technical requirements",
+        "Optimizing application performance and scalability",
+        "Leading small projects or feature teams",
+        "Contributing to system design and architecture discussions"
+      ],
+      "senior": [
+        "Architecting scalable systems and defining technical direction",
+        "Leading cross-team technical initiatives and standards",
+        "Driving technical decisions and evaluating new technologies",
+        "Mentoring team members and conducting technical interviews",
+        "Collaborating with stakeholders on roadmap and prioritization",
+        "Identifying and resolving complex technical debt"
+      ],
+      "executive": [
+        "Defining engineering strategy and technology roadmap",
+        "Building and scaling engineering organization",
+        "Making build vs buy decisions for core systems",
+        "Presenting technical strategy to board and investors",
+        "Managing engineering budget and vendor relationships",
+        "Establishing engineering culture and hiring standards"
+      ]
+    },
+    "industryVariants": {
+      "saas": [
+        "Building multi-tenant architecture features",
+        "Implementing subscription and billing integrations",
+        "Developing self-service onboarding flows"
+      ],
+      "fintech": [
+        "Implementing payment processing and reconciliation",
+        "Building compliance and audit trail features",
+        "Developing fraud detection and prevention systems"
+      ],
+      "healthcare": [
+        "Developing HIPAA-compliant data handling systems",
+        "Building EHR integrations and HL7/FHIR interfaces",
+        "Implementing patient data privacy controls"
+      ],
+      "ecommerce": [
+        "Building checkout and cart optimization features",
+        "Implementing inventory management systems",
+        "Developing recommendation and personalization engines"
+      ]
+    }
+  },
+  "frontend_engineer": {
+    "displayName": "Frontend Engineer",
+    "category": "Technology",
+    "aliases": ["frontend developer", "front end developer", "ui developer", "react developer", "angular developer", "vue developer"],
+    "seniorityTasks": {
+      "entry": [
+        "Implementing UI components from Figma/design specs",
+        "Fixing CSS and cross-browser compatibility issues",
+        "Writing component tests with Jest and React Testing Library",
+        "Updating and maintaining existing UI features",
+        "Learning and applying design system patterns",
+        "Participating in design reviews and providing feedback"
+      ],
+      "mid": [
+        "Building complex interactive features and animations",
+        "Optimizing Core Web Vitals and page load performance",
+        "Contributing to and maintaining the design system",
+        "Integrating with REST and GraphQL APIs",
+        "Implementing responsive and accessible designs",
+        "Leading frontend feature development"
+      ],
+      "senior": [
+        "Architecting frontend systems and state management",
+        "Establishing coding standards and best practices",
+        "Evaluating and implementing new frontend technologies",
+        "Leading cross-functional collaboration with design team",
+        "Mentoring engineers on React/Vue/Angular patterns",
+        "Driving performance optimization initiatives"
+      ],
+      "executive": [
+        "Defining frontend technology strategy and standards",
+        "Building frontend platform team and infrastructure",
+        "Establishing design system governance and adoption",
+        "Managing vendor relationships for frontend tools",
+        "Presenting technical strategy to leadership",
+        "Scaling frontend organization and practices"
+      ]
+    },
+    "industryVariants": {
+      "saas": [
+        "Building dashboard and analytics interfaces",
+        "Implementing drag-and-drop and WYSIWYG editors",
+        "Developing complex form and workflow builders"
+      ],
+      "ecommerce": [
+        "Optimizing product pages and checkout flow",
+        "Building A/B testing and experimentation features",
+        "Implementing search and filtering interfaces"
+      ],
+      "media": [
+        "Building video player and streaming interfaces",
+        "Implementing content management interfaces",
+        "Developing social sharing and engagement features"
+      ]
+    }
+  },
+  "backend_engineer": {
+    "displayName": "Backend Engineer",
+    "category": "Technology",
+    "aliases": ["backend developer", "back end developer", "server developer", "api developer"],
+    "seniorityTasks": {
+      "entry": [
+        "Writing API endpoints from specifications",
+        "Writing database queries and migrations",
+        "Fixing bugs in existing backend services",
+        "Writing unit and integration tests",
+        "Updating API documentation",
+        "Monitoring and responding to basic alerts"
+      ],
+      "mid": [
+        "Designing and building RESTful or GraphQL APIs",
+        "Optimizing database performance and query patterns",
+        "Implementing authentication and authorization",
+        "Building integrations with third-party services",
+        "Setting up monitoring and logging systems",
+        "Leading backend feature development"
+      ],
+      "senior": [
+        "Architecting microservices and distributed systems",
+        "Designing database schemas and data models",
+        "Leading system design and technical planning",
+        "Establishing API standards and versioning strategy",
+        "Mentoring engineers on backend best practices",
+        "Driving reliability and scalability improvements"
+      ],
+      "executive": [
+        "Defining backend architecture and technology stack",
+        "Building platform engineering capabilities",
+        "Establishing data governance and compliance",
+        "Managing infrastructure costs and optimization",
+        "Leading technical due diligence for acquisitions",
+        "Scaling backend organization and processes"
+      ]
+    },
+    "industryVariants": {
+      "fintech": [
+        "Building payment processing pipelines",
+        "Implementing transaction reconciliation systems",
+        "Developing regulatory compliance reporting"
+      ],
+      "healthcare": [
+        "Building HIPAA-compliant data storage",
+        "Implementing audit logging and access controls",
+        "Developing healthcare API integrations"
+      ],
+      "saas": [
+        "Building multi-tenant data isolation",
+        "Implementing usage metering and billing",
+        "Developing webhook and integration systems"
+      ]
+    }
+  },
+  "data_engineer": {
+    "displayName": "Data Engineer",
+    "category": "Technology",
+    "aliases": ["data platform engineer", "analytics engineer", "etl developer", "data infrastructure engineer"],
+    "seniorityTasks": {
+      "entry": [
+        "Writing ETL scripts and data transformations",
+        "Monitoring data pipeline health and failures",
+        "Documenting data schemas and lineage",
+        "Running ad-hoc data queries for stakeholders",
+        "Fixing data quality issues and anomalies",
+        "Learning and applying data modeling patterns"
+      ],
+      "mid": [
+        "Designing and building data pipelines with Airflow/dbt",
+        "Optimizing query performance on data warehouse",
+        "Building data quality checks and monitoring",
+        "Collaborating with analysts on data requirements",
+        "Implementing real-time streaming pipelines",
+        "Managing data catalog and documentation"
+      ],
+      "senior": [
+        "Architecting data platform and infrastructure",
+        "Defining data modeling standards and governance",
+        "Leading data engineering team initiatives",
+        "Evaluating and implementing new data technologies",
+        "Driving cost optimization for data infrastructure",
+        "Mentoring engineers on data best practices"
+      ],
+      "executive": [
+        "Defining enterprise data strategy and roadmap",
+        "Building data platform organization",
+        "Establishing data governance and compliance",
+        "Managing data infrastructure budget",
+        "Presenting data strategy to leadership",
+        "Driving data democratization initiatives"
+      ]
+    },
+    "industryVariants": {
+      "fintech": [
+        "Building real-time fraud detection pipelines",
+        "Implementing regulatory data reporting",
+        "Developing financial data reconciliation"
+      ],
+      "ecommerce": [
+        "Building customer analytics pipelines",
+        "Implementing recommendation data systems",
+        "Developing inventory and pricing analytics"
+      ],
+      "healthcare": [
+        "Building PHI-compliant data pipelines",
+        "Implementing clinical data integration",
+        "Developing population health analytics"
+      ]
+    }
+  },
+  "ml_engineer": {
+    "displayName": "Machine Learning Engineer",
+    "category": "Technology",
+    "aliases": ["ml engineer", "machine learning developer", "ai engineer", "applied ml engineer", "mlops engineer"],
+    "seniorityTasks": {
+      "entry": [
+        "Preparing and cleaning training datasets",
+        "Running model experiments and tracking metrics",
+        "Writing model evaluation and testing code",
+        "Documenting model performance and results",
+        "Deploying trained models to staging environments",
+        "Learning ML frameworks and best practices"
+      ],
+      "mid": [
+        "Developing and training production ML models",
+        "Building feature engineering pipelines",
+        "Optimizing model inference latency and cost",
+        "Implementing A/B testing for model improvements",
+        "Collaborating with product on ML use cases",
+        "Building MLOps infrastructure and tooling"
+      ],
+      "senior": [
+        "Architecting end-to-end ML systems",
+        "Leading ML research and experimentation",
+        "Defining ML platform strategy and standards",
+        "Mentoring engineers on ML best practices",
+        "Driving ML adoption across organization",
+        "Evaluating new ML techniques and frameworks"
+      ],
+      "executive": [
+        "Defining AI/ML strategy and roadmap",
+        "Building ML organization and team",
+        "Presenting AI capabilities to stakeholders",
+        "Managing ML infrastructure budget",
+        "Establishing responsible AI practices",
+        "Driving AI innovation initiatives"
+      ]
+    },
+    "industryVariants": {
+      "fintech": [
+        "Building credit scoring and risk models",
+        "Developing fraud detection algorithms",
+        "Implementing algorithmic trading systems"
+      ],
+      "healthcare": [
+        "Developing medical imaging analysis models",
+        "Building clinical decision support systems",
+        "Implementing patient outcome prediction"
+      ],
+      "ecommerce": [
+        "Building recommendation systems",
+        "Developing demand forecasting models",
+        "Implementing personalization engines"
+      ]
+    }
+  },
+  "data_scientist": {
+    "displayName": "Data Scientist",
+    "category": "Data/Analytics",
+    "aliases": ["data science", "research scientist", "applied scientist", "quantitative analyst"],
+    "seniorityTasks": {
+      "entry": [
+        "Conducting exploratory data analysis",
+        "Building statistical models and experiments",
+        "Creating visualizations and reports for stakeholders",
+        "Cleaning and preparing datasets for analysis",
+        "Running A/B tests and analyzing results",
+        "Learning domain-specific analytical methods"
+      ],
+      "mid": [
+        "Designing and conducting complex experiments",
+        "Building predictive models for business problems",
+        "Presenting insights to cross-functional stakeholders",
+        "Collaborating with engineering on model deployment",
+        "Defining metrics and KPIs for product areas",
+        "Mentoring junior analysts on methodology"
+      ],
+      "senior": [
+        "Leading data science strategy for product areas",
+        "Driving company-wide experimentation culture",
+        "Architecting analytical frameworks and tools",
+        "Advising leadership on data-driven decisions",
+        "Publishing research and thought leadership",
+        "Building data science capabilities and team"
+      ],
+      "executive": [
+        "Defining enterprise analytics strategy",
+        "Building data science organization",
+        "Presenting insights to board and investors",
+        "Managing analytics budget and tools",
+        "Establishing data-driven decision culture",
+        "Driving analytics innovation initiatives"
+      ]
+    },
+    "industryVariants": {
+      "fintech": [
+        "Building risk and credit models",
+        "Analyzing customer financial behavior",
+        "Developing pricing optimization models"
+      ],
+      "healthcare": [
+        "Conducting clinical outcome analysis",
+        "Building epidemiological models",
+        "Analyzing treatment effectiveness"
+      ],
+      "ecommerce": [
+        "Analyzing customer journey and conversion",
+        "Building customer segmentation models",
+        "Developing pricing and promotion analysis"
+      ]
+    }
+  },
+  "bi_analyst": {
+    "displayName": "BI Analyst",
+    "category": "Data/Analytics",
+    "aliases": ["business intelligence analyst", "reporting analyst", "analytics specialist", "data visualization analyst"],
+    "seniorityTasks": {
+      "entry": [
+        "Building dashboards and reports in Tableau/Looker",
+        "Running ad-hoc queries for stakeholders",
+        "Maintaining existing reports and data sources",
+        "Documenting data definitions and calculations",
+        "Validating data accuracy and quality",
+        "Learning SQL and visualization best practices"
+      ],
+      "mid": [
+        "Designing self-service analytics solutions",
+        "Building data models for reporting",
+        "Partnering with teams on KPI definitions",
+        "Optimizing dashboard performance",
+        "Training stakeholders on BI tools",
+        "Identifying data insights and trends"
+      ],
+      "senior": [
+        "Leading BI strategy and tool selection",
+        "Architecting enterprise reporting solutions",
+        "Establishing data governance and standards",
+        "Mentoring analysts on best practices",
+        "Driving analytics adoption across organization",
+        "Managing BI platform and infrastructure"
+      ],
+      "executive": [
+        "Defining enterprise BI strategy",
+        "Building analytics organization",
+        "Managing BI budget and vendor relationships",
+        "Presenting analytics capabilities to leadership",
+        "Establishing data literacy programs",
+        "Driving self-service analytics culture"
+      ]
+    },
+    "industryVariants": {
+      "fintech": [
+        "Building regulatory reporting dashboards",
+        "Analyzing portfolio performance",
+        "Developing risk monitoring views"
+      ],
+      "ecommerce": [
+        "Building sales and inventory dashboards",
+        "Analyzing marketing attribution",
+        "Developing customer analytics views"
+      ],
+      "saas": [
+        "Building product usage dashboards",
+        "Analyzing subscription metrics",
+        "Developing customer health scoring"
+      ]
+    }
+  },
+  "analytics_manager": {
+    "displayName": "Analytics Manager",
+    "category": "Data/Analytics",
+    "aliases": ["data analytics manager", "analytics lead", "head of analytics", "director of analytics"],
+    "seniorityTasks": {
+      "entry": [
+        "Managing small analytics team",
+        "Prioritizing analytics requests and projects",
+        "Conducting one-on-ones and performance reviews",
+        "Collaborating with stakeholders on requirements",
+        "Reviewing team deliverables for quality",
+        "Building team processes and documentation"
+      ],
+      "mid": [
+        "Leading analytics strategy for business units",
+        "Building and hiring analytics team",
+        "Partnering with executives on data initiatives",
+        "Establishing analytics standards and practices",
+        "Managing analytics tools and infrastructure",
+        "Driving cross-functional data projects"
+      ],
+      "senior": [
+        "Defining enterprise analytics vision",
+        "Building analytics organization structure",
+        "Advising C-suite on data-driven strategy",
+        "Managing analytics budget and investments",
+        "Driving analytics innovation and adoption",
+        "Establishing data governance frameworks"
+      ],
+      "executive": [
+        "Setting enterprise data strategy",
+        "Building and scaling analytics organization",
+        "Presenting to board on analytics capabilities",
+        "Managing enterprise analytics budget",
+        "Driving company-wide data transformation",
+        "Establishing data-driven culture"
+      ]
+    },
+    "industryVariants": {
+      "fintech": [
+        "Leading regulatory analytics initiatives",
+        "Building risk analytics capabilities",
+        "Driving financial planning analytics"
+      ],
+      "ecommerce": [
+        "Leading customer analytics strategy",
+        "Building marketing analytics capabilities",
+        "Driving merchandising analytics"
+      ],
+      "healthcare": [
+        "Leading clinical analytics initiatives",
+        "Building population health analytics",
+        "Driving outcomes measurement"
+      ]
+    }
+  },
+  "product_designer": {
+    "displayName": "Product Designer",
+    "category": "Design",
+    "aliases": ["ux/ui designer", "digital product designer", "experience designer", "design lead"],
+    "seniorityTasks": {
+      "entry": [
+        "Creating wireframes and mockups in Figma",
+        "Conducting usability testing sessions",
+        "Maintaining and updating design system components",
+        "Gathering and synthesizing user feedback",
+        "Prototyping interactive flows",
+        "Learning design patterns and best practices"
+      ],
+      "mid": [
+        "Leading design for product features end-to-end",
+        "Conducting user research and interviews",
+        "Collaborating with engineering on implementation",
+        "Contributing to design system strategy",
+        "Presenting designs to stakeholders",
+        "Mentoring junior designers"
+      ],
+      "senior": [
+        "Defining product design vision and strategy",
+        "Leading design for complex product areas",
+        "Establishing design principles and standards",
+        "Driving design thinking across organization",
+        "Mentoring and developing design team",
+        "Collaborating with leadership on product direction"
+      ],
+      "executive": [
+        "Defining design organization vision",
+        "Building and scaling design team",
+        "Establishing design culture and practices",
+        "Managing design budget and tools",
+        "Presenting design strategy to leadership",
+        "Driving design excellence initiatives"
+      ]
+    },
+    "industryVariants": {
+      "saas": [
+        "Designing complex SaaS workflows",
+        "Building enterprise design systems",
+        "Creating dashboard and analytics interfaces"
+      ],
+      "ecommerce": [
+        "Optimizing checkout and conversion flows",
+        "Designing product discovery experiences",
+        "Building mobile commerce experiences"
+      ],
+      "fintech": [
+        "Designing secure financial interfaces",
+        "Building trust and transparency patterns",
+        "Creating accessible banking experiences"
+      ]
+    }
+  },
+  "ux_designer": {
+    "displayName": "UX Designer",
+    "category": "Design",
+    "aliases": ["user experience designer", "ux researcher", "interaction designer", "usability specialist"],
+    "seniorityTasks": {
+      "entry": [
+        "Conducting usability testing and interviews",
+        "Creating user journey maps and personas",
+        "Documenting user research findings",
+        "Building wireframes and low-fidelity prototypes",
+        "Analyzing user behavior data",
+        "Learning UX research methodologies"
+      ],
+      "mid": [
+        "Leading user research initiatives",
+        "Designing end-to-end user experiences",
+        "Developing information architecture",
+        "Facilitating design workshops and sprints",
+        "Presenting research insights to stakeholders",
+        "Establishing UX metrics and benchmarks"
+      ],
+      "senior": [
+        "Defining UX strategy for product areas",
+        "Leading research program and methodology",
+        "Establishing UX standards and best practices",
+        "Mentoring and developing UX team",
+        "Collaborating with leadership on product vision",
+        "Driving user-centered design culture"
+      ],
+      "executive": [
+        "Defining enterprise UX vision",
+        "Building UX research organization",
+        "Managing UX budget and research tools",
+        "Presenting UX insights to leadership",
+        "Establishing user-centered culture",
+        "Driving UX innovation initiatives"
+      ]
+    },
+    "industryVariants": {
+      "healthcare": [
+        "Researching patient experience needs",
+        "Designing accessible health interfaces",
+        "Building clinical workflow experiences"
+      ],
+      "fintech": [
+        "Researching financial user behaviors",
+        "Designing secure transaction flows",
+        "Building trust-building patterns"
+      ],
+      "saas": [
+        "Researching enterprise user needs",
+        "Designing complex workflow experiences",
+        "Building onboarding and adoption flows"
+      ]
+    }
+  },
+  "design_manager": {
+    "displayName": "Design Manager",
+    "category": "Design",
+    "aliases": ["head of design", "design director", "design lead", "creative director"],
+    "seniorityTasks": {
+      "entry": [
+        "Managing small design team",
+        "Conducting design reviews and critiques",
+        "Prioritizing design projects and resources",
+        "Hiring and onboarding designers",
+        "Establishing team processes and workflows",
+        "Collaborating with product on roadmap"
+      ],
+      "mid": [
+        "Leading design strategy for product areas",
+        "Building and developing design team",
+        "Establishing design system governance",
+        "Partnering with executives on initiatives",
+        "Managing design budget and tools",
+        "Driving cross-functional design projects"
+      ],
+      "senior": [
+        "Defining enterprise design vision",
+        "Building design organization structure",
+        "Advising leadership on design strategy",
+        "Establishing design excellence standards",
+        "Driving design thinking transformation",
+        "Managing design operations and processes"
+      ],
+      "executive": [
+        "Setting design organization vision",
+        "Building and scaling design org",
+        "Presenting to board on design impact",
+        "Managing enterprise design budget",
+        "Driving brand and design excellence",
+        "Establishing design-led culture"
+      ]
+    },
+    "industryVariants": {
+      "saas": [
+        "Leading enterprise product design",
+        "Building scalable design systems",
+        "Driving B2B user experience"
+      ],
+      "ecommerce": [
+        "Leading commerce experience design",
+        "Building conversion optimization programs",
+        "Driving mobile-first design strategy"
+      ],
+      "consumer": [
+        "Leading consumer product design",
+        "Building delightful user experiences",
+        "Driving design differentiation"
+      ]
+    }
+  },
+  "product_manager": {
+    "displayName": "Product Manager",
+    "category": "Product",
+    "aliases": ["pm", "product owner", "product lead", "associate product manager", "apm"],
+    "seniorityTasks": {
+      "entry": [
+        "Writing PRDs and user stories",
+        "Conducting user research and interviews",
+        "Analyzing product metrics and KPIs",
+        "Managing sprint planning and backlog",
+        "Coordinating with engineering on delivery",
+        "Gathering and prioritizing customer feedback"
+      ],
+      "mid": [
+        "Defining product roadmap and strategy",
+        "Leading cross-functional product teams",
+        "Making data-driven prioritization decisions",
+        "Conducting competitive analysis",
+        "Presenting to stakeholders on product vision",
+        "Mentoring associate PMs"
+      ],
+      "senior": [
+        "Defining product vision for product areas",
+        "Leading strategic product initiatives",
+        "Collaborating with executives on company strategy",
+        "Managing product team and resources",
+        "Driving go-to-market strategy",
+        "Building product management capabilities"
+      ],
+      "executive": [
+        "Defining company product strategy",
+        "Building product organization",
+        "Presenting to board on product roadmap",
+        "Managing product budget and investments",
+        "Driving product-led growth strategy",
+        "Establishing product management culture"
+      ]
+    },
+    "industryVariants": {
+      "saas": [
+        "Defining pricing and packaging strategy",
+        "Building self-service product experiences",
+        "Driving enterprise feature adoption"
+      ],
+      "fintech": [
+        "Managing compliance and regulatory features",
+        "Building secure financial products",
+        "Driving financial product adoption"
+      ],
+      "healthcare": [
+        "Managing HIPAA-compliant features",
+        "Building clinical product experiences",
+        "Driving patient outcome improvements"
+      ],
+      "ecommerce": [
+        "Optimizing conversion and checkout",
+        "Building merchandising capabilities",
+        "Driving customer lifetime value"
+      ]
+    }
+  },
+  "devops_engineer": {
+    "displayName": "DevOps Engineer",
+    "category": "Technology",
+    "aliases": ["devops", "dev ops engineer", "infrastructure engineer", "build engineer", "release engineer"],
+    "seniorityTasks": {
+      "entry": [
+        "Maintaining CI/CD pipelines",
+        "Monitoring system health and alerts",
+        "Writing infrastructure automation scripts",
+        "Responding to on-call incidents",
+        "Documenting infrastructure and processes",
+        "Learning cloud and infrastructure tools"
+      ],
+      "mid": [
+        "Designing and building CI/CD systems",
+        "Implementing infrastructure as code",
+        "Optimizing deployment and release processes",
+        "Building monitoring and observability systems",
+        "Collaborating with teams on DevOps practices",
+        "Leading incident response and postmortems"
+      ],
+      "senior": [
+        "Architecting cloud infrastructure",
+        "Defining DevOps strategy and standards",
+        "Leading platform engineering initiatives",
+        "Mentoring engineers on DevOps practices",
+        "Driving infrastructure cost optimization",
+        "Evaluating new infrastructure technologies"
+      ],
+      "executive": [
+        "Defining infrastructure strategy",
+        "Building platform engineering organization",
+        "Managing infrastructure budget",
+        "Presenting infrastructure strategy to leadership",
+        "Establishing DevOps culture",
+        "Driving infrastructure innovation"
+      ]
+    },
+    "industryVariants": {
+      "fintech": [
+        "Building PCI-compliant infrastructure",
+        "Implementing secure deployment pipelines",
+        "Managing financial system reliability"
+      ],
+      "healthcare": [
+        "Building HIPAA-compliant infrastructure",
+        "Implementing healthcare security controls",
+        "Managing clinical system reliability"
+      ],
+      "saas": [
+        "Building multi-tenant infrastructure",
+        "Implementing customer isolation",
+        "Managing SaaS reliability and uptime"
+      ]
+    }
+  },
+  "sre": {
+    "displayName": "Site Reliability Engineer",
+    "category": "Technology",
+    "aliases": ["site reliability engineer", "reliability engineer", "production engineer", "infrastructure sre"],
+    "seniorityTasks": {
+      "entry": [
+        "Responding to production incidents",
+        "Writing runbooks and documentation",
+        "Monitoring system metrics and SLOs",
+        "Building automation for toil reduction",
+        "Participating in on-call rotations",
+        "Learning SRE practices and tools"
+      ],
+      "mid": [
+        "Designing and implementing SLOs/SLIs",
+        "Building observability and monitoring systems",
+        "Leading incident response and postmortems",
+        "Implementing chaos engineering practices",
+        "Optimizing system reliability and performance",
+        "Collaborating with teams on reliability"
+      ],
+      "senior": [
+        "Architecting highly available systems",
+        "Defining reliability strategy and standards",
+        "Leading SRE team and initiatives",
+        "Mentoring engineers on reliability practices",
+        "Driving toil reduction and automation",
+        "Evaluating reliability technologies"
+      ],
+      "executive": [
+        "Defining enterprise reliability strategy",
+        "Building SRE organization",
+        "Managing reliability budget",
+        "Presenting reliability metrics to leadership",
+        "Establishing reliability culture",
+        "Driving reliability innovation"
+      ]
+    },
+    "industryVariants": {
+      "fintech": [
+        "Managing financial system availability",
+        "Building transaction reliability systems",
+        "Implementing disaster recovery for finance"
+      ],
+      "healthcare": [
+        "Managing clinical system availability",
+        "Building patient safety reliability",
+        "Implementing healthcare DR plans"
+      ],
+      "ecommerce": [
+        "Managing peak traffic reliability",
+        "Building checkout system reliability",
+        "Implementing commerce DR plans"
+      ]
+    }
+  },
+  "platform_engineer": {
+    "displayName": "Platform Engineer",
+    "category": "Technology",
+    "aliases": ["platform developer", "developer experience engineer", "internal tools engineer", "infrastructure platform engineer"],
+    "seniorityTasks": {
+      "entry": [
+        "Building internal developer tools",
+        "Maintaining platform services and APIs",
+        "Writing platform documentation",
+        "Supporting developers on platform usage",
+        "Fixing platform bugs and issues",
+        "Learning platform engineering practices"
+      ],
+      "mid": [
+        "Designing platform services and abstractions",
+        "Building developer self-service capabilities",
+        "Implementing platform observability",
+        "Leading platform feature development",
+        "Collaborating with teams on platform needs",
+        "Driving platform adoption"
+      ],
+      "senior": [
+        "Architecting internal platform",
+        "Defining platform strategy and roadmap",
+        "Leading platform engineering team",
+        "Mentoring engineers on platform practices",
+        "Driving developer experience improvements",
+        "Evaluating platform technologies"
+      ],
+      "executive": [
+        "Defining enterprise platform strategy",
+        "Building platform organization",
+        "Managing platform budget",
+        "Presenting platform strategy to leadership",
+        "Establishing platform culture",
+        "Driving platform innovation"
+      ]
+    },
+    "industryVariants": {
+      "saas": [
+        "Building multi-tenant platform services",
+        "Implementing customer isolation abstractions",
+        "Managing SaaS platform scale"
+      ],
+      "fintech": [
+        "Building compliant platform services",
+        "Implementing secure platform abstractions",
+        "Managing fintech platform reliability"
+      ],
+      "enterprise": [
+        "Building enterprise integration platform",
+        "Implementing governance abstractions",
+        "Managing enterprise platform scale"
+      ]
+    }
+  },
+  "cloud_architect": {
+    "displayName": "Cloud Architect",
+    "category": "Technology",
+    "aliases": ["solutions architect", "cloud solutions architect", "aws architect", "azure architect", "gcp architect"],
+    "seniorityTasks": {
+      "entry": [
+        "Designing cloud infrastructure solutions",
+        "Creating architecture documentation",
+        "Implementing cloud best practices",
+        "Supporting teams on cloud adoption",
+        "Learning cloud services and patterns",
+        "Obtaining cloud certifications"
+      ],
+      "mid": [
+        "Architecting multi-cloud solutions",
+        "Leading cloud migration projects",
+        "Defining cloud standards and patterns",
+        "Optimizing cloud costs and performance",
+        "Mentoring teams on cloud architecture",
+        "Evaluating new cloud services"
+      ],
+      "senior": [
+        "Defining enterprise cloud strategy",
+        "Leading cloud transformation initiatives",
+        "Architecting complex hybrid solutions",
+        "Establishing cloud governance frameworks",
+        "Advising leadership on cloud decisions",
+        "Building cloud architecture capabilities"
+      ],
+      "executive": [
+        "Setting enterprise cloud vision",
+        "Building cloud architecture organization",
+        "Managing cloud budget and investments",
+        "Presenting cloud strategy to board",
+        "Establishing cloud-first culture",
+        "Driving cloud innovation"
+      ]
+    },
+    "industryVariants": {
+      "fintech": [
+        "Architecting compliant cloud solutions",
+        "Building secure financial cloud systems",
+        "Managing financial cloud governance"
+      ],
+      "healthcare": [
+        "Architecting HIPAA-compliant cloud",
+        "Building secure health cloud systems",
+        "Managing healthcare cloud governance"
+      ],
+      "enterprise": [
+        "Architecting hybrid cloud solutions",
+        "Building enterprise cloud platforms",
+        "Managing enterprise cloud governance"
+      ]
+    }
+  },
+  "security_engineer": {
+    "displayName": "Security Engineer",
+    "category": "Technology",
+    "aliases": ["cybersecurity engineer", "application security engineer", "infosec engineer", "security analyst"],
+    "seniorityTasks": {
+      "entry": [
+        "Conducting security assessments and scans",
+        "Responding to security alerts and incidents",
+        "Writing security documentation",
+        "Supporting teams on security requirements",
+        "Learning security tools and practices",
+        "Obtaining security certifications"
+      ],
+      "mid": [
+        "Designing security controls and systems",
+        "Leading security reviews and audits",
+        "Implementing security monitoring and detection",
+        "Building security automation and tooling",
+        "Mentoring teams on security practices",
+        "Managing security incidents"
+      ],
+      "senior": [
+        "Architecting security programs",
+        "Defining security strategy and standards",
+        "Leading security team and initiatives",
+        "Advising leadership on security risks",
+        "Driving security culture and awareness",
+        "Evaluating security technologies"
+      ],
+      "executive": [
+        "Defining enterprise security strategy",
+        "Building security organization",
+        "Managing security budget",
+        "Presenting security posture to board",
+        "Establishing security culture",
+        "Driving security innovation"
+      ]
+    },
+    "industryVariants": {
+      "fintech": [
+        "Implementing PCI-DSS compliance",
+        "Building financial security controls",
+        "Managing financial fraud prevention"
+      ],
+      "healthcare": [
+        "Implementing HIPAA security controls",
+        "Building healthcare security programs",
+        "Managing PHI protection"
+      ],
+      "enterprise": [
+        "Implementing SOC 2 compliance",
+        "Building enterprise security programs",
+        "Managing vendor security"
+      ]
+    }
+  },
+  "technical_writer": {
+    "displayName": "Technical Writer",
+    "category": "Content",
+    "aliases": ["documentation writer", "api writer", "content developer", "information developer"],
+    "seniorityTasks": {
+      "entry": [
+        "Writing user guides and documentation",
+        "Editing and proofreading technical content",
+        "Maintaining documentation repositories",
+        "Gathering information from engineers",
+        "Creating screenshots and diagrams",
+        "Learning documentation tools and standards"
+      ],
+      "mid": [
+        "Leading documentation projects",
+        "Designing information architecture",
+        "Writing API and developer documentation",
+        "Establishing style guides and standards",
+        "Collaborating with product on content strategy",
+        "Mentoring junior writers"
+      ],
+      "senior": [
+        "Defining documentation strategy",
+        "Leading documentation team",
+        "Architecting documentation systems",
+        "Advising on developer experience",
+        "Driving documentation quality standards",
+        "Evaluating documentation technologies"
+      ],
+      "executive": [
+        "Setting content strategy vision",
+        "Building documentation organization",
+        "Managing documentation budget",
+        "Presenting content strategy to leadership",
+        "Establishing documentation culture",
+        "Driving content innovation"
+      ]
+    },
+    "industryVariants": {
+      "saas": [
+        "Writing SaaS product documentation",
+        "Building self-service help content",
+        "Creating onboarding documentation"
+      ],
+      "developer_tools": [
+        "Writing API and SDK documentation",
+        "Building developer tutorials",
+        "Creating code samples and guides"
+      ],
+      "enterprise": [
+        "Writing enterprise product documentation",
+        "Building admin and deployment guides",
+        "Creating compliance documentation"
+      ]
+    }
+  },
+  "copywriter": {
+    "displayName": "Copywriter",
+    "category": "Content",
+    "aliases": ["content writer", "marketing copywriter", "brand writer", "creative copywriter"],
+    "seniorityTasks": {
+      "entry": [
+        "Writing marketing and web copy",
+        "Creating social media content",
+        "Editing and proofreading content",
+        "Supporting campaign copy needs",
+        "Learning brand voice and style",
+        "Researching topics and competitors"
+      ],
+      "mid": [
+        "Leading copywriting for campaigns",
+        "Developing brand voice and messaging",
+        "Writing long-form content and articles",
+        "Collaborating with design on creative",
+        "Mentoring junior writers",
+        "A/B testing copy performance"
+      ],
+      "senior": [
+        "Defining content strategy",
+        "Leading copy team",
+        "Architecting brand messaging",
+        "Advising on brand voice",
+        "Driving copy excellence standards",
+        "Managing agency relationships"
+      ],
+      "executive": [
+        "Setting brand content vision",
+        "Building content organization",
+        "Managing content budget",
+        "Presenting content strategy to leadership",
+        "Establishing brand voice culture",
+        "Driving content innovation"
+      ]
+    },
+    "industryVariants": {
+      "saas": [
+        "Writing product marketing copy",
+        "Creating feature announcement content",
+        "Building conversion-focused copy"
+      ],
+      "ecommerce": [
+        "Writing product descriptions",
+        "Creating promotional copy",
+        "Building SEO-optimized content"
+      ],
+      "agency": [
+        "Writing client campaign copy",
+        "Creating multi-channel content",
+        "Building brand messaging systems"
+      ]
+    }
+  },
+  "content_strategist": {
+    "displayName": "Content Strategist",
+    "category": "Content",
+    "aliases": ["content strategy manager", "editorial strategist", "content marketing strategist"],
+    "seniorityTasks": {
+      "entry": [
+        "Conducting content audits",
+        "Developing content calendars",
+        "Analyzing content performance metrics",
+        "Supporting content planning",
+        "Learning content strategy frameworks",
+        "Researching audience and competitors"
+      ],
+      "mid": [
+        "Defining content strategy for channels",
+        "Leading content planning and governance",
+        "Collaborating with stakeholders on content",
+        "Building content measurement frameworks",
+        "Mentoring content team members",
+        "Managing content tools and workflows"
+      ],
+      "senior": [
+        "Defining enterprise content strategy",
+        "Leading content operations",
+        "Architecting content systems",
+        "Advising leadership on content",
+        "Driving content excellence",
+        "Building content team capabilities"
+      ],
+      "executive": [
+        "Setting content organization vision",
+        "Building content organization",
+        "Managing content budget",
+        "Presenting content strategy to leadership",
+        "Establishing content culture",
+        "Driving content innovation"
+      ]
+    },
+    "industryVariants": {
+      "saas": [
+        "Building product content strategy",
+        "Creating customer education content",
+        "Developing content-led growth"
+      ],
+      "media": [
+        "Building editorial content strategy",
+        "Creating audience engagement content",
+        "Developing content monetization"
+      ],
+      "ecommerce": [
+        "Building commerce content strategy",
+        "Creating product content experiences",
+        "Developing content-driven conversion"
+      ]
+    }
+  },
+  "controller": {
+    "displayName": "Controller",
+    "category": "Finance",
+    "aliases": ["financial controller", "assistant controller", "corporate controller", "division controller"],
+    "seniorityTasks": {
+      "entry": [
+        "Preparing financial statements and reports",
+        "Managing month-end close process",
+        "Reconciling accounts and ledgers",
+        "Supporting audit preparation",
+        "Implementing accounting policies",
+        "Learning financial systems"
+      ],
+      "mid": [
+        "Leading accounting operations team",
+        "Managing financial reporting and compliance",
+        "Implementing internal controls",
+        "Partnering with FP&A on forecasting",
+        "Managing external audit relationships",
+        "Driving process improvements"
+      ],
+      "senior": [
+        "Defining accounting strategy",
+        "Leading finance operations",
+        "Managing SOX compliance program",
+        "Advising leadership on financial matters",
+        "Building finance team capabilities",
+        "Evaluating financial systems"
+      ],
+      "executive": [
+        "Setting finance operations vision",
+        "Building finance organization",
+        "Managing finance budget",
+        "Presenting financial results to board",
+        "Establishing financial controls culture",
+        "Driving finance transformation"
+      ]
+    },
+    "industryVariants": {
+      "saas": [
+        "Managing SaaS revenue recognition",
+        "Building subscription accounting",
+        "Implementing ASC 606 compliance"
+      ],
+      "manufacturing": [
+        "Managing cost accounting",
+        "Building inventory accounting",
+        "Implementing standard costing"
+      ],
+      "retail": [
+        "Managing retail accounting",
+        "Building store accounting",
+        "Implementing inventory controls"
+      ]
+    }
+  },
+  "fpa_analyst": {
+    "displayName": "FP&A Analyst",
+    "category": "Finance",
+    "aliases": ["financial planning analyst", "fp&a", "financial analyst", "budget analyst", "planning analyst"],
+    "seniorityTasks": {
+      "entry": [
+        "Building financial models and forecasts",
+        "Preparing budget templates and reports",
+        "Analyzing variances and trends",
+        "Supporting business reviews",
+        "Maintaining financial databases",
+        "Learning financial planning tools"
+      ],
+      "mid": [
+        "Leading forecasting and budgeting cycles",
+        "Partnering with business units on planning",
+        "Building scenario and sensitivity analysis",
+        "Presenting insights to leadership",
+        "Mentoring junior analysts",
+        "Driving process automation"
+      ],
+      "senior": [
+        "Defining FP&A strategy and processes",
+        "Leading financial planning team",
+        "Advising executives on financial decisions",
+        "Building long-range planning capabilities",
+        "Driving financial performance management",
+        "Evaluating FP&A technologies"
+      ],
+      "executive": [
+        "Setting financial planning vision",
+        "Building FP&A organization",
+        "Managing planning budget",
+        "Presenting to board on financial outlook",
+        "Establishing planning culture",
+        "Driving FP&A innovation"
+      ]
+    },
+    "industryVariants": {
+      "saas": [
+        "Building SaaS financial models",
+        "Analyzing subscription metrics",
+        "Forecasting ARR and growth"
+      ],
+      "retail": [
+        "Building retail financial models",
+        "Analyzing store performance",
+        "Forecasting sales and inventory"
+      ],
+      "manufacturing": [
+        "Building manufacturing financial models",
+        "Analyzing production costs",
+        "Forecasting capacity and demand"
+      ]
+    }
+  },
+  "investment_analyst": {
+    "displayName": "Investment Analyst",
+    "category": "Finance",
+    "aliases": ["research analyst", "equity analyst", "credit analyst", "portfolio analyst"],
+    "seniorityTasks": {
+      "entry": [
+        "Conducting financial research and analysis",
+        "Building valuation models",
+        "Writing investment memos and reports",
+        "Monitoring portfolio holdings",
+        "Gathering market and company data",
+        "Learning investment methodologies"
+      ],
+      "mid": [
+        "Leading sector or thematic research",
+        "Making investment recommendations",
+        "Presenting to investment committee",
+        "Building complex financial models",
+        "Mentoring junior analysts",
+        "Developing investment theses"
+      ],
+      "senior": [
+        "Defining investment strategy",
+        "Leading research team",
+        "Managing portfolio allocations",
+        "Advising on investment decisions",
+        "Building investment capabilities",
+        "Evaluating new investment areas"
+      ],
+      "executive": [
+        "Setting investment organization vision",
+        "Building investment team",
+        "Managing investment portfolio",
+        "Presenting to investors and board",
+        "Establishing investment culture",
+        "Driving investment innovation"
+      ]
+    },
+    "industryVariants": {
+      "private_equity": [
+        "Conducting deal due diligence",
+        "Building LBO models",
+        "Analyzing portfolio company performance"
+      ],
+      "venture_capital": [
+        "Evaluating startup investments",
+        "Building growth models",
+        "Analyzing market opportunities"
+      ],
+      "hedge_fund": [
+        "Conducting public equity research",
+        "Building trading models",
+        "Analyzing market opportunities"
+      ]
+    }
+  },
+  "recruiter": {
+    "displayName": "Recruiter",
+    "category": "Human Resources",
+    "aliases": ["talent acquisition", "sourcer", "technical recruiter", "campus recruiter"],
+    "seniorityTasks": {
+      "entry": [
+        "Sourcing candidates through LinkedIn and job boards",
+        "Screening resumes and conducting phone screens",
+        "Scheduling interviews and coordinating logistics",
+        "Maintaining ATS and candidate records",
+        "Supporting hiring managers on processes",
+        "Learning recruiting tools and practices"
+      ],
+      "mid": [
+        "Managing full-cycle recruiting for roles",
+        "Building candidate pipelines for key positions",
+        "Partnering with hiring managers on strategy",
+        "Negotiating offers and closing candidates",
+        "Mentoring junior recruiters",
+        "Improving recruiting processes"
+      ],
+      "senior": [
+        "Defining recruiting strategy for teams",
+        "Leading recruiting team",
+        "Building employer brand initiatives",
+        "Managing vendor and agency relationships",
+        "Driving diversity recruiting efforts",
+        "Advising leadership on talent market"
+      ],
+      "executive": [
+        "Setting talent acquisition vision",
+        "Building recruiting organization",
+        "Managing recruiting budget",
+        "Presenting talent strategy to leadership",
+        "Establishing recruiting culture",
+        "Driving recruiting innovation"
+      ]
+    },
+    "industryVariants": {
+      "tech": [
+        "Recruiting software engineers",
+        "Building technical talent pipelines",
+        "Managing technical assessments"
+      ],
+      "startup": [
+        "Recruiting founding team members",
+        "Building early-stage pipelines",
+        "Selling company vision to candidates"
+      ],
+      "enterprise": [
+        "Recruiting enterprise roles",
+        "Building executive pipelines",
+        "Managing agency partnerships"
+      ]
+    }
+  },
+  "people_ops_manager": {
+    "displayName": "People Operations Manager",
+    "category": "Human Resources",
+    "aliases": ["people operations", "hr operations manager", "people team manager", "hr manager"],
+    "seniorityTasks": {
+      "entry": [
+        "Managing employee onboarding and offboarding",
+        "Administering benefits and payroll processes",
+        "Maintaining HRIS and employee records",
+        "Supporting employee inquiries and issues",
+        "Coordinating HR programs and events",
+        "Learning HR systems and compliance"
+      ],
+      "mid": [
+        "Leading people operations team",
+        "Designing and implementing HR programs",
+        "Managing vendor and benefits relationships",
+        "Building HR process automation",
+        "Partnering with leadership on initiatives",
+        "Driving employee experience improvements"
+      ],
+      "senior": [
+        "Defining people operations strategy",
+        "Leading people team",
+        "Building HR technology stack",
+        "Managing compliance and risk",
+        "Advising leadership on people matters",
+        "Driving operational excellence"
+      ],
+      "executive": [
+        "Setting people organization vision",
+        "Building people operations org",
+        "Managing people budget",
+        "Presenting people strategy to leadership",
+        "Establishing people culture",
+        "Driving people innovation"
+      ]
+    },
+    "industryVariants": {
+      "tech": [
+        "Managing tech company benefits",
+        "Building remote work programs",
+        "Implementing equity administration"
+      ],
+      "startup": [
+        "Building foundational HR processes",
+        "Managing rapid scaling",
+        "Implementing startup culture programs"
+      ],
+      "enterprise": [
+        "Managing enterprise HR operations",
+        "Building shared services",
+        "Implementing global HR programs"
+      ]
+    }
+  },
+  "hrbp": {
+    "displayName": "HR Business Partner",
+    "category": "Human Resources",
+    "aliases": ["hr business partner", "people partner", "hr partner", "strategic hr partner"],
+    "seniorityTasks": {
+      "entry": [
+        "Supporting managers on people issues",
+        "Facilitating performance management",
+        "Coordinating employee relations matters",
+        "Analyzing people data and metrics",
+        "Implementing HR programs in business units",
+        "Learning HRBP practices and frameworks"
+      ],
+      "mid": [
+        "Partnering with leaders on people strategy",
+        "Leading organizational design initiatives",
+        "Managing complex employee relations",
+        "Driving talent management programs",
+        "Coaching managers on leadership",
+        "Building people analytics capabilities"
+      ],
+      "senior": [
+        "Defining HRBP strategy for divisions",
+        "Leading HRBP team",
+        "Advising executives on organization",
+        "Managing change and transformation",
+        "Building leadership development programs",
+        "Driving culture initiatives"
+      ],
+      "executive": [
+        "Setting HRBP organization vision",
+        "Building HRBP organization",
+        "Managing people transformation",
+        "Presenting people strategy to board",
+        "Establishing strategic HR culture",
+        "Driving HR innovation"
+      ]
+    },
+    "industryVariants": {
+      "tech": [
+        "Partnering with engineering leaders",
+        "Building tech talent programs",
+        "Managing tech org design"
+      ],
+      "retail": [
+        "Partnering with store leaders",
+        "Building retail workforce programs",
+        "Managing retail org design"
+      ],
+      "healthcare": [
+        "Partnering with clinical leaders",
+        "Building healthcare workforce programs",
+        "Managing clinical org design"
+      ]
+    }
+  },
+  "ld_manager": {
+    "displayName": "L&D Manager",
+    "category": "Human Resources",
+    "aliases": ["learning and development manager", "training manager", "talent development manager", "organizational development manager"],
+    "seniorityTasks": {
+      "entry": [
+        "Coordinating training programs and events",
+        "Developing training content and materials",
+        "Managing LMS and learning platforms",
+        "Tracking training completion and metrics",
+        "Supporting facilitators and instructors",
+        "Learning instructional design practices"
+      ],
+      "mid": [
+        "Designing learning programs and curricula",
+        "Leading training initiatives",
+        "Partnering with leaders on development needs",
+        "Building leadership development programs",
+        "Evaluating learning effectiveness",
+        "Managing learning vendors"
+      ],
+      "senior": [
+        "Defining L&D strategy",
+        "Leading L&D team",
+        "Building learning organization capabilities",
+        "Advising leadership on development",
+        "Driving learning culture",
+        "Evaluating learning technologies"
+      ],
+      "executive": [
+        "Setting L&D organization vision",
+        "Building L&D organization",
+        "Managing L&D budget",
+        "Presenting L&D strategy to leadership",
+        "Establishing learning culture",
+        "Driving learning innovation"
+      ]
+    },
+    "industryVariants": {
+      "tech": [
+        "Building technical training programs",
+        "Developing engineering bootcamps",
+        "Managing technical certifications"
+      ],
+      "retail": [
+        "Building retail training programs",
+        "Developing store training",
+        "Managing product knowledge training"
+      ],
+      "healthcare": [
+        "Building clinical training programs",
+        "Developing compliance training",
+        "Managing continuing education"
+      ]
+    }
+  },
+  "marketing_manager": {
+    "displayName": "Marketing Manager",
+    "category": "Marketing",
+    "aliases": ["marketing lead", "growth marketing manager", "demand gen manager", "performance marketing manager"],
+    "seniorityTasks": {
+      "entry": [
+        "Executing marketing campaigns",
+        "Managing marketing content calendar",
+        "Analyzing campaign performance",
+        "Coordinating with agencies and vendors",
+        "Supporting lead generation programs",
+        "Learning marketing tools and platforms"
+      ],
+      "mid": [
+        "Developing marketing strategy for channels",
+        "Leading marketing campaigns end-to-end",
+        "Managing marketing budget and ROI",
+        "Building marketing automation workflows",
+        "Partnering with sales on lead generation",
+        "Mentoring junior marketers"
+      ],
+      "senior": [
+        "Defining marketing strategy",
+        "Leading marketing team",
+        "Managing marketing operations",
+        "Advising leadership on go-to-market",
+        "Building marketing capabilities",
+        "Driving marketing innovation"
+      ],
+      "executive": [
+        "Setting marketing organization vision",
+        "Building marketing organization",
+        "Managing marketing budget",
+        "Presenting marketing strategy to board",
+        "Establishing marketing culture",
+        "Driving marketing transformation"
+      ]
+    },
+    "industryVariants": {
+      "saas": [
+        "Building product-led growth programs",
+        "Managing SaaS demand generation",
+        "Driving freemium conversion"
+      ],
+      "ecommerce": [
+        "Managing commerce marketing",
+        "Building customer acquisition programs",
+        "Driving conversion optimization"
+      ],
+      "b2b": [
+        "Managing B2B demand generation",
+        "Building account-based marketing",
+        "Driving enterprise lead generation"
+      ]
+    }
+  },
+  "account_executive": {
+    "displayName": "Account Executive",
+    "category": "Sales",
+    "aliases": ["ae", "sales rep", "sales representative", "enterprise ae", "smb ae"],
+    "seniorityTasks": {
+      "entry": [
+        "Running product demos and presentations",
+        "Managing sales pipeline and CRM",
+        "Following up with inbound leads",
+        "Learning product and value propositions",
+        "Shadowing senior sales reps",
+        "Building initial prospect relationships"
+      ],
+      "mid": [
+        "Managing full sales cycle independently",
+        "Negotiating contracts and closing deals",
+        "Building relationships with stakeholders",
+        "Forecasting and pipeline management",
+        "Upselling to existing accounts",
+        "Mentoring SDRs and junior AEs"
+      ],
+      "senior": [
+        "Managing strategic enterprise accounts",
+        "Leading complex multi-stakeholder deals",
+        "Advising on sales strategy",
+        "Building sales playbooks and processes",
+        "Mentoring sales team members",
+        "Driving account expansion"
+      ],
+      "executive": [
+        "Setting sales organization vision",
+        "Building sales organization",
+        "Managing sales budget",
+        "Presenting sales strategy to board",
+        "Establishing sales culture",
+        "Driving sales transformation"
+      ]
+    },
+    "industryVariants": {
+      "saas": [
+        "Selling SaaS subscriptions",
+        "Managing SaaS sales cycles",
+        "Driving product adoption"
+      ],
+      "enterprise": [
+        "Selling enterprise solutions",
+        "Managing long sales cycles",
+        "Navigating procurement processes"
+      ],
+      "startup": [
+        "Selling to early adopters",
+        "Building initial customer base",
+        "Iterating on sales approach"
+      ]
+    }
+  },
+  "sales_development_representative": {
+    "displayName": "Sales Development Representative",
+    "category": "Sales",
+    "aliases": ["sdr", "bdr", "business development representative", "outbound sdr", "inbound sdr"],
+    "seniorityTasks": {
+      "entry": [
+        "Prospecting and cold calling potential clients",
+        "Qualifying inbound leads for sales team",
+        "Sending personalized outreach emails",
+        "Researching target accounts and contacts",
+        "Scheduling meetings for account executives",
+        "Tracking activities in Salesforce/HubSpot"
+      ],
+      "mid": [
+        "Building outbound prospecting strategies",
+        "Training new SDRs on best practices",
+        "Optimizing email sequences and cadences",
+        "Partnering with AEs on target accounts",
+        "Analyzing outreach performance",
+        "Hitting and exceeding activity quotas"
+      ],
+      "senior": [
+        "Leading SDR team",
+        "Defining prospecting strategy",
+        "Building SDR playbooks and training",
+        "Managing SDR metrics and performance",
+        "Advising on lead generation strategy",
+        "Driving SDR team improvements"
+      ],
+      "executive": [
+        "Setting SDR organization vision",
+        "Building SDR organization",
+        "Managing SDR budget",
+        "Presenting SDR strategy to leadership",
+        "Establishing SDR culture",
+        "Driving SDR innovation"
+      ]
+    },
+    "industryVariants": {
+      "saas": [
+        "Prospecting SaaS buyers",
+        "Qualifying for software demos",
+        "Managing SaaS lead handoffs"
+      ],
+      "enterprise": [
+        "Prospecting enterprise accounts",
+        "Navigating enterprise org charts",
+        "Building multi-threaded relationships"
+      ],
+      "startup": [
+        "Building initial outbound pipeline",
+        "Testing prospecting messaging",
+        "Iterating on target market"
+      ]
+    }
+  },
+  "customer_success_manager": {
+    "displayName": "Customer Success Manager",
+    "category": "Customer Success",
+    "aliases": ["csm", "client success manager", "customer success", "account manager", "client manager"],
+    "seniorityTasks": {
+      "entry": [
+        "Onboarding new customers to platform",
+        "Conducting training and enablement sessions",
+        "Responding to customer inquiries",
+        "Tracking customer health metrics",
+        "Supporting renewal conversations",
+        "Learning product and best practices"
+      ],
+      "mid": [
+        "Managing portfolio of customer accounts",
+        "Conducting quarterly business reviews",
+        "Driving product adoption and usage",
+        "Identifying expansion opportunities",
+        "Managing renewals and churn prevention",
+        "Mentoring junior CSMs"
+      ],
+      "senior": [
+        "Managing strategic accounts",
+        "Defining customer success strategy",
+        "Building CS playbooks and processes",
+        "Advising on product roadmap",
+        "Leading customer escalations",
+        "Driving customer advocacy"
+      ],
+      "executive": [
+        "Setting CS organization vision",
+        "Building CS organization",
+        "Managing CS budget",
+        "Presenting CS metrics to board",
+        "Establishing customer-centric culture",
+        "Driving CS transformation"
+      ]
+    },
+    "industryVariants": {
+      "saas": [
+        "Driving SaaS product adoption",
+        "Managing subscription renewals",
+        "Building customer health scoring"
+      ],
+      "enterprise": [
+        "Managing enterprise relationships",
+        "Navigating enterprise stakeholders",
+        "Driving enterprise expansion"
+      ],
+      "startup": [
+        "Building CS foundation",
+        "Gathering product feedback",
+        "Driving early customer success"
+      ]
+    }
+  },
+  "operations_manager": {
+    "displayName": "Operations Manager",
+    "category": "Operations",
+    "aliases": ["ops manager", "business operations manager", "operations lead", "director of operations"],
+    "seniorityTasks": {
+      "entry": [
+        "Managing daily operational workflows",
+        "Tracking operational KPIs and metrics",
+        "Coordinating cross-team activities",
+        "Documenting processes and procedures",
+        "Supporting process improvement initiatives",
+        "Learning operational tools and systems"
+      ],
+      "mid": [
+        "Designing and optimizing processes",
+        "Managing operational projects",
+        "Building operational dashboards and reporting",
+        "Partnering with teams on efficiency",
+        "Implementing automation solutions",
+        "Leading operational team"
+      ],
+      "senior": [
+        "Defining operations strategy",
+        "Leading operations organization",
+        "Managing operational budget",
+        "Advising leadership on operations",
+        "Building operational capabilities",
+        "Driving operational excellence"
+      ],
+      "executive": [
+        "Setting operations organization vision",
+        "Building operations organization",
+        "Managing operations budget",
+        "Presenting operations strategy to board",
+        "Establishing operational culture",
+        "Driving operations transformation"
+      ]
+    },
+    "industryVariants": {
+      "tech": [
+        "Managing tech operations",
+        "Building scalable processes",
+        "Driving tech company efficiency"
+      ],
+      "retail": [
+        "Managing store operations",
+        "Building retail processes",
+        "Driving retail efficiency"
+      ],
+      "logistics": [
+        "Managing supply chain operations",
+        "Building logistics processes",
+        "Driving fulfillment efficiency"
+      ]
+    }
+  },
+  "project_manager": {
+    "displayName": "Project Manager",
+    "category": "Operations",
+    "aliases": ["pm", "technical pm", "it project manager", "program manager", "delivery manager"],
+    "seniorityTasks": {
+      "entry": [
+        "Creating project plans and timelines",
+        "Tracking tasks and deliverables",
+        "Coordinating team meetings and standups",
+        "Documenting project status and risks",
+        "Supporting stakeholder communications",
+        "Learning PM tools and methodologies"
+      ],
+      "mid": [
+        "Managing complex projects end-to-end",
+        "Leading cross-functional project teams",
+        "Managing project budgets and resources",
+        "Facilitating stakeholder alignment",
+        "Driving risk mitigation strategies",
+        "Mentoring junior PMs"
+      ],
+      "senior": [
+        "Defining PM methodology and standards",
+        "Leading program management",
+        "Managing strategic initiatives",
+        "Advising leadership on project portfolio",
+        "Building PM capabilities",
+        "Driving project excellence"
+      ],
+      "executive": [
+        "Setting PMO vision",
+        "Building PM organization",
+        "Managing portfolio budget",
+        "Presenting project portfolio to board",
+        "Establishing PM culture",
+        "Driving PM transformation"
+      ]
+    },
+    "industryVariants": {
+      "tech": [
+        "Managing software projects",
+        "Leading agile transformations",
+        "Driving product delivery"
+      ],
+      "construction": [
+        "Managing construction projects",
+        "Coordinating contractors",
+        "Tracking project milestones"
+      ],
+      "consulting": [
+        "Managing client engagements",
+        "Coordinating delivery teams",
+        "Driving client satisfaction"
+      ]
+    }
+  },
+  "management_consultant": {
+    "displayName": "Management Consultant",
+    "category": "Consulting",
+    "aliases": ["strategy consultant", "business consultant", "consultant", "senior consultant"],
+    "seniorityTasks": {
+      "entry": [
+        "Conducting research and analysis",
+        "Building Excel models and presentations",
+        "Gathering and synthesizing data",
+        "Supporting client interviews",
+        "Documenting findings and recommendations",
+        "Learning consulting frameworks"
+      ],
+      "mid": [
+        "Leading workstreams and analyses",
+        "Presenting to client stakeholders",
+        "Managing project deliverables",
+        "Building client relationships",
+        "Mentoring junior consultants",
+        "Developing implementation plans"
+      ],
+      "senior": [
+        "Leading client engagements",
+        "Managing client relationships",
+        "Defining project approach",
+        "Advising executives on strategy",
+        "Building practice capabilities",
+        "Driving thought leadership"
+      ],
+      "executive": [
+        "Setting practice vision",
+        "Building consulting practice",
+        "Managing P&L",
+        "Presenting to C-suite clients",
+        "Establishing thought leadership",
+        "Driving practice growth"
+      ]
+    },
+    "industryVariants": {
+      "strategy": [
+        "Conducting strategy assessments",
+        "Building market entry strategies",
+        "Advising on M&A strategy"
+      ],
+      "operations": [
+        "Conducting operations assessments",
+        "Building process improvements",
+        "Advising on cost optimization"
+      ],
+      "technology": [
+        "Conducting technology assessments",
+        "Building digital strategies",
+        "Advising on technology transformation"
+      ]
+    }
+  },
+  "solutions_consultant": {
+    "displayName": "Solutions Consultant",
+    "category": "Consulting",
+    "aliases": ["sales engineer", "pre-sales consultant", "solutions engineer", "technical consultant"],
+    "seniorityTasks": {
+      "entry": [
+        "Supporting product demonstrations",
+        "Answering technical questions",
+        "Building demo environments",
+        "Documenting customer requirements",
+        "Learning product and integrations",
+        "Supporting RFP responses"
+      ],
+      "mid": [
+        "Leading technical sales engagements",
+        "Designing solutions for customers",
+        "Presenting to technical stakeholders",
+        "Building proof of concepts",
+        "Partnering with sales on strategy",
+        "Mentoring junior SCs"
+      ],
+      "senior": [
+        "Leading complex solution designs",
+        "Managing strategic technical relationships",
+        "Defining solutions approach",
+        "Advising on product roadmap",
+        "Building SC capabilities",
+        "Driving technical win rates"
+      ],
+      "executive": [
+        "Setting SC organization vision",
+        "Building SC organization",
+        "Managing SC budget",
+        "Presenting solutions strategy to leadership",
+        "Establishing technical sales culture",
+        "Driving SC transformation"
+      ]
+    },
+    "industryVariants": {
+      "saas": [
+        "Demonstrating SaaS solutions",
+        "Building SaaS integration designs",
+        "Managing technical evaluations"
+      ],
+      "enterprise": [
+        "Designing enterprise solutions",
+        "Managing enterprise POCs",
+        "Navigating technical requirements"
+      ],
+      "security": [
+        "Demonstrating security solutions",
+        "Designing security architectures",
+        "Managing security evaluations"
+      ]
+    }
+  },
+  "cto": {
+    "displayName": "Chief Technology Officer",
+    "category": "Executive",
+    "aliases": ["chief technology officer", "chief technical officer", "head of technology", "head of engineering"],
+    "seniorityTasks": {
+      "entry": [],
+      "mid": [],
+      "senior": [],
+      "executive": [
+        "Defining technology strategy and vision",
+        "Building and scaling engineering organization",
+        "Presenting technology roadmap to board",
+        "Managing technology budget and investments",
+        "Evaluating build vs buy decisions",
+        "Establishing engineering culture and standards",
+        "Leading technical due diligence for M&A",
+        "Managing vendor and partner relationships"
+      ]
+    },
+    "industryVariants": {
+      "saas": [
+        "Building scalable SaaS platform",
+        "Managing SaaS security and compliance",
+        "Driving product technology innovation"
+      ],
+      "fintech": [
+        "Building compliant financial systems",
+        "Managing financial technology risk",
+        "Driving fintech innovation"
+      ],
+      "healthcare": [
+        "Building HIPAA-compliant systems",
+        "Managing healthcare technology risk",
+        "Driving healthcare tech innovation"
+      ]
+    }
+  },
+  "vp_engineering": {
+    "displayName": "VP of Engineering",
+    "category": "Executive",
+    "aliases": ["vp engineering", "vice president of engineering", "head of engineering", "engineering director"],
+    "seniorityTasks": {
+      "entry": [],
+      "mid": [],
+      "senior": [],
+      "executive": [
+        "Building and scaling engineering teams",
+        "Defining engineering processes and standards",
+        "Managing engineering budget and resources",
+        "Partnering with product on roadmap",
+        "Driving technical excellence and quality",
+        "Hiring and developing engineering leaders",
+        "Managing engineering vendor relationships",
+        "Presenting engineering updates to leadership"
+      ]
+    },
+    "industryVariants": {
+      "saas": [
+        "Scaling SaaS engineering teams",
+        "Building SaaS development practices",
+        "Managing SaaS technical debt"
+      ],
+      "startup": [
+        "Building initial engineering team",
+        "Establishing engineering culture",
+        "Driving rapid product development"
+      ],
+      "enterprise": [
+        "Managing enterprise engineering teams",
+        "Building enterprise development practices",
+        "Driving enterprise technology standards"
+      ]
+    }
+  },
+  "cmo": {
+    "displayName": "Chief Marketing Officer",
+    "category": "Executive",
+    "aliases": ["chief marketing officer", "head of marketing", "vp marketing"],
+    "seniorityTasks": {
+      "entry": [],
+      "mid": [],
+      "senior": [],
+      "executive": [
+        "Defining marketing strategy and vision",
+        "Building and scaling marketing organization",
+        "Managing marketing budget and ROI",
+        "Presenting marketing strategy to board",
+        "Establishing brand positioning and messaging",
+        "Driving demand generation and growth",
+        "Managing agency and vendor relationships",
+        "Aligning marketing with sales and product"
+      ]
+    },
+    "industryVariants": {
+      "saas": [
+        "Building SaaS marketing engine",
+        "Driving product-led growth",
+        "Managing SaaS demand generation"
+      ],
+      "ecommerce": [
+        "Building ecommerce marketing",
+        "Driving customer acquisition",
+        "Managing performance marketing"
+      ],
+      "b2b": [
+        "Building B2B marketing",
+        "Driving enterprise demand gen",
+        "Managing account-based marketing"
+      ]
+    }
+  },
+  "cro": {
+    "displayName": "Chief Revenue Officer",
+    "category": "Executive",
+    "aliases": ["chief revenue officer", "head of revenue", "head of sales"],
+    "seniorityTasks": {
+      "entry": [],
+      "mid": [],
+      "senior": [],
+      "executive": [
+        "Defining revenue strategy and vision",
+        "Building and scaling revenue organization",
+        "Managing sales and CS teams",
+        "Presenting revenue strategy to board",
+        "Driving revenue growth and expansion",
+        "Establishing sales processes and playbooks",
+        "Aligning sales, marketing, and CS",
+        "Managing key customer relationships"
+      ]
+    },
+    "industryVariants": {
+      "saas": [
+        "Building SaaS revenue engine",
+        "Driving subscription growth",
+        "Managing net revenue retention"
+      ],
+      "enterprise": [
+        "Building enterprise sales org",
+        "Driving enterprise growth",
+        "Managing strategic accounts"
+      ],
+      "startup": [
+        "Building initial revenue team",
+        "Establishing go-to-market",
+        "Driving initial revenue growth"
+      ]
+    }
+  },
+  "vp_product": {
+    "displayName": "VP of Product",
+    "category": "Executive",
+    "aliases": ["vice president of product", "head of product", "chief product officer", "cpo"],
+    "seniorityTasks": {
+      "entry": [],
+      "mid": [],
+      "senior": [],
+      "executive": [
+        "Defining product strategy and vision",
+        "Building and scaling product organization",
+        "Managing product roadmap and priorities",
+        "Presenting product strategy to board",
+        "Aligning product with engineering and sales",
+        "Driving product-market fit and growth",
+        "Hiring and developing product leaders",
+        "Managing competitive positioning"
+      ]
+    },
+    "industryVariants": {
+      "saas": [
+        "Building SaaS product strategy",
+        "Driving product-led growth",
+        "Managing SaaS product portfolio"
+      ],
+      "fintech": [
+        "Building fintech product strategy",
+        "Managing regulatory product requirements",
+        "Driving fintech innovation"
+      ],
+      "consumer": [
+        "Building consumer product strategy",
+        "Driving user engagement",
+        "Managing consumer product growth"
+      ]
+    }
+  },
+  "clinical_ops_manager": {
+    "displayName": "Clinical Operations Manager",
+    "category": "Healthcare",
+    "aliases": ["clinical operations", "clinical manager", "healthcare operations manager"],
+    "seniorityTasks": {
+      "entry": [
+        "Coordinating clinical workflows",
+        "Managing patient scheduling",
+        "Tracking clinical metrics and KPIs",
+        "Supporting compliance documentation",
+        "Coordinating with clinical staff",
+        "Learning clinical operations systems"
+      ],
+      "mid": [
+        "Managing clinical operations team",
+        "Optimizing clinical processes",
+        "Building quality improvement programs",
+        "Managing vendor and supplier relationships",
+        "Partnering with leadership on initiatives",
+        "Driving patient experience improvements"
+      ],
+      "senior": [
+        "Defining clinical operations strategy",
+        "Leading clinical operations org",
+        "Managing clinical compliance programs",
+        "Advising leadership on operations",
+        "Building operational capabilities",
+        "Driving clinical excellence"
+      ],
+      "executive": [
+        "Setting clinical operations vision",
+        "Building clinical operations org",
+        "Managing clinical operations budget",
+        "Presenting clinical metrics to board",
+        "Establishing clinical culture",
+        "Driving clinical transformation"
+      ]
+    },
+    "industryVariants": {
+      "hospital": [
+        "Managing hospital operations",
+        "Coordinating department workflows",
+        "Driving patient throughput"
+      ],
+      "clinic": [
+        "Managing clinic operations",
+        "Optimizing appointment scheduling",
+        "Driving patient satisfaction"
+      ],
+      "telehealth": [
+        "Managing telehealth operations",
+        "Building virtual care workflows",
+        "Driving telehealth adoption"
+      ]
+    }
+  },
+  "medical_director": {
+    "displayName": "Medical Director",
+    "category": "Healthcare",
+    "aliases": ["clinical director", "physician director", "chief medical officer"],
+    "seniorityTasks": {
+      "entry": [],
+      "mid": [],
+      "senior": [],
+      "executive": [
+        "Defining clinical strategy and standards",
+        "Leading clinical team and providers",
+        "Managing quality and patient safety",
+        "Ensuring regulatory compliance",
+        "Presenting clinical outcomes to board",
+        "Building clinical programs and services",
+        "Managing physician relationships",
+        "Driving clinical innovation"
+      ]
+    },
+    "industryVariants": {
+      "hospital": [
+        "Leading hospital medical staff",
+        "Managing hospital quality programs",
+        "Driving hospital clinical excellence"
+      ],
+      "health_plan": [
+        "Leading health plan clinical programs",
+        "Managing utilization review",
+        "Driving care management"
+      ],
+      "digital_health": [
+        "Leading digital health clinical programs",
+        "Managing clinical product development",
+        "Driving clinical validation"
+      ]
+    }
+  }
+}

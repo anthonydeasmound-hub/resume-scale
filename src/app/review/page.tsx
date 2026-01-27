@@ -2,8 +2,12 @@
 
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useRef, useCallback, Suspense } from "react";
+import { ResumeData } from "@/types/resume";
 import TabsNav from "@/components/TabsNav";
+import JobAnalysisPanel from "@/components/review/JobAnalysisPanel";
+import ATSScoreCard from "@/components/review/ATSScoreCard";
+import { ATSScore } from "@/lib/ats-scorer";
 
 interface Job {
   id: number;
@@ -95,7 +99,7 @@ function ReviewContent() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"resume" | "cover">("resume");
+  const [activeTab, setActiveTab] = useState<"resume" | "cover" | "job-details">("resume");
   const [accentColor, setAccentColor] = useState("#3D5A80");
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
@@ -115,6 +119,14 @@ function ReviewContent() {
 
   // Work experience selections
   const [selectedRoles, setSelectedRoles] = useState<SelectedRole[]>([]);
+  // Track edited bullets: key is "roleIndex-bulletIndex", value is edited text
+  const [editedBullets, setEditedBullets] = useState<Record<string, string>>({});
+  // Track which bullet is currently being edited: "roleIndex-bulletIndex" or null
+  const [editingBulletKey, setEditingBulletKey] = useState<string | null>(null);
+  const [editingBulletText, setEditingBulletText] = useState("");
+  // Drag and drop state
+  const [draggedBullet, setDraggedBullet] = useState<{ roleIndex: number; selectedIndex: number } | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   // Skills options
   const [skillsFromResume, setSkillsFromResume] = useState<string[]>([]);
@@ -126,6 +138,11 @@ function ReviewContent() {
   // Cover letter
   const [coverLetter, setCoverLetter] = useState("");
   const [generatingCoverLetter, setGeneratingCoverLetter] = useState(false);
+
+  // Iframe preview
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [previewHtml, setPreviewHtml] = useState<string>("");
+  const [loadingPreview, setLoadingPreview] = useState(false);
 
   // Resume Review Score
   interface ResumeReviewResult {
@@ -153,6 +170,10 @@ function ReviewContent() {
   // Job details sidebar
   const [showJobDetails, setShowJobDetails] = useState(true);
   const [showFullDescription, setShowFullDescription] = useState(false);
+
+  // ATS Score
+  const [atsScore, setAtsScore] = useState<ATSScore | null>(null);
+  const [loadingAts, setLoadingAts] = useState(false);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -453,8 +474,8 @@ function ReviewContent() {
     }
   };
 
-  // Hard limit of 10 bullets total across all roles
-  const MAX_TOTAL_BULLETS = 10;
+  // Hard limit of 12 bullets total across all roles
+  const MAX_TOTAL_BULLETS = 12;
   const INITIAL_SUGGESTIONS_SHOWN = 4;
 
   // Track which roles have expanded suggestions
@@ -488,6 +509,86 @@ function ReviewContent() {
       });
     });
     setHasChanges(true);
+  };
+
+  // Get bullet text, checking for edits first
+  const getBulletText = (roleIndex: number, bulletIndex: number, bulletOptions: string[]): string => {
+    const key = `${roleIndex}-${bulletIndex}`;
+    return editedBullets[key] ?? bulletOptions[bulletIndex];
+  };
+
+  // Start editing a bullet
+  const startEditingBullet = (roleIndex: number, bulletIndex: number, currentText: string) => {
+    const key = `${roleIndex}-${bulletIndex}`;
+    setEditingBulletKey(key);
+    setEditingBulletText(currentText);
+  };
+
+  // Save edited bullet
+  const saveEditedBullet = () => {
+    if (!editingBulletKey) return;
+    setEditedBullets((prev) => ({
+      ...prev,
+      [editingBulletKey]: editingBulletText,
+    }));
+    setEditingBulletKey(null);
+    setEditingBulletText("");
+    setHasChanges(true);
+  };
+
+  // Cancel editing
+  const cancelEditingBullet = () => {
+    setEditingBulletKey(null);
+    setEditingBulletText("");
+  };
+
+  // Drag and drop handlers for bullet reordering
+  const handleDragStart = (roleIndex: number, selectedIndex: number) => {
+    setDraggedBullet({ roleIndex, selectedIndex });
+  };
+
+  const handleDragOver = (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault();
+    setDragOverIndex(targetIndex);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverIndex(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, roleIndex: number, targetIndex: number) => {
+    e.preventDefault();
+    if (!draggedBullet || draggedBullet.roleIndex !== roleIndex) {
+      setDraggedBullet(null);
+      setDragOverIndex(null);
+      return;
+    }
+
+    const sourceIndex = draggedBullet.selectedIndex;
+    if (sourceIndex === targetIndex) {
+      setDraggedBullet(null);
+      setDragOverIndex(null);
+      return;
+    }
+
+    setSelectedRoles((prev) =>
+      prev.map((r) => {
+        if (r.roleIndex !== roleIndex) return r;
+        const newSelected = [...r.selectedBullets];
+        const [removed] = newSelected.splice(sourceIndex, 1);
+        newSelected.splice(targetIndex, 0, removed);
+        return { ...r, selectedBullets: newSelected };
+      })
+    );
+
+    setDraggedBullet(null);
+    setDragOverIndex(null);
+    setHasChanges(true);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedBullet(null);
+    setDragOverIndex(null);
   };
 
   const toggleSkill = (skill: string) => {
@@ -530,6 +631,51 @@ function ReviewContent() {
       console.error("Failed to generate cover letter:", err);
     } finally {
       setGeneratingCoverLetter(false);
+    }
+  };
+
+  const calculateAtsScore = async () => {
+    if (!selectedJob || !masterResume || selectedRoles.length === 0) return;
+    setLoadingAts(true);
+
+    try {
+      // Build resume content for scoring
+      const resumeContent = {
+        summary: selectedSummaryIndex !== null ? summaryOptions[selectedSummaryIndex] : undefined,
+        experience: selectedRoles.map((r) => {
+          const masterRole = masterResume.work_experience[r.roleIndex];
+          return {
+            title: masterRole.title,
+            company: masterRole.company,
+            bullets: r.selectedBullets.map((i) => getBulletText(r.roleIndex, i, r.bulletOptions)),
+          };
+        }),
+        skills: selectedSkills,
+        education: masterResume.education.map(e => ({
+          degree: e.degree,
+          field: e.field,
+          institution: e.institution,
+        })),
+      };
+
+      const response = await fetch("/api/ats/score", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          resume: resumeContent,
+          jobDescription: selectedJob.job_description,
+          jobTitle: selectedJob.job_title,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setAtsScore(data);
+      }
+    } catch (err) {
+      console.error("Failed to calculate ATS score:", err);
+    } finally {
+      setLoadingAts(false);
     }
   };
 
@@ -582,7 +728,7 @@ function ReviewContent() {
         title: masterRole.title,
         start_date: masterRole.start_date,
         end_date: masterRole.end_date,
-        description: r.selectedBullets.map((i) => r.bulletOptions[i]),
+        description: r.selectedBullets.map((i) => getBulletText(r.roleIndex, i, r.bulletOptions)),
       };
     });
 
@@ -594,6 +740,67 @@ function ReviewContent() {
       education: masterResume.education,
     };
   };
+
+  // Convert TailoredResume to ResumeData format for PDF template
+  const convertToResumeData = useCallback((tailored: TailoredResume, jobTitle: string): ResumeData => {
+    return {
+      contactInfo: {
+        name: tailored.contact_info.name,
+        email: tailored.contact_info.email,
+        phone: tailored.contact_info.phone,
+        location: tailored.contact_info.location,
+        linkedin: tailored.contact_info.linkedin,
+      },
+      jobTitle: jobTitle,
+      summary: tailored.summary,
+      experience: tailored.work_experience.map((exp) => ({
+        title: exp.title,
+        company: exp.company,
+        dates: `${exp.start_date} - ${exp.end_date}`,
+        description: exp.description,
+      })),
+      education: tailored.education.map((edu) => ({
+        school: edu.institution,
+        degree: edu.degree,
+        dates: edu.graduation_date,
+      })),
+      skills: tailored.skills,
+    };
+  }, []);
+
+  // Fetch preview HTML whenever resume data changes
+  useEffect(() => {
+    const fetchPreviewHtml = async () => {
+      const tailored = buildTailoredResume();
+      if (!tailored || !selectedJob) {
+        setPreviewHtml("");
+        return;
+      }
+
+      setLoadingPreview(true);
+      try {
+        const resumeData = convertToResumeData(tailored, selectedJob.job_title);
+        const response = await fetch("/api/resume/preview-html", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ data: resumeData, accentColor }),
+        });
+
+        if (response.ok) {
+          const html = await response.text();
+          setPreviewHtml(html);
+        }
+      } catch (err) {
+        console.error("Failed to fetch preview HTML:", err);
+      } finally {
+        setLoadingPreview(false);
+      }
+    };
+
+    // Debounce the fetch to avoid too many requests
+    const timeoutId = setTimeout(fetchPreviewHtml, 300);
+    return () => clearTimeout(timeoutId);
+  }, [selectedRoles, selectedSummaryIndex, summaryOptions, selectedSkills, accentColor, masterResume, selectedJob, editedBullets, convertToResumeData]);
 
   const saveChanges = async () => {
     if (!selectedJob) return;
@@ -862,6 +1069,14 @@ function ReviewContent() {
                   >
                     Cover Letter
                   </button>
+                  <button
+                    onClick={() => setActiveTab("job-details")}
+                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      activeTab === "job-details" ? "bg-blue-100 text-blue-700" : "text-gray-600"
+                    }`}
+                  >
+                    Job Details
+                  </button>
                 </div>
 
                 {activeTab === "resume" && (
@@ -1058,36 +1273,109 @@ function ReviewContent() {
                                           {/* Selected bullets at top */}
                                           <div className="mb-3">
                                             <p className="text-xs font-medium text-gray-600 mb-2">
-                                              Selected ({selectedRole.selectedBullets.length}) - click to remove:
+                                              Selected ({selectedRole.selectedBullets.length}) - drag to reorder, click edit to modify:
                                             </p>
                                             <div className="space-y-2">
                                               {selectedRole.selectedBullets.length === 0 ? (
                                                 <p className="text-xs text-gray-400 italic">No bullets selected yet</p>
                                               ) : (
-                                                selectedRole.selectedBullets.map((bulletIdx) => {
-                                                  const bullet = selectedRole.bulletOptions[bulletIdx];
+                                                selectedRole.selectedBullets.map((bulletIdx, selectedIndex) => {
+                                                  const bulletText = getBulletText(selectedRole.roleIndex, bulletIdx, selectedRole.bulletOptions);
                                                   const isFromMaster = bulletIdx < selectedRole.masterBullets.length;
+                                                  const editKey = `${selectedRole.roleIndex}-${bulletIdx}`;
+                                                  const isEditing = editingBulletKey === editKey;
+                                                  const isEdited = editedBullets[editKey] !== undefined;
+                                                  const isDragging = draggedBullet?.roleIndex === selectedRole.roleIndex && draggedBullet?.selectedIndex === selectedIndex;
+                                                  const isDragOver = draggedBullet?.roleIndex === selectedRole.roleIndex && dragOverIndex === selectedIndex;
+
                                                   return (
                                                     <div
                                                       key={bulletIdx}
-                                                      onClick={() => toggleBullet(selectedRole.roleIndex, bulletIdx)}
-                                                      className={`p-2 rounded border-2 cursor-pointer text-sm ${
+                                                      draggable={!isEditing}
+                                                      onDragStart={() => handleDragStart(selectedRole.roleIndex, selectedIndex)}
+                                                      onDragOver={(e) => handleDragOver(e, selectedIndex)}
+                                                      onDragLeave={handleDragLeave}
+                                                      onDrop={(e) => handleDrop(e, selectedRole.roleIndex, selectedIndex)}
+                                                      onDragEnd={handleDragEnd}
+                                                      className={`p-2 rounded border-2 text-sm transition-all ${
                                                         isFromMaster ? "border-blue-400 bg-blue-50" : "border-purple-400 bg-purple-50"
-                                                      }`}
+                                                      } ${isEdited ? "ring-2 ring-green-300" : ""} ${
+                                                        isDragging ? "opacity-50 scale-95" : ""
+                                                      } ${isDragOver ? "border-dashed border-gray-500 bg-gray-100" : ""}`}
                                                     >
-                                                      <div className="flex items-start gap-2">
-                                                        <div className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 mt-0.5 ${
-                                                          isFromMaster ? "bg-blue-500" : "bg-purple-500"
-                                                        }`}>
-                                                          <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                                          </svg>
+                                                      {isEditing ? (
+                                                        /* Editing mode */
+                                                        <div className="space-y-2">
+                                                          <textarea
+                                                            value={editingBulletText}
+                                                            onChange={(e) => setEditingBulletText(e.target.value)}
+                                                            className="w-full p-2 border rounded text-sm resize-none"
+                                                            rows={3}
+                                                            autoFocus
+                                                          />
+                                                          <div className="flex justify-end gap-2">
+                                                            <button
+                                                              onClick={cancelEditingBullet}
+                                                              className="px-2 py-1 text-xs text-gray-600 hover:bg-gray-200 rounded"
+                                                            >
+                                                              Cancel
+                                                            </button>
+                                                            <button
+                                                              onClick={saveEditedBullet}
+                                                              className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
+                                                            >
+                                                              Save
+                                                            </button>
+                                                          </div>
                                                         </div>
-                                                        <span className="text-gray-700 flex-1">{bullet}</span>
-                                                        <span className={`text-xs px-1.5 py-0.5 rounded ${isFromMaster ? "bg-blue-100 text-blue-600" : "bg-purple-100 text-purple-600"}`}>
-                                                          {isFromMaster ? "Resume" : "AI"}
-                                                        </span>
-                                                      </div>
+                                                      ) : (
+                                                        /* Display mode */
+                                                        <div className="flex items-start gap-2">
+                                                          {/* Drag handle */}
+                                                          <div
+                                                            className="flex-shrink-0 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 mt-0.5"
+                                                            title="Drag to reorder"
+                                                          >
+                                                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                              <path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-8a2 2 0 1 0-.001-4.001A2 2 0 0 0 13 6zm0 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z" />
+                                                            </svg>
+                                                          </div>
+                                                          {/* Checkbox */}
+                                                          <div
+                                                            onClick={() => toggleBullet(selectedRole.roleIndex, bulletIdx)}
+                                                            className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 mt-0.5 cursor-pointer ${
+                                                              isFromMaster ? "bg-blue-500" : "bg-purple-500"
+                                                            }`}
+                                                            title="Click to remove"
+                                                          >
+                                                            <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                                            </svg>
+                                                          </div>
+                                                          {/* Bullet text */}
+                                                          <span className="text-gray-700 flex-1">{bulletText}</span>
+                                                          {/* Labels and edit button */}
+                                                          <div className="flex items-center gap-1 flex-shrink-0">
+                                                            {isEdited && (
+                                                              <span className="text-xs px-1.5 py-0.5 rounded bg-green-100 text-green-600">
+                                                                Edited
+                                                              </span>
+                                                            )}
+                                                            <span className={`text-xs px-1.5 py-0.5 rounded ${isFromMaster ? "bg-blue-100 text-blue-600" : "bg-purple-100 text-purple-600"}`}>
+                                                              {isFromMaster ? "Resume" : "AI"}
+                                                            </span>
+                                                            <button
+                                                              onClick={(e) => { e.stopPropagation(); startEditingBullet(selectedRole.roleIndex, bulletIdx, bulletText); }}
+                                                              className="p-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded"
+                                                              title="Edit bullet"
+                                                            >
+                                                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                              </svg>
+                                                            </button>
+                                                          </div>
+                                                        </div>
+                                                      )}
                                                     </div>
                                                   );
                                                 })
@@ -1334,6 +1622,14 @@ function ReviewContent() {
                       </div>
                     </div>
 
+                    {/* ATS Compatibility Score */}
+                    <ATSScoreCard
+                      score={atsScore}
+                      loading={loadingAts}
+                      onCalculate={calculateAtsScore}
+                      disabled={selectedRoles.length === 0 || !selectedJob}
+                    />
+
                     {/* Resume Quality Score */}
                     <div className="bg-white rounded-xl shadow overflow-hidden">
                       <button
@@ -1556,6 +1852,20 @@ function ReviewContent() {
                     </div>
                   </>
                 )}
+
+                {activeTab === "job-details" && selectedJob && (
+                  <JobAnalysisPanel
+                    jobId={selectedJob.id}
+                    companyName={selectedJob.company_name}
+                    jobTitle={selectedJob.job_title}
+                    jobDescription={selectedJob.job_description}
+                    jobDetailsParsed={
+                      selectedJob.job_details_parsed
+                        ? JSON.parse(selectedJob.job_details_parsed)
+                        : null
+                    }
+                  />
+                )}
               </div>
 
               {/* Right side - Live Preview */}
@@ -1565,85 +1875,45 @@ function ReviewContent() {
                   <span className="text-xs text-gray-500">Professional template</span>
                 </div>
 
-                <div className="overflow-auto" style={{ maxHeight: "calc(100vh - 200px)" }}>
-                  {activeTab === "resume" && previewResume && (
-                    <div className="text-xs" style={{ fontFamily: "'Inter', sans-serif", transform: "scale(0.65)", transformOrigin: "top left", width: "153.85%" }}>
-                      {/* Single column ATS layout with fixed footer */}
-                      <div style={{ padding: "24px 28px", minHeight: "715px", display: "flex", flexDirection: "column" }}>
-                        {/* Header - Name centered */}
-                        <div className="text-center" style={{ marginBottom: "6px" }}>
-                          <div style={{ fontSize: "18pt", fontWeight: 700, color: "#1a1a1a", textTransform: "uppercase", letterSpacing: "1.5px" }}>
-                            {previewResume.contact_info.name}
-                          </div>
-                          <div style={{ fontSize: "7.5pt", color: "#333", marginTop: "4px" }}>
-                            {[previewResume.contact_info.location, previewResume.contact_info.phone, previewResume.contact_info.email].filter(Boolean).join(" • ")}
-                          </div>
-                          {previewResume.contact_info.linkedin && (
-                            <div style={{ fontSize: "7.5pt", color: "#333" }}>{previewResume.contact_info.linkedin}</div>
-                          )}
+                <div className="overflow-auto p-4 bg-gray-100" style={{ maxHeight: "calc(100vh - 200px)" }}>
+                  {activeTab === "resume" && (
+                    <div className="flex justify-center">
+                      {loadingPreview && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 z-10">
+                          <div className="animate-spin w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full" />
                         </div>
-
-                        {/* Main Content - Summary and Work Experience */}
-                        <div style={{ flex: 1 }}>
-                          {/* Summary Section */}
-                          <div style={{ marginBottom: "12px" }}>
-                            <h3 style={{ fontSize: "9pt", fontWeight: 700, color: accentColor, textTransform: "uppercase", borderBottom: "1px solid #ccc", paddingBottom: "3px", marginBottom: "6px" }}>Summary</h3>
-                            <p style={{ fontSize: "7.5pt", color: "#333", lineHeight: "1.5" }}>
-                              {previewResume.summary || "Select a summary option"}
-                            </p>
-                          </div>
-
-                          {/* Work Experience Section */}
-                          <div>
-                            <h3 style={{ fontSize: "9pt", fontWeight: 700, color: accentColor, textTransform: "uppercase", borderBottom: "1px solid #ccc", paddingBottom: "3px", marginBottom: "6px" }}>Work Experience</h3>
-                            {previewResume.work_experience.length > 0 ? (
-                              previewResume.work_experience.map((exp, i) => (
-                                <div key={i} style={{ marginBottom: "10px" }}>
-                                  <div className="flex justify-between" style={{ marginBottom: "2px" }}>
-                                    <span style={{ fontSize: "7.5pt", fontWeight: 600, color: "#1a1a1a" }}>{exp.title}, {exp.company}</span>
-                                    <span style={{ fontSize: "7.5pt", color: "#333" }}>{exp.start_date} - {exp.end_date}</span>
-                                  </div>
-                                  <div style={{ fontSize: "7.5pt", color: "#333" }}>
-                                    {exp.description.map((d, j) => (
-                                      <p key={j} style={{ paddingLeft: "10px", position: "relative", marginBottom: "1px" }}>
-                                        <span style={{ position: "absolute", left: 0 }}>•</span> {d}
-                                      </p>
-                                    ))}
-                                  </div>
-                                </div>
-                              ))
-                            ) : (
-                              <p style={{ fontSize: "7.5pt", color: "#999" }}>Select roles and bullets</p>
-                            )}
-                          </div>
+                      )}
+                      {previewHtml ? (
+                        <div
+                          className="shadow-lg bg-white relative"
+                          style={{
+                            width: "425px",
+                            height: "550px",
+                            overflow: "hidden",
+                          }}
+                        >
+                          <iframe
+                            ref={iframeRef}
+                            srcDoc={previewHtml}
+                            title="Resume Preview"
+                            style={{
+                              width: "8.5in",
+                              height: "11in",
+                              transform: "scale(0.52)",
+                              transformOrigin: "top left",
+                              border: "none",
+                              background: "white",
+                              position: "absolute",
+                              top: 0,
+                              left: 0,
+                            }}
+                          />
                         </div>
-
-                        {/* Footer - Skills and Education pinned to bottom */}
-                        <div style={{ marginTop: "auto" }}>
-                          {/* Skills Section */}
-                          <div style={{ marginBottom: "12px" }}>
-                            <h3 style={{ fontSize: "9pt", fontWeight: 700, color: accentColor, textTransform: "uppercase", borderBottom: "1px solid #ccc", paddingBottom: "3px", marginBottom: "6px" }}>Skills</h3>
-                            {previewResume.skills.length > 0 ? (
-                              <p style={{ fontSize: "7.5pt", color: "#333" }}>
-                                {previewResume.skills.join(" | ")}
-                              </p>
-                            ) : (
-                              <p style={{ fontSize: "7.5pt", color: "#999" }}>Select skills</p>
-                            )}
-                          </div>
-
-                          {/* Education Section */}
-                          <div>
-                            <h3 style={{ fontSize: "9pt", fontWeight: 700, color: accentColor, textTransform: "uppercase", borderBottom: "1px solid #ccc", paddingBottom: "3px", marginBottom: "6px" }}>Education</h3>
-                            {previewResume.education.map((edu, i) => (
-                              <div key={i} style={{ marginBottom: "6px" }}>
-                                <div style={{ fontSize: "7.5pt", fontWeight: 600, color: "#1a1a1a" }}>{edu.degree}</div>
-                                <div style={{ fontSize: "7.5pt", color: "#333" }}>{edu.institution}</div>
-                              </div>
-                            ))}
-                          </div>
+                      ) : (
+                        <div className="flex items-center justify-center h-64 text-gray-400">
+                          <p>Select options to preview your resume</p>
                         </div>
-                      </div>
+                      )}
                     </div>
                   )}
 

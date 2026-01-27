@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import db, { JobApplication, InterviewGuide } from "@/lib/db";
+import db, { InterviewGuide } from "@/lib/db";
 import { generateInterviewGuidePDF } from "@/lib/pdf-generator-puppeteer";
 
 // GET - Download interview guide as PDF
@@ -25,7 +25,6 @@ export async function GET(
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Get job with interview guide
     const job = db.prepare(`
       SELECT company_name, job_title, interview_guide, resume_color
       FROM job_applications WHERE id = ? AND user_id = ?
@@ -46,7 +45,6 @@ export async function GET(
 
     const guide = JSON.parse(job.interview_guide) as InterviewGuide;
 
-    // Generate PDF
     const pdfBuffer = await generateInterviewGuidePDF(
       guide,
       job.job_title,
@@ -54,7 +52,6 @@ export async function GET(
       job.resume_color || "#3D5A80"
     );
 
-    // Return PDF with proper headers
     const filename = `Interview_Guide_${job.company_name.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`;
 
     return new NextResponse(new Uint8Array(pdfBuffer), {

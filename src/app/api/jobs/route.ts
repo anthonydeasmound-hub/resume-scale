@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.email) {
@@ -68,7 +68,39 @@ export async function GET() {
       SELECT * FROM job_applications
       WHERE user_id = ?
       ORDER BY created_at DESC
-    `).all(user.id);
+    `).all(user.id) as { id: number }[];
+
+    // Check if we need to include related data
+    const url = new URL(request.url);
+    const include = url.searchParams.get("include")?.split(",") || [];
+
+    if (include.length > 0) {
+      const jobsWithRelations = jobs.map((job) => {
+        const result: Record<string, unknown> = { ...job };
+
+        if (include.includes("stages")) {
+          const stages = db.prepare(`
+            SELECT * FROM interview_stages
+            WHERE job_id = ?
+            ORDER BY stage_number ASC
+          `).all(job.id);
+          result.interview_stages = stages;
+        }
+
+        if (include.includes("emails")) {
+          const emails = db.prepare(`
+            SELECT * FROM email_actions
+            WHERE job_id = ?
+            ORDER BY created_at DESC
+          `).all(job.id);
+          result.email_actions = emails;
+        }
+
+        return result;
+      });
+
+      return NextResponse.json(jobsWithRelations);
+    }
 
     return NextResponse.json(jobs);
   } catch (error) {

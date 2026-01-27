@@ -6,7 +6,6 @@ export function generateInterviewGuideHTML(
   companyName: string,
   accentColor: string = "#3D5A80"
 ): string {
-  // Generate interview rounds HTML
   const roundsHTML = guide.interviewRounds.map((round: InterviewRound) => {
     const roundTypeLabels: Record<string, string> = {
       phone_screen: "Phone Screen",
@@ -24,29 +23,15 @@ export function generateInterviewGuideHTML(
       <div class="star-answer">
         <div class="star-question">${star.question}</div>
         <div class="star-grid">
-          <div class="star-item">
-            <span class="star-label">Situation:</span>
-            <span class="star-content">${star.situation}</span>
-          </div>
-          <div class="star-item">
-            <span class="star-label">Task:</span>
-            <span class="star-content">${star.task}</span>
-          </div>
-          <div class="star-item">
-            <span class="star-label">Action:</span>
-            <span class="star-content">${star.action}</span>
-          </div>
-          <div class="star-item">
-            <span class="star-label">Result:</span>
-            <span class="star-content">${star.result}</span>
-          </div>
+          <div class="star-item"><span class="star-label">S:</span> ${star.situation}</div>
+          <div class="star-item"><span class="star-label">T:</span> ${star.task}</div>
+          <div class="star-item"><span class="star-label">A:</span> ${star.action}</div>
+          <div class="star-item"><span class="star-label">R:</span> ${star.result}</div>
         </div>
       </div>
     `).join('');
 
-    const tipsHTML = round.tips
-      .map(tip => `<li>${tip}</li>`)
-      .join('');
+    const tipsHTML = round.tips.map(tip => `<li>${tip}</li>`).join('');
 
     return `
       <div class="round-section">
@@ -55,56 +40,30 @@ export function generateInterviewGuideHTML(
           <span class="round-type">${roundTypeLabels[round.type] || round.type}</span>
           <span class="round-duration">${round.typicalDuration}</span>
         </div>
-
         <div class="round-content">
           <div class="subsection">
             <h4>Likely Questions</h4>
-            <ul class="questions-list">${questionsHTML}</ul>
+            <ul>${questionsHTML}</ul>
           </div>
-
-          ${starAnswersHTML ? `
+          ${starAnswersHTML ? `<div class="subsection"><h4>STAR Frameworks</h4>${starAnswersHTML}</div>` : ''}
           <div class="subsection">
-            <h4>STAR Answer Frameworks</h4>
-            ${starAnswersHTML}
-          </div>
-          ` : ''}
-
-          <div class="subsection">
-            <h4>Tips for This Round</h4>
-            <ul class="tips-list">${tipsHTML}</ul>
+            <h4>Tips</h4>
+            <ul>${tipsHTML}</ul>
           </div>
         </div>
       </div>
     `;
   }).join('');
 
-  // Generate questions to ask HTML
-  const questionsToAskHTML = guide.questionsToAsk.map(category => {
-    const questionsHTML = category.questions
-      .map(q => `<li>${q}</li>`)
-      .join('');
+  const questionsToAskHTML = guide.questionsToAsk.map(category => `
+    <div class="questions-category">
+      <h4>${category.category}</h4>
+      <ul>${category.questions.map(q => `<li>${q}</li>`).join('')}</ul>
+    </div>
+  `).join('');
 
-    return `
-      <div class="questions-category">
-        <h4>${category.category}</h4>
-        <ul>${questionsHTML}</ul>
-      </div>
-    `;
-  }).join('');
-
-  // Generate general tips HTML
-  const generalTipsHTML = guide.generalTips
-    .map(tip => `<li>${tip}</li>`)
-    .join('');
-
-  // Generate company research HTML
-  const newsHTML = guide.companyResearch.recentNews
-    .map(news => `<li>${news}</li>`)
-    .join('');
-
-  const competitorsHTML = guide.companyResearch.competitors.length > 0
-    ? guide.companyResearch.competitors.join(', ')
-    : 'Not specified';
+  const generalTipsHTML = guide.generalTips.map(tip => `<li>${tip}</li>`).join('');
+  const newsHTML = guide.companyResearch.recentNews.map(news => `<li>${news}</li>`).join('');
 
   return `
 <!DOCTYPE html>
@@ -113,204 +72,37 @@ export function generateInterviewGuideHTML(
   <meta charset="UTF-8">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    @page {
-      size: Letter;
-      margin: 0.5in;
-    }
-
-    body {
-      font-family: 'Inter', sans-serif;
-      font-size: 10pt;
-      line-height: 1.5;
-      color: #333;
-    }
-
-    .header {
-      text-align: center;
-      padding-bottom: 20px;
-      margin-bottom: 20px;
-      border-bottom: 2px solid ${accentColor};
-    }
-
-    .header h1 {
-      font-size: 22pt;
-      font-weight: 700;
-      color: ${accentColor};
-      margin-bottom: 8px;
-    }
-
-    .header .subtitle {
-      font-size: 14pt;
-      color: #666;
-    }
-
-    .section {
-      margin-bottom: 24px;
-      page-break-inside: avoid;
-    }
-
-    .section-title {
-      font-size: 14pt;
-      font-weight: 700;
-      color: ${accentColor};
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 12px;
-      padding-bottom: 6px;
-      border-bottom: 1px solid #ddd;
-    }
-
-    .company-overview {
-      background: #f8f9fa;
-      padding: 16px;
-      border-radius: 8px;
-      margin-bottom: 16px;
-    }
-
-    .company-overview p {
-      margin-bottom: 12px;
-    }
-
-    .company-overview .label {
-      font-weight: 600;
-      color: ${accentColor};
-    }
-
-    .round-section {
-      margin-bottom: 20px;
-      page-break-inside: avoid;
-    }
-
-    .round-header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      background: ${accentColor};
-      color: white;
-      padding: 10px 16px;
-      border-radius: 6px 6px 0 0;
-    }
-
-    .round-number {
-      font-weight: 700;
-      font-size: 11pt;
-    }
-
-    .round-type {
-      font-weight: 500;
-    }
-
-    .round-duration {
-      margin-left: auto;
-      font-size: 9pt;
-      opacity: 0.9;
-    }
-
-    .round-content {
-      border: 1px solid #ddd;
-      border-top: none;
-      border-radius: 0 0 6px 6px;
-      padding: 16px;
-    }
-
-    .subsection {
-      margin-bottom: 16px;
-    }
-
-    .subsection:last-child {
-      margin-bottom: 0;
-    }
-
-    .subsection h4 {
-      font-size: 10pt;
-      font-weight: 600;
-      color: #444;
-      margin-bottom: 8px;
-    }
-
-    ul {
-      margin-left: 20px;
-    }
-
-    li {
-      margin-bottom: 4px;
-    }
-
-    .star-answer {
-      background: #f8f9fa;
-      padding: 12px;
-      border-radius: 6px;
-      margin-bottom: 12px;
-    }
-
-    .star-question {
-      font-weight: 600;
-      color: #333;
-      margin-bottom: 8px;
-      font-style: italic;
-    }
-
-    .star-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-    }
-
-    .star-item {
-      font-size: 9pt;
-    }
-
-    .star-label {
-      font-weight: 600;
-      color: ${accentColor};
-    }
-
-    .star-content {
-      color: #555;
-    }
-
-    .questions-category {
-      margin-bottom: 12px;
-    }
-
-    .questions-category h4 {
-      font-size: 10pt;
-      font-weight: 600;
-      color: ${accentColor};
-      margin-bottom: 6px;
-    }
-
-    .tips-list li {
-      position: relative;
-      padding-left: 8px;
-    }
-
-    .general-tips {
-      background: #fffbeb;
-      border: 1px solid #fcd34d;
-      border-radius: 6px;
-      padding: 16px;
-    }
-
-    .general-tips ul {
-      margin: 0;
-      padding-left: 20px;
-    }
-
-    .footer {
-      margin-top: 30px;
-      padding-top: 15px;
-      border-top: 1px solid #ddd;
-      text-align: center;
-      font-size: 9pt;
-      color: #888;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    @page { size: Letter; margin: 0.5in; }
+    body { font-family: 'Inter', sans-serif; font-size: 9pt; line-height: 1.4; color: #333; }
+    .header { text-align: center; padding-bottom: 15px; margin-bottom: 15px; border-bottom: 2px solid ${accentColor}; }
+    .header h1 { font-size: 18pt; font-weight: 700; color: ${accentColor}; margin-bottom: 5px; }
+    .header .subtitle { font-size: 11pt; color: #666; }
+    .section { margin-bottom: 18px; page-break-inside: avoid; }
+    .section-title { font-size: 11pt; font-weight: 700; color: ${accentColor}; text-transform: uppercase; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid #ddd; }
+    .company-overview { background: #f8f9fa; padding: 12px; border-radius: 6px; margin-bottom: 12px; }
+    .company-overview p { margin-bottom: 8px; font-size: 9pt; }
+    .company-overview .label { font-weight: 600; color: ${accentColor}; }
+    .round-section { margin-bottom: 15px; page-break-inside: avoid; }
+    .round-header { display: flex; align-items: center; gap: 10px; background: ${accentColor}; color: white; padding: 8px 12px; border-radius: 4px 4px 0 0; font-size: 9pt; }
+    .round-number { font-weight: 700; }
+    .round-duration { margin-left: auto; font-size: 8pt; opacity: 0.9; }
+    .round-content { border: 1px solid #ddd; border-top: none; border-radius: 0 0 4px 4px; padding: 12px; }
+    .subsection { margin-bottom: 10px; }
+    .subsection:last-child { margin-bottom: 0; }
+    .subsection h4 { font-size: 9pt; font-weight: 600; color: #444; margin-bottom: 5px; }
+    ul { margin-left: 15px; }
+    li { margin-bottom: 3px; font-size: 9pt; }
+    .star-answer { background: #f8f9fa; padding: 10px; border-radius: 4px; margin-bottom: 8px; font-size: 8pt; }
+    .star-question { font-weight: 600; color: #333; margin-bottom: 6px; font-style: italic; }
+    .star-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+    .star-item { font-size: 8pt; }
+    .star-label { font-weight: 600; color: ${accentColor}; }
+    .questions-category { margin-bottom: 10px; }
+    .questions-category h4 { font-size: 9pt; font-weight: 600; color: ${accentColor}; margin-bottom: 4px; }
+    .general-tips { background: #fffbeb; border: 1px solid #fcd34d; border-radius: 4px; padding: 12px; }
+    .general-tips ul { margin: 0; padding-left: 15px; }
+    .footer { margin-top: 20px; padding-top: 10px; border-top: 1px solid #ddd; text-align: center; font-size: 8pt; color: #888; }
   </style>
 </head>
 <body>
@@ -324,11 +116,8 @@ export function generateInterviewGuideHTML(
     <div class="company-overview">
       <p><span class="label">Overview:</span> ${guide.companyResearch.overview}</p>
       <p><span class="label">Culture:</span> ${guide.companyResearch.culture}</p>
-      <p><span class="label">Key Competitors:</span> ${competitorsHTML}</p>
-      ${guide.companyResearch.recentNews.length > 0 ? `
-      <p><span class="label">Recent News & Developments:</span></p>
-      <ul>${newsHTML}</ul>
-      ` : ''}
+      <p><span class="label">Competitors:</span> ${guide.companyResearch.competitors.join(', ') || 'Not specified'}</p>
+      ${guide.companyResearch.recentNews.length > 0 ? `<p><span class="label">Recent News:</span></p><ul>${newsHTML}</ul>` : ''}
     </div>
   </div>
 
@@ -344,14 +133,10 @@ export function generateInterviewGuideHTML(
 
   <div class="section">
     <div class="section-title">General Tips</div>
-    <div class="general-tips">
-      <ul>${generalTipsHTML}</ul>
-    </div>
+    <div class="general-tips"><ul>${generalTipsHTML}</ul></div>
   </div>
 
-  <div class="footer">
-    Generated by ResumeScale | Good luck with your interview!
-  </div>
+  <div class="footer">Generated by ResumeGenie</div>
 </body>
 </html>
   `;

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { generateResumePDF } from '@/lib/pdf-generator-puppeteer';
+import { generateResumePDF, generatePDFFromTemplateHTML } from '@/lib/pdf-generator-puppeteer';
+import { DEFAULT_TEMPLATE_OPTIONS } from '@/lib/templates';
 import { ResumeData, TemplateName } from '@/types/resume';
 
 export async function POST(request: NextRequest) {
@@ -12,10 +13,11 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { data, template, accentColor } = await request.json() as {
+    const { data, template, accentColor, templateId } = await request.json() as {
       data: ResumeData;
-      template: TemplateName;
+      template?: TemplateName;
       accentColor?: string;
+      templateId?: string;
     };
 
     if (!data) {
@@ -25,13 +27,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Default to professional template
-    const templateName = template || 'professional';
-    const color = accentColor || '#3D5A80';
+    const color = accentColor || '#2563eb';
+    let pdfBuffer: Buffer;
 
-    console.log('Generating PDF with template:', templateName, 'color:', color);
-
-    const pdfBuffer = await generateResumePDF(data, templateName, color);
+    if (templateId) {
+      // New template system
+      const options = {
+        ...DEFAULT_TEMPLATE_OPTIONS,
+        accentColor: color,
+      };
+      console.log('Generating PDF with new template:', templateId, 'color:', color);
+      pdfBuffer = await generatePDFFromTemplateHTML(data, templateId, options);
+    } else {
+      // Legacy path for backward compatibility
+      const templateName = template || 'professional';
+      console.log('Generating PDF with legacy template:', templateName, 'color:', color);
+      pdfBuffer = await generateResumePDF(data, templateName, color);
+    }
 
     // Convert Buffer to Uint8Array for NextResponse
     const uint8Array = new Uint8Array(pdfBuffer);
@@ -39,7 +51,7 @@ export async function POST(request: NextRequest) {
     return new NextResponse(uint8Array, {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="resume-${template}-${Date.now()}.pdf"`,
+        'Content-Disposition': `attachment; filename="resume-${templateId || template || 'professional'}-${Date.now()}.pdf"`,
       },
     });
   } catch (error: unknown) {

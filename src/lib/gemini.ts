@@ -19,6 +19,63 @@ async function getCompanyContext(company: string): Promise<string> {
   return await callAI(prompt);
 }
 
+// Parse date string like "Apr 2023" or "Present" into a Date
+function parseDateString(dateStr: string): Date {
+  if (!dateStr) return new Date();
+  const lower = dateStr.toLowerCase().trim();
+  if (lower === "present" || lower === "current" || lower === "") return new Date();
+
+  const months: Record<string, number> = {
+    jan: 0, january: 0, feb: 1, february: 1, mar: 2, march: 2,
+    apr: 3, april: 3, may: 4, jun: 5, june: 5, jul: 6, july: 6,
+    aug: 7, august: 7, sep: 8, september: 8, oct: 9, october: 9,
+    nov: 10, november: 10, dec: 11, december: 11
+  };
+
+  const parts = dateStr.trim().split(/[\s,]+/);
+  let month = 0;
+  let year = new Date().getFullYear();
+
+  for (const part of parts) {
+    const monthNum = months[part.toLowerCase()];
+    if (monthNum !== undefined) {
+      month = monthNum;
+    } else if (/^\d{4}$/.test(part)) {
+      year = parseInt(part);
+    }
+  }
+
+  return new Date(year, month, 1);
+}
+
+// Calculate total years of experience from work history
+function calculateYearsOfExperience(workExperience: Array<{ start_date: string; end_date: string }>): number {
+  if (!workExperience || workExperience.length === 0) return 0;
+
+  // Find earliest start date and latest end date
+  let earliestStart = new Date();
+  let latestEnd = new Date(0);
+
+  for (const exp of workExperience) {
+    const startDate = parseDateString(exp.start_date);
+    const endDate = parseDateString(exp.end_date);
+
+    if (startDate < earliestStart) {
+      earliestStart = startDate;
+    }
+    if (endDate > latestEnd) {
+      latestEnd = endDate;
+    }
+  }
+
+  // Calculate years difference
+  const msPerYear = 1000 * 60 * 60 * 24 * 365.25;
+  const years = Math.floor((latestEnd.getTime() - earliestStart.getTime()) / msPerYear);
+
+  // Return at least 1 year if they have work experience
+  return Math.max(1, years);
+}
+
 // Role-specific task templates
 const roleTaskTemplates: Record<string, string[]> = {
   "account development representative": [
@@ -243,6 +300,104 @@ Return ONLY valid JSON:
   }
 }
 
+// Analyze job description and compare against user's resume
+export async function analyzeJobDescription(
+  jobDescription: string,
+  jobTitle: string,
+  companyName: string,
+  resume: ParsedResume,
+  jobDetails?: JobDetailsParsed
+): Promise<JobAnalysis> {
+  // Extract all user skills and experience for comparison
+  const allBullets = resume.work_experience.flatMap(exp => exp.description || []);
+  const userSkills = resume.skills || [];
+
+  const prompt = `Analyze this job description and compare it against the candidate's resume.
+
+JOB TITLE: ${jobTitle}
+COMPANY: ${companyName}
+
+JOB DESCRIPTION:
+${jobDescription.slice(0, 3000)}
+
+${jobDetails ? `
+PARSED JOB DETAILS:
+Requirements: ${jobDetails.requirements.slice(0, 8).map(r => `• ${r}`).join('\n')}
+Responsibilities: ${jobDetails.responsibilities.slice(0, 5).map(r => `• ${r}`).join('\n')}
+Location: ${jobDetails.location || 'Not specified'}
+Work Type: ${jobDetails.work_type || 'Not specified'}
+Salary: ${jobDetails.salary_range || 'Not specified'}
+` : ''}
+
+CANDIDATE'S SKILLS:
+${userSkills.join(', ')}
+
+CANDIDATE'S EXPERIENCE:
+${allBullets.slice(0, 10).map(b => `• ${b}`).join('\n')}
+
+TASK: Perform a comprehensive analysis of the job and how well the candidate matches.
+
+1. SUMMARY (2-3 sentences): Brief overview of the role and what the company is looking for.
+
+2. KEYWORDS: Extract 10-15 key skills/technologies mentioned in the job description.
+   - Mark each as "required" (must-have) or "preferred" (nice-to-have)
+   - Check if each keyword appears in the candidate's skills or experience
+
+3. REQUIREMENTS: List 6-10 key requirements from the job.
+   - Categorize each as "required" or "preferred"
+   - For each requirement, find matching experience from the candidate's resume
+   - Mark match status: "matched" (direct match), "partial" (related experience), or "missing"
+
+4. COVERAGE SCORE: Calculate a percentage (0-100) based on how many requirements/keywords the candidate matches.
+
+Return ONLY valid JSON:
+{
+  "summary": "Brief summary of the role...",
+  "keywords": [
+    { "skill": "Python", "importance": "required", "inResume": true },
+    { "skill": "Docker", "importance": "preferred", "inResume": false }
+  ],
+  "requirements": [
+    {
+      "text": "5+ years of software engineering experience",
+      "priority": "required",
+      "matchedExperience": "6 years as Software Engineer at Tech Corp",
+      "matchStatus": "matched"
+    },
+    {
+      "text": "Experience with Kubernetes",
+      "priority": "preferred",
+      "matchedExperience": null,
+      "matchStatus": "missing"
+    }
+  ],
+  "coverageScore": 75
+}`;
+
+  try {
+    const response = await callAI(prompt);
+    const cleanedResponse = response
+      .replace(/```json\n?/g, "")
+      .replace(/```\n?/g, "")
+      .trim();
+
+    const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]);
+    }
+    return JSON.parse(cleanedResponse);
+  } catch (error) {
+    console.error("Failed to analyze job description:", error);
+    // Return a minimal analysis on failure
+    return {
+      summary: `${jobTitle} position at ${companyName}.`,
+      keywords: [],
+      requirements: [],
+      coverageScore: 0,
+    };
+  }
+}
+
 export interface ParsedResume {
   contact_info: {
     name: string;
@@ -391,43 +546,59 @@ export async function generateCoverLetter(
   jobTitle: string,
   companyName: string
 ): Promise<string> {
-  const prompt = `Write the BODY ONLY of a cover letter (no greeting, no closing signature - those are handled separately).
+  // Extract key achievements with metrics from resume
+  const allBullets = resume.work_experience.flatMap(exp => exp.description || []);
+  const achievementBullets = allBullets
+    .filter(b => /\d+%|\$[\d.,]+[KMB]?|\d+\+/.test(b))
+    .slice(0, 3);
 
-CANDIDATE:
-${resume.work_experience.map(exp => `${exp.title} at ${exp.company} (${exp.start_date} - ${exp.end_date})`).join("\n")}
-Key skills: ${resume.skills.slice(0, 10).join(", ")}
+  const prompt = `**Situation**
+You are writing the BODY ONLY of a cover letter for a job application. No greeting ("Dear...") and no closing signature ("Sincerely...") - those are handled separately. The cover letter must feel authentic, energetic, and human - not robotic or generic.
 
-TARGET ROLE: ${jobTitle} at ${companyName}
+**Candidate Background**
+${resume.work_experience.map(exp => `• ${exp.title} at ${exp.company} (${exp.start_date} - ${exp.end_date})`).join("\n")}
 
-JOB REQUIREMENTS:
+Key Skills: ${resume.skills.slice(0, 10).join(", ")}
+
+Key Achievements:
+${achievementBullets.length > 0 ? achievementBullets.map(b => `• ${b}`).join("\n") : "• See work experience above"}
+
+**Target Role**
+Position: ${jobTitle} at ${companyName}
+
+Job Description:
 ${jobDescription.slice(0, 1500)}
 
-WRITE 3 PARAGRAPHS (250-300 words total):
+**Task**
+Write 3 paragraphs (250-300 words total) that create a compelling, human cover letter:
 
-Paragraph 1 - Hook & Alignment:
-- Open with WHY this specific company/role appeals to you (not generic "I'm excited")
-- Reference something specific about ${companyName} from the job description
-- State your relevant background in one sentence
+**Paragraph 1 - Attention-Grabbing Opening**
+- Start with a sentence that immediately demonstrates genuine excitement about this role
+- Show alignment with ${companyName}'s mission, values, or recent work (reference something specific from the job description)
+- Connect your passion to real value you can bring in this ${jobTitle} role
+- Feel authentic and energetic - avoid generic openings
 
-Paragraph 2 - Proof:
-- Connect 2 specific achievements from your experience to their requirements
-- Use actual numbers/results from your background
+**Paragraph 2 - Compelling Narrative**
+- Highlight your most relevant experience and connect it directly to the job requirements
+- Include 1-2 specific achievements with real numbers/metrics from your background
 - Show you understand what they need and have done it before
+- If your background seems like a transition, frame the shift as a strength
 
-Paragraph 3 - Forward-looking close:
-- What you'd bring to the team (be specific, not generic)
-- Express genuine interest in discussing further
-- Keep it confident but not arrogant
+**Paragraph 3 - Strong, Memorable Closing**
+- Be warm, confident, and leave a strong final impression
+- Explain what specific value you'd bring to the team
+- Invite the employer to connect
+- End memorably - not with a generic "I look forward to hearing from you"
 
-CRITICAL RULES:
-- DO NOT start with "I am writing to..." or "I am excited to apply..."
-- DO NOT use phrases like "I believe I would be a great fit" or "I am confident that..."
-- DO NOT include "Dear Hiring Manager" or any greeting
-- DO NOT include "Sincerely," or any signature
-- VARY sentence structure - mix short and long sentences
-- Use contractions naturally (I've, I'm, that's)
+**Critical Rules**
+- DO NOT start with "I am writing to..." or "I am excited to apply..." or "I came across..."
+- DO NOT use "I believe I would be a great fit" or "I am confident that..."
+- DO NOT sound stiff or robotic - be conversational and genuine
+- VARY sentence structure - mix short punchy sentences with longer ones
+- Use contractions naturally (I've, I'm, that's, don't)
 - Be specific, not generic - reference actual experience and actual job requirements
 - Sound like a confident professional wrote this, not an AI
+- Match a professional but warm tone
 
 Output ONLY the 3 paragraphs of body text, nothing else.`;
 
@@ -497,8 +668,8 @@ If no recruiter info is found, return all nulls with confidence 0.`;
   }
 }
 
-// Import InterviewGuide type
-import { InterviewGuide, InterviewRound } from "./db";
+// Import types from db
+import { InterviewGuide, JobAnalysis } from "./db";
 
 // Generate comprehensive interview preparation guide
 export async function generateInterviewGuide(
@@ -616,7 +787,6 @@ Return ONLY valid JSON matching this structure:
     return JSON.parse(cleanedResponse);
   } catch (error) {
     console.error("Failed to generate interview guide:", error);
-    // Return a minimal default guide
     return {
       companyResearch: {
         overview: `${companyName} is hiring for the ${jobTitle} position.`,
@@ -664,11 +834,9 @@ export async function generateSummaryOptions(
     .filter(b => /\d+%|\$[\d.,]+[KMB]?|\d+\+/.test(b)) // Has metrics
     .slice(0, 2);
 
-  // Calculate years of experience
+  // Calculate years of experience from actual dates
   const mostRecent = resume.work_experience[0];
-  const totalYears = resume.work_experience.length > 0
-    ? Math.max(2, resume.work_experience.length * 2) // Rough estimate
-    : 3;
+  const totalYears = calculateYearsOfExperience(resume.work_experience);
 
   // Get role-specific summary examples
   const roleSummaryExamples = getRoleSummaries(jobTitle).slice(0, 2);
@@ -678,44 +846,38 @@ export async function generateSummaryOptions(
     ? `\nCANDIDATE'S ACTUAL METRICS (USE ONLY THESE - DO NOT INVENT):\n${userMetrics.map(m => `• ${m}`).join("\n")}\n`
     : "\n(No specific metrics found - do not invent metrics, focus on qualitative strengths)\n";
 
-  const prompt = `Write 3 professional summary options for this candidate applying to ${jobTitle} at ${companyName}.
+  const prompt = `**Situation**
+You are crafting a professional resume summary for a specific job application. This summary will appear at the top of your resume and serves as the first impression for hiring managers at the target company. The summary must immediately communicate your value proposition and relevance to the role.
 
-ABOUT ${companyName.toUpperCase()} (TARGET COMPANY):
-${companyContext}
+**Task**
+Create a compelling 3-4 sentence professional summary that synthesizes your career experience, core competencies, and notable achievements. The summary should be specifically tailored to align with the requirements and culture of the ${jobTitle} role at ${companyName}.
 
-THE CANDIDATE:
-• Most recent: ${mostRecent?.title || 'N/A'} at ${mostRecent?.company || 'N/A'}
-• Experience: ~${totalYears}+ years in ${mostRecent?.title?.split(' ').pop() || 'their field'}
-• Key skills: ${resume.skills.slice(0, 10).join(", ")}
-${achievementBullets.length > 0 ? `• Top achievements:\n  - ${achievementBullets.join("\n  - ")}` : ""}
+**Objective**
+Position yourself as the ideal candidate by demonstrating clear alignment between your professional background and the target role's requirements, while highlighting your unique value and differentiators that would make you stand out among other applicants.
+
+**Knowledge**
+Here is the information to create the summary:
+
+- **Target Role Details**: ${jobTitle} at ${companyName}
+- **Job Requirements**: ${jobDescription.slice(0, 1200)}
+- **Your Experience**: ${totalYears}+ years of experience, most recently as ${mostRecent?.title || 'N/A'} at ${mostRecent?.company || 'N/A'}
+- **Core Skills**: ${resume.skills.slice(0, 7).join(", ")}
+- **Key Achievements**: ${achievementBullets.length > 0 ? achievementBullets.join("; ") : "Not specified"}
 ${metricsSection}
-TARGET ROLE REQUIREMENTS:
-${jobDescription.slice(0, 1000)}
+- **Company Information**: ${companyContext}
 
-${roleSummaryExamples.length > 0 ? `REFERENCE EXAMPLES:
-${roleSummaryExamples.map(s => `"${s.summary}"`).join("\n")}` : ""}
+**Output Requirements**
+The summary should:
+- Be 3-4 sentences (approximately 50-80 words total)
+- Lead with your professional identity and years of experience
+- Incorporate 3-4 key skills that match the job description
+- Include at least one quantifiable achievement from the metrics provided (DO NOT invent metrics)
+- Use active, confident language with strong action verbs
+- Avoid generic phrases like "team player" or "results-driven" unless backed by specific evidence
+- Reflect terminology and keywords from the job posting to pass ATS systems
+- End with a forward-looking statement about your goal or what you bring to the company
 
-WRITE 3 SUMMARIES (2-3 sentences, 40-60 words each):
-
-Each summary MUST:
-1. Open with years of experience + specialty
-2. Reference ${companyName} or their industry specifically
-3. Include 1-2 metrics from "CANDIDATE'S ACTUAL METRICS" above - DO NOT invent new numbers
-4. Use keywords from the job description
-5. End with value proposition for THIS role at ${companyName}
-
-THREE DISTINCT ANGLES:
-• Summary 1 - INDUSTRY EXPERTISE: Lead with domain knowledge (e.g., "SaaS sales leader with 5+ years...")
-• Summary 2 - QUANTIFIED ACHIEVEMENT: Lead with biggest metric from ACTUAL METRICS (e.g., "Revenue driver who generated $4M+...")
-• Summary 3 - GROWTH/TRANSFORMATION: Lead with scale/impact from ACTUAL METRICS (e.g., "Growth-focused leader who scaled team from 5 to 20...")
-
-**METRIC RULE**: You may ONLY use metrics that appear in "CANDIDATE'S ACTUAL METRICS". Do NOT invent, estimate, or create new percentages, dollar amounts, or numbers.
-
-BAD (invented metric): "Generated $5M in revenue" (if $5M wasn't in actual metrics)
-GOOD (using actual metric): "Generated $4M+ ARR" (if $4M was in actual metrics)
-GOOD (no metric if none available): "Drove significant revenue growth across enterprise accounts"
-
-METRIC FORMAT: Always use numbers (25%, $1.2M, 10+) - never write them out
+Generate 3 different summary options, each with a slightly different angle or emphasis.
 
 RESPOND WITH ONLY A JSON ARRAY OF 3 STRINGS:
 ["Summary 1...", "Summary 2...", "Summary 3..."]`;
@@ -769,7 +931,7 @@ TARGET JOB (${jobTitle} at ${companyName}):
 ${jobDescription.slice(0, 1200)}
 
 CRITICAL INSTRUCTIONS:
-1. Each bullet must be 8-12 words (concise, fits one resume line)
+1. Each bullet should be 1-2 lines (15-30 words) - detailed enough to show impact
 2. Each bullet must describe a SPECIFIC activity, not just a result
 3. Pretend you're a ${role.title} at ${role.company}. Describe your responsibilities and achievements as if you actually held this role
 4. Include WHO you worked with (clients, teams, stakeholders)
@@ -879,6 +1041,60 @@ RESPOND WITH ONLY THIS JSON FORMAT, NO OTHER TEXT:
   return JSON.parse(cleanedResponse);
 }
 
+export interface CalendarEventClassification {
+  type: "interview" | "deadline" | "reminder" | "unrelated";
+  company: string | null;
+  confidence: number;
+  summary: string;
+}
+
+export async function classifyCalendarEvent(
+  event: { title: string; description: string; location: string; attendees: string[] },
+  knownCompanies: string[]
+): Promise<CalendarEventClassification> {
+  const prompt = `Classify this calendar event related to job applications.
+
+CALENDAR EVENT:
+Title: ${event.title}
+Description: ${event.description.slice(0, 500)}
+Location: ${event.location}
+Attendees: ${event.attendees.join(", ")}
+
+COMPANIES THE USER HAS APPLIED TO:
+${knownCompanies.join(", ")}
+
+Classify this event as one of:
+- "interview": Job interview, phone screen, technical interview, final round, etc.
+- "deadline": Application deadline, follow-up deadline, document submission deadline
+- "reminder": Reminder to apply, follow up, or check status
+- "unrelated": Not related to any job application from the list
+
+Return ONLY valid JSON:
+{
+  "type": "interview|deadline|reminder|unrelated",
+  "company": "Company name from the list above, or null if unrelated",
+  "confidence": 0.0 to 1.0,
+  "summary": "Brief one-sentence summary of the event"
+}`;
+
+  try {
+    const response = await callAI(prompt);
+    const cleanedResponse = response
+      .replace(/```json\n?/g, "")
+      .replace(/```\n?/g, "")
+      .trim();
+
+    return JSON.parse(cleanedResponse);
+  } catch {
+    return {
+      type: "unrelated",
+      company: null,
+      confidence: 0,
+      summary: "Failed to classify",
+    };
+  }
+}
+
 export async function classifyEmail(
   email: { from: string; subject: string; body: string; snippet: string },
   knownCompanies: string[]
@@ -939,6 +1155,207 @@ Return ONLY valid JSON:
 }
 
 // Generate bullet point recommendations for onboarding (no target job)
+// Enhanced email classification with interview details extraction
+export interface EnhancedEmailClassification extends EmailClassification {
+  interview_details?: {
+    interview_type: 'phone_screen' | 'technical' | 'behavioral' | 'onsite' | 'panel' | 'final' | 'other';
+    proposed_datetime: string | null; // ISO string if extractable
+    duration_minutes: number | null;
+    location: string | null;
+    meeting_link: string | null;
+    interviewer_names: string[];
+    requires_response: boolean;
+  };
+}
+
+export async function classifyEmailEnhanced(
+  email: { from: string; subject: string; body: string; snippet: string },
+  knownCompanies: string[]
+): Promise<EnhancedEmailClassification> {
+  const prompt = `Classify this email related to job applications and extract all relevant details.
+
+EMAIL:
+From: ${email.from}
+Subject: ${email.subject}
+Body: ${email.snippet} ${email.body.slice(0, 2000)}
+
+COMPANIES THE USER HAS APPLIED TO:
+${knownCompanies.join(", ")}
+
+Classify this email and extract information:
+
+1. EMAIL TYPE:
+- "confirmation": Application received/submitted confirmation
+- "rejection": The candidate was rejected or not moving forward
+- "interview": Interview invitation, scheduling, or rescheduling
+- "offer": Job offer
+- "unrelated": Not related to any job application from the list
+
+2. If type is "interview", also extract:
+- Interview type: phone_screen, technical, behavioral, onsite, panel, final, or other
+- Proposed date/time (in ISO format if clearly stated, e.g., "2024-01-15T10:00:00")
+- Duration in minutes (e.g., 30, 45, 60)
+- Location (if in-person) or meeting link (Zoom, Teams, etc.)
+- Names of interviewers mentioned
+- Whether the email requires a response to confirm/schedule
+
+3. Extract recruiter information from the email
+
+Return ONLY valid JSON:
+{
+  "type": "confirmation|rejection|interview|offer|unrelated",
+  "company": "Company name or null",
+  "confidence": 0.0 to 1.0,
+  "summary": "Brief summary",
+  "recruiter_name": "Name or null",
+  "recruiter_email": "Email or null",
+  "recruiter_title": "Title or null",
+  "interview_details": {
+    "interview_type": "phone_screen|technical|behavioral|onsite|panel|final|other",
+    "proposed_datetime": "ISO string or null",
+    "duration_minutes": number or null,
+    "location": "string or null",
+    "meeting_link": "URL or null",
+    "interviewer_names": ["name1", "name2"],
+    "requires_response": true or false
+  }
+}
+
+Only include interview_details if type is "interview".`;
+
+  try {
+    const response = await callAI(prompt);
+    const cleanedResponse = response
+      .replace(/```json\n?/g, "")
+      .replace(/```\n?/g, "")
+      .trim();
+
+    const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]);
+    }
+    return JSON.parse(cleanedResponse);
+  } catch {
+    return {
+      type: "unrelated",
+      company: null,
+      confidence: 0,
+      summary: "Failed to classify",
+    };
+  }
+}
+
+// Generate thank-you email content
+export interface GeneratedEmail {
+  subject: string;
+  body: string;
+}
+
+export async function generateThankYouEmail(
+  companyName: string,
+  jobTitle: string,
+  interviewerNames: string[],
+  interviewType: string,
+  candidateName: string,
+  notesFromInterview?: string
+): Promise<GeneratedEmail> {
+  const prompt = `Write a professional thank-you email after a job interview.
+
+CONTEXT:
+- Company: ${companyName}
+- Position: ${jobTitle}
+- Interviewer(s): ${interviewerNames.length > 0 ? interviewerNames.join(", ") : "the interviewer"}
+- Interview type: ${interviewType}
+- Candidate name: ${candidateName}
+${notesFromInterview ? `- Notes from interview: ${notesFromInterview}` : ""}
+
+REQUIREMENTS:
+1. Keep it brief (150-200 words max)
+2. Be professional but warm
+3. Reference something specific if notes are provided
+4. Reiterate interest in the role
+5. Don't be overly formal or stiff
+
+Return ONLY valid JSON:
+{
+  "subject": "Email subject line",
+  "body": "Email body text (can include line breaks with \\n)"
+}`;
+
+  try {
+    const response = await callAI(prompt);
+    const cleanedResponse = response
+      .replace(/```json\n?/g, "")
+      .replace(/```\n?/g, "")
+      .trim();
+
+    const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]);
+    }
+    return JSON.parse(cleanedResponse);
+  } catch {
+    return {
+      subject: `Thank you - ${jobTitle} Interview`,
+      body: `Thank you for taking the time to speak with me about the ${jobTitle} position at ${companyName}. I enjoyed learning more about the role and the team.\n\nI remain very interested in this opportunity and look forward to hearing from you about next steps.\n\nBest regards,\n${candidateName}`,
+    };
+  }
+}
+
+// Generate follow-up email content
+export async function generateFollowUpEmail(
+  companyName: string,
+  jobTitle: string,
+  lastContactDate: string,
+  candidateName: string,
+  recruiterName?: string,
+  context?: string
+): Promise<GeneratedEmail> {
+  const daysSince = Math.floor((Date.now() - new Date(lastContactDate).getTime()) / (1000 * 60 * 60 * 24));
+
+  const prompt = `Write a professional follow-up email for a job application.
+
+CONTEXT:
+- Company: ${companyName}
+- Position: ${jobTitle}
+- Days since last contact: ${daysSince}
+- Candidate name: ${candidateName}
+${recruiterName ? `- Recruiter name: ${recruiterName}` : ""}
+${context ? `- Additional context: ${context}` : ""}
+
+REQUIREMENTS:
+1. Keep it brief (100-150 words max)
+2. Be polite but direct - you're checking in on the status
+3. Don't be pushy or desperate
+4. Reference the timeline appropriately (if it's been a while, acknowledge it)
+5. Make it easy for them to respond
+
+Return ONLY valid JSON:
+{
+  "subject": "Email subject line",
+  "body": "Email body text (can include line breaks with \\n)"
+}`;
+
+  try {
+    const response = await callAI(prompt);
+    const cleanedResponse = response
+      .replace(/```json\n?/g, "")
+      .replace(/```\n?/g, "")
+      .trim();
+
+    const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]);
+    }
+    return JSON.parse(cleanedResponse);
+  } catch {
+    return {
+      subject: `Following up - ${jobTitle} Application`,
+      body: `${recruiterName ? `Hi ${recruiterName},` : "Hello,"}\n\nI hope this message finds you well. I wanted to follow up on my application for the ${jobTitle} position at ${companyName}.\n\nI remain very interested in this opportunity and would love to hear any updates on the hiring process when you have a chance.\n\nThank you for your time.\n\nBest regards,\n${candidateName}`,
+    };
+  }
+}
+
 export async function generateOnboardingBullets(
   role: { company: string; title: string },
   existingBullets: string[]
@@ -974,7 +1391,7 @@ Examples:
 REQUIREMENTS:
 - Start each bullet with a strong action verb
 - Include at least one metric (%, $, #, or timeframe)
-- Keep each bullet to 8-12 words (concise, one line)
+- Each bullet should be 1-2 lines (15-30 words) - detailed enough to show impact
 - Cover different aspects: leadership, technical work, business impact, collaboration, innovation
 
 METRIC FORMAT (CRITICAL):

@@ -1,31 +1,148 @@
-// ResumeScale LinkedIn Job Saver Content Script
+// ResumeGenie LinkedIn Job Saver Content Script
 
 (function() {
-  let notifiedJobs = new Set();
-  let lastCheckedUrl = '';
+  console.log('[ResumeGenie] Content script loaded on:', window.location.href);
+
+  let lastSentJobKey = '';
 
   function extractJobData() {
-    // Job title - try multiple selectors
-    const jobTitle = document.querySelector('.job-details-jobs-unified-top-card__job-title h1')?.textContent?.trim()
-      || document.querySelector('.jobs-unified-top-card__job-title')?.textContent?.trim()
-      || document.querySelector('h1.t-24')?.textContent?.trim()
-      || document.querySelector('.jobs-details-top-card__job-title')?.textContent?.trim()
-      || document.querySelector('h1[class*="job-title"]')?.textContent?.trim()
-      || '';
+    // Job title - LinkedIn uses obfuscated classes, need multiple strategies
+    let jobTitle = '';
+    let companyName = '';
 
-    // Company name
-    const companyName = document.querySelector('.job-details-jobs-unified-top-card__company-name a')?.textContent?.trim()
-      || document.querySelector('.jobs-unified-top-card__company-name a')?.textContent?.trim()
-      || document.querySelector('.job-details-jobs-unified-top-card__primary-description-container a')?.textContent?.trim()
-      || document.querySelector('.jobs-details-top-card__company-url')?.textContent?.trim()
-      || '';
+    // Method 1: Get from page title (format is "Job Title at Company | LinkedIn")
+    const pageTitle = document.title;
+    const titleMatch = pageTitle.match(/^(.+?)\s+(?:at|-)\s+(.+?)\s*[|\-–]/);
+    if (titleMatch) {
+      jobTitle = titleMatch[1].trim();
+      companyName = titleMatch[2].trim();
+      console.log('[ResumeGenie] Found from page title:', jobTitle, 'at', companyName);
+    }
 
-    // Job description
-    const jobDescription = document.querySelector('.jobs-description__content')?.innerText?.trim()
+    // Method 2: Find the job details panel and extract from there
+    if (!jobTitle) {
+      // The job details are in the RIGHT side panel (typically x > 500px on desktop)
+      // Look for large text that looks like a job title
+      const allElements = document.querySelectorAll('h1, h2, h3, a, span, div, p');
+
+      for (const el of allElements) {
+        const rect = el.getBoundingClientRect();
+
+        // Skip if element is hidden or very small
+        if (rect.width === 0 || rect.height === 0) continue;
+
+        // IMPORTANT: Only look at elements on the RIGHT side (job details panel)
+        // The left panel (job list) typically ends around x=500-600
+        if (rect.left < 400) continue;
+
+        const text = el.textContent?.trim() || '';
+
+        // Skip if text is too short, too long, or has line breaks
+        if (text.length < 5 || text.length > 80 || text.includes('\n')) continue;
+
+        // Skip common non-title text
+        if (text.match(/^(easy apply|save|share|show|hide|apply|report|follow|see more|message|jobs based|results|premium)/i)) continue;
+        if (text.match(/^\d+\s*(applicant|view|connection|follower)/i)) continue;
+        if (text.match(/(your preferences|how promoted)/i)) continue;
+
+        const style = window.getComputedStyle(el);
+        const fontSize = parseFloat(style.fontSize);
+        const fontWeight = parseInt(style.fontWeight) || 400;
+
+        // Job titles are typically large (18px+) and often bold
+        if (fontSize >= 18 && fontWeight >= 400 && rect.top < 400) {
+          // Check if it looks like a job title (contains role-like words or is in title case)
+          const looksLikeTitle = text.match(/(engineer|developer|manager|director|analyst|designer|specialist|executive|lead|senior|junior|associate|coordinator|consultant|architect|scientist|administrator|representative|account|sales|marketing|intern|officer|head|vp|president|chief)/i)
+            || (text[0] === text[0].toUpperCase() && !text.match(/^(the|a|an|and|or|but|in|on|at|to|for|jobs|about|people|premium)\b/i));
+
+          if (looksLikeTitle) {
+            jobTitle = text;
+            console.log('[ResumeGenie] Found job title via DOM scan:', jobTitle, 'fontSize:', fontSize, 'fontWeight:', fontWeight, 'rect.left:', rect.left);
+            break;
+          }
+        }
+      }
+    }
+
+    // Method 3: Look for company name if not found yet
+    if (!companyName) {
+      // Company names often appear as links or near company logos
+      const companyLinks = document.querySelectorAll('a[href*="/company/"]');
+      for (const link of companyLinks) {
+        const text = link.textContent?.trim();
+        if (text && text.length > 1 && text.length < 60 && !text.match(/^(follow|see|view|show)/i)) {
+          companyName = text;
+          console.log('[ResumeGenie] Found company via link:', companyName);
+          break;
+        }
+      }
+    }
+
+    // Method 4: Legacy selectors as final fallback
+    if (!jobTitle) {
+      jobTitle = document.querySelector('.job-details-jobs-unified-top-card__job-title h1')?.textContent?.trim()
+        || document.querySelector('.jobs-unified-top-card__job-title')?.textContent?.trim()
+        || document.querySelector('h1.t-24')?.textContent?.trim()
+        || '';
+    }
+
+    if (!companyName) {
+      companyName = document.querySelector('.job-details-jobs-unified-top-card__company-name a')?.textContent?.trim()
+        || document.querySelector('.jobs-unified-top-card__company-name a')?.textContent?.trim()
+        || document.querySelector('.job-details-jobs-unified-top-card__primary-description-container a')?.textContent?.trim()
+        || '';
+    }
+
+    // Job description - look for "About the job" section or similar
+    let jobDescription = '';
+
+    // Method 1: Try legacy selectors
+    jobDescription = document.querySelector('.jobs-description__content')?.innerText?.trim()
       || document.querySelector('.jobs-box__html-content')?.innerText?.trim()
       || document.querySelector('#job-details')?.innerText?.trim()
       || document.querySelector('.jobs-description-content__text')?.innerText?.trim()
       || '';
+
+    // Method 2: Find "About the job" section by scanning the page
+    if (!jobDescription) {
+      const allElements = document.querySelectorAll('h2, h3, div, section');
+      for (const el of allElements) {
+        const text = el.textContent?.trim() || '';
+        if (text.toLowerCase().startsWith('about the job') || text.toLowerCase().startsWith('about this job')) {
+          // Get the parent or next sibling content
+          const parent = el.closest('section') || el.closest('div') || el.parentElement;
+          if (parent) {
+            const desc = parent.innerText?.trim() || '';
+            if (desc.length > 100) {
+              jobDescription = desc;
+              console.log('[ResumeGenie] Found job description via "About the job" section, length:', desc.length);
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    // Method 3: Find any large text block in the right panel that looks like a description
+    if (!jobDescription) {
+      const textBlocks = document.querySelectorAll('div, section, article');
+      for (const el of textBlocks) {
+        const rect = el.getBoundingClientRect();
+        // Must be in the right panel and below the header
+        if (rect.left < 400 || rect.top < 300) continue;
+
+        const text = el.innerText?.trim() || '';
+        // Description should be substantial text
+        if (text.length > 200 && text.length < 10000) {
+          // Check it's not just navigation or other UI
+          if (!text.match(/^(easy apply|save|share|show|hide|premium|people you)/i)) {
+            jobDescription = text;
+            console.log('[ResumeGenie] Found job description via text block scan, length:', text.length);
+            break;
+          }
+        }
+      }
+    }
 
     // Company URL
     const companyUrl = document.querySelector('.job-details-jobs-unified-top-card__company-name a')?.href
@@ -125,60 +242,43 @@
       benefits: benefits,
       recruiter: recruiter,
       employment_type: employmentType,
-      posted_date: postedDate
+      posted_date: postedDate,
+      source: 'linkedin'
     };
   }
 
-  function showJobNotification(jobTitle) {
-    // Remove any existing notification
-    const existing = document.querySelector('.resumescale-job-notification');
-    if (existing) existing.remove();
-
-    const notification = document.createElement('div');
-    notification.className = 'resumescale-job-notification';
-    notification.innerHTML = `
-      <div class="resumescale-notif-icon">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-          <polyline points="17 21 17 13 7 13 7 21"></polyline>
-          <polyline points="7 3 7 8 15 8"></polyline>
-        </svg>
-      </div>
-      <div class="resumescale-notif-content">
-        <div class="resumescale-notif-title">Import "${jobTitle}"</div>
-        <div class="resumescale-notif-subtitle">Click the ResumeScale extension</div>
-      </div>
-      <button class="resumescale-notif-close">&times;</button>
-    `;
-
-    // Close button handler
-    notification.querySelector('.resumescale-notif-close').addEventListener('click', (e) => {
-      e.stopPropagation();
-      notification.remove();
+  function sendJobToSidePanel() {
+    const jobData = extractJobData();
+    console.log('[ResumeGenie] Extracted job data:', {
+      title: jobData.job_title,
+      company: jobData.company_name,
+      hasDescription: jobData.job_description.length > 0
     });
 
-    // Auto-hide after 5 seconds
-    setTimeout(() => {
-      if (notification.parentNode) {
-        notification.classList.add('resumescale-notif-fadeout');
-        setTimeout(() => notification.remove(), 300);
-      }
-    }, 5000);
-
-    document.body.appendChild(notification);
-  }
-
-  function checkForNewJob() {
-    const jobData = extractJobData();
-
     if (jobData.job_title && jobData.job_title.length > 0) {
-      // Create a unique key for this job
       const jobKey = `${jobData.job_title}|${jobData.company_name}`;
 
-      if (!notifiedJobs.has(jobKey)) {
-        notifiedJobs.add(jobKey);
-        showJobNotification(jobData.job_title);
+      // Only send if it's a new/different job
+      if (jobKey !== lastSentJobKey) {
+        lastSentJobKey = jobKey;
+        console.log('[ResumeGenie] Sending job to side panel:', jobData.job_title);
+        chrome.runtime.sendMessage({
+          type: 'JOB_DETECTED',
+          source: 'linkedin',
+          data: jobData
+        }).catch(() => {
+          // Side panel or background may not be ready
+        });
       }
+    } else {
+      if (lastSentJobKey !== '') {
+        lastSentJobKey = '';
+        chrome.runtime.sendMessage({
+          type: 'NO_JOB',
+          source: 'linkedin'
+        }).catch(() => {});
+      }
+      console.log('[ResumeGenie] No job title found. Page title:', document.title);
     }
   }
 
@@ -195,11 +295,11 @@
     };
   }
 
-  const debouncedCheck = debounce(checkForNewJob, 500);
+  const debouncedSend = debounce(sendJobToSidePanel, 500);
 
   // Watch for DOM changes (LinkedIn is a SPA)
   const observer = new MutationObserver(() => {
-    debouncedCheck();
+    debouncedSend();
   });
 
   observer.observe(document.body, {
@@ -208,13 +308,21 @@
   });
 
   // Initial check after page loads
-  setTimeout(checkForNewJob, 1500);
+  console.log('[ResumeGenie] Will check for job in 1.5 seconds...');
+  setTimeout(() => {
+    console.log('[ResumeGenie] Running initial job check');
+    sendJobToSidePanel();
+  }, 1500);
 
-  // Listen for messages from the popup
+  // Listen for messages from the side panel (via background)
   chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'getJobData') {
       const jobData = extractJobData();
       sendResponse(jobData);
+    }
+    if (request.action === 'scanForJob') {
+      sendJobToSidePanel();
+      sendResponse({ status: 'scanning' });
     }
     return true; // Keep the message channel open for async response
   });

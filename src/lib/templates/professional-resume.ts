@@ -58,7 +58,7 @@ export function generateProfessionalHTML(data: ResumeData, accentColor: string =
 
     body {
       font-family: 'Inter', sans-serif;
-      font-size: 10.3pt;
+      font-size: 9.5pt;
       line-height: 1.5;
       color: #333;
       width: 8.5in;
@@ -76,14 +76,14 @@ export function generateProfessionalHTML(data: ResumeData, accentColor: string =
 
     .main-content {
       /* Leave space for footer: Skills (~1.1in) + Education (~0.6in) = ~1.7in from bottom */
-      /* Page height 11in - top padding 0.6in - bottom padding 0.6in - footer 1.7in = 8.1in */
-      max-height: 6.4in;
+      /* Footer moved to 0.4in from bottom, giving 0.2in more room */
+      max-height: 6.6in;
       overflow: hidden;
     }
 
     .footer-sections {
       position: absolute;
-      bottom: 0.6in;
+      bottom: 0.4in;
       left: 0.7in;
       right: 0.7in;
     }
@@ -104,13 +104,13 @@ export function generateProfessionalHTML(data: ResumeData, accentColor: string =
     }
 
     .contact-line {
-      font-size: 10.3pt;
+      font-size: 9.5pt;
       color: #333;
       margin-bottom: 2px;
     }
 
     .linkedin {
-      font-size: 10.3pt;
+      font-size: 9.5pt;
       color: #333;
     }
 
@@ -132,7 +132,7 @@ export function generateProfessionalHTML(data: ResumeData, accentColor: string =
 
     /* Summary text */
     .summary-text {
-      font-size: 10.3pt;
+      font-size: 9.5pt;
       color: #333;
       line-height: 1.5;
     }
@@ -150,13 +150,13 @@ export function generateProfessionalHTML(data: ResumeData, accentColor: string =
     }
 
     .role-company {
-      font-size: 10.3pt;
+      font-size: 9.5pt;
       font-weight: 600;
       color: #1a1a1a;
     }
 
     .dates {
-      font-size: 10.3pt;
+      font-size: 9.5pt;
       color: #333;
     }
 
@@ -167,7 +167,7 @@ export function generateProfessionalHTML(data: ResumeData, accentColor: string =
     }
 
     .bullet-list li {
-      font-size: 10.3pt;
+      font-size: 9.5pt;
       color: #333;
       line-height: 1.5;
       margin-bottom: 2px;
@@ -184,7 +184,7 @@ export function generateProfessionalHTML(data: ResumeData, accentColor: string =
 
     /* Skills section */
     .skills-text {
-      font-size: 10.3pt;
+      font-size: 9.5pt;
       color: #333;
       line-height: 1.5;
     }
@@ -195,13 +195,13 @@ export function generateProfessionalHTML(data: ResumeData, accentColor: string =
     }
 
     .education-item .degree {
-      font-size: 10.3pt;
+      font-size: 9.5pt;
       font-weight: 600;
       color: #1a1a1a;
     }
 
     .education-item .school {
-      font-size: 10.3pt;
+      font-size: 9.5pt;
       color: #333;
     }
   </style>

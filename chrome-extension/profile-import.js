@@ -1,21 +1,21 @@
-// ResumeScale LinkedIn Profile Import Content Script
+// ResumeGenie LinkedIn Profile Import Content Script
 // Version 4.0 - Uses AI to parse entire page HTML
 
 (function() {
   // Check if this is an auto-import request
   const urlParams = new URLSearchParams(window.location.search);
-  const isAutoImport = urlParams.get('resumescale_import') === 'auto';
+  const isAutoImport = urlParams.get('resumegenie_import') === 'auto';
 
   if (!isAutoImport) {
     return; // Not an import request, do nothing
   }
 
-  console.log('[ResumeScale] Auto-import detected, starting profile capture...');
+  console.log('[ResumeGenie] Auto-import detected, starting profile capture...');
 
   // Show loading overlay
   function showLoadingOverlay() {
     const overlay = document.createElement('div');
-    overlay.id = 'resumescale-import-overlay';
+    overlay.id = 'resumegenie-import-overlay';
     overlay.innerHTML = `
       <div style="
         position: fixed;
@@ -48,7 +48,7 @@
             margin: 0 auto 16px;
           "></div>
           <h2 style="margin: 0 0 8px; color: #1e293b; font-size: 20px;">Importing Profile</h2>
-          <p id="resumescale-status" style="margin: 0; color: #64748b; font-size: 14px;">Loading your profile...</p>
+          <p id="resumegenie-status" style="margin: 0; color: #64748b; font-size: 14px;">Loading your profile...</p>
         </div>
       </div>
       <style>
@@ -61,12 +61,12 @@
   }
 
   function updateStatus(message) {
-    const status = document.getElementById('resumescale-status');
+    const status = document.getElementById('resumegenie-status');
     if (status) status.textContent = message;
   }
 
   function showError(message) {
-    const overlay = document.getElementById('resumescale-import-overlay');
+    const overlay = document.getElementById('resumegenie-import-overlay');
     if (overlay) {
       overlay.innerHTML = `
         <div style="
@@ -133,7 +133,7 @@
       // Check if extension is connected
       const settings = await getSettings();
       if (!settings.token || !settings.serverUrl) {
-        showError('Extension not connected. Please connect ResumeScale extension first via the popup.');
+        showError('Extension not connected. Please connect ResumeGenie extension first via the popup.');
         return;
       }
 
@@ -164,7 +164,7 @@
       updateStatus('Capturing profile data...');
       const pageHtml = document.documentElement.outerHTML;
 
-      console.log('[ResumeScale] Captured HTML length:', pageHtml.length);
+      console.log('[ResumeGenie] Captured HTML length:', pageHtml.length);
 
       // Send HTML to server for AI parsing
       updateStatus('Processing with AI...');
@@ -197,7 +197,7 @@
       }, 1000);
 
     } catch (error) {
-      console.error('[ResumeScale] Import error:', error);
+      console.error('[ResumeGenie] Import error:', error);
       showError(error.message || 'An error occurred during import');
     }
   }
