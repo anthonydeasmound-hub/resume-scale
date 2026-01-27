@@ -9,6 +9,9 @@ interface JobApplication {
   id: number;
   company_name: string;
   status: string;
+  recruiter_name: string | null;
+  recruiter_email: string | null;
+  recruiter_title: string | null;
 }
 
 export async function POST() {
@@ -27,7 +30,8 @@ export async function POST() {
 
     // Get all job applications
     const jobs = db.prepare(`
-      SELECT id, company_name, status FROM job_applications
+      SELECT id, company_name, status, recruiter_name, recruiter_email, recruiter_title
+      FROM job_applications
       WHERE user_id = ? AND status IN ('applied', 'interview')
     `).all(user.id) as JobApplication[];
 
@@ -60,6 +64,7 @@ export async function POST() {
       // Determine new status
       let newStatus: string | null = null;
       let interviewUpdate: Record<string, string> = {};
+      let recruiterUpdate: Record<string, string> = {};
 
       switch (classification.type) {
         case "confirmation":
@@ -84,7 +89,21 @@ export async function POST() {
           break;
       }
 
-      if (newStatus || Object.keys(interviewUpdate).length > 0) {
+      // Save recruiter info if extracted and not already saved
+      if (classification.recruiter_name && !matchingJob.recruiter_name) {
+        recruiterUpdate.recruiter_name = classification.recruiter_name;
+      }
+      if (classification.recruiter_email && !matchingJob.recruiter_email) {
+        recruiterUpdate.recruiter_email = classification.recruiter_email;
+      }
+      if (classification.recruiter_title && !matchingJob.recruiter_title) {
+        recruiterUpdate.recruiter_title = classification.recruiter_title;
+      }
+      if (Object.keys(recruiterUpdate).length > 0) {
+        recruiterUpdate.recruiter_source = 'email';
+      }
+
+      if (newStatus || Object.keys(interviewUpdate).length > 0 || Object.keys(recruiterUpdate).length > 0) {
         const updateFields: string[] = [];
         const values: (string | number)[] = [];
 
@@ -94,6 +113,11 @@ export async function POST() {
         }
 
         for (const [key, value] of Object.entries(interviewUpdate)) {
+          updateFields.push(`${key} = ?`);
+          values.push(value);
+        }
+
+        for (const [key, value] of Object.entries(recruiterUpdate)) {
           updateFields.push(`${key} = ?`);
           values.push(value);
         }

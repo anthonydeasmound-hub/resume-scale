@@ -766,7 +766,7 @@ function ReviewContent() {
     <div className="min-h-screen bg-gray-50">
       <TabsNav reviewCount={jobs.filter((j) => !j.reviewed).length} />
 
-      <div className="ml-64 p-8">
+      <div className="ml-16 p-8">
         {!selectedJob ? (
           <>
             <h1 className="text-2xl font-bold text-gray-900 mb-6">

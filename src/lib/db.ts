@@ -112,6 +112,36 @@ try {
   // Column already exists
 }
 
+// Add recruiter tracking columns for existing databases
+const recruiterColumns = [
+  { name: 'recruiter_name', type: 'TEXT' },
+  { name: 'recruiter_email', type: 'TEXT' },
+  { name: 'recruiter_title', type: 'TEXT' },
+  { name: 'recruiter_source', type: 'TEXT' }, // 'email' | 'job_description' | 'manual'
+];
+
+for (const col of recruiterColumns) {
+  try {
+    db.exec(`ALTER TABLE job_applications ADD COLUMN ${col.name} ${col.type}`);
+  } catch {
+    // Column already exists
+  }
+}
+
+// Add interview guide columns for existing databases
+const interviewGuideColumns = [
+  { name: 'interview_guide', type: 'TEXT' }, // JSON storage for guide
+  { name: 'interview_guide_generated_at', type: 'DATETIME' },
+];
+
+for (const col of interviewGuideColumns) {
+  try {
+    db.exec(`ALTER TABLE job_applications ADD COLUMN ${col.name} ${col.type}`);
+  } catch {
+    // Column already exists
+  }
+}
+
 export default db;
 
 // Helper types
@@ -158,6 +188,40 @@ export interface JobApplication {
   interview_4: string | null;
   interview_5: string | null;
   job_details_parsed: string | null; // JSON with requirements, responsibilities, qualifications, etc.
+  recruiter_name: string | null;
+  recruiter_email: string | null;
+  recruiter_title: string | null;
+  recruiter_source: 'email' | 'job_description' | 'manual' | null;
+  interview_guide: string | null; // JSON storage for InterviewGuide
+  interview_guide_generated_at: string | null;
   created_at: string;
   updated_at: string;
+}
+
+// Interview Guide Types
+export interface InterviewRound {
+  round: number;
+  type: 'phone_screen' | 'technical' | 'behavioral' | 'hiring_manager' | 'final';
+  typicalDuration: string;
+  likelyQuestions: string[];
+  starAnswers: {
+    question: string;
+    situation: string;
+    task: string;
+    action: string;
+    result: string;
+  }[];
+  tips: string[];
+}
+
+export interface InterviewGuide {
+  companyResearch: {
+    overview: string;
+    recentNews: string[];
+    culture: string;
+    competitors: string[];
+  };
+  interviewRounds: InterviewRound[];
+  questionsToAsk: { category: string; questions: string[] }[];
+  generalTips: string[];
 }

@@ -70,32 +70,32 @@ export default function TabsNav({ reviewCount = 0 }: { reviewCount?: number }) {
   ];
 
   return (
-    <aside className="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 flex flex-col z-40">
+    <aside className="fixed left-0 top-0 h-full w-16 bg-white border-r border-gray-200 flex flex-col z-40">
       {/* Logo */}
-      <div className="p-6 border-b border-gray-200">
-        <Link href="/dashboard" className="text-xl font-bold text-gray-900">
-          ResumeScale
+      <div className="py-4 border-b border-gray-200 flex items-center justify-center">
+        <Link href="/dashboard" className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
+          R
         </Link>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-1">
+      <nav className="flex-1 p-2 space-y-2">
         {tabs.map((tab) => {
           const isActive = pathname === tab.href || pathname.startsWith(tab.href + "/");
           return (
             <Link
               key={tab.name}
               href={tab.href}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors relative ${
+              title={tab.name}
+              className={`relative flex items-center justify-center py-3 rounded-lg transition-colors ${
                 isActive
                   ? "bg-blue-50 text-blue-700"
                   : "text-gray-600 hover:bg-gray-50"
               }`}
             >
               {tab.icon}
-              <span>{tab.name}</span>
               {tab.badge && (
-                <span className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
+                <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-medium rounded-full flex items-center justify-center">
                   {tab.badge}
                 </span>
               )}
@@ -105,22 +105,19 @@ export default function TabsNav({ reviewCount = 0 }: { reviewCount?: number }) {
       </nav>
 
       {/* User Menu at bottom */}
-      <div className="p-4 border-t border-gray-200" ref={menuRef}>
+      <div className="p-2 border-t border-gray-200 relative" ref={menuRef}>
         <button
           onClick={() => setMenuOpen(!menuOpen)}
-          className="flex items-center gap-3 w-full px-4 py-3 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+          title="Account"
+          className="flex items-center justify-center w-full py-3 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
           </svg>
-          <span>Account</span>
-          <svg className={`w-4 h-4 ml-auto transition-transform ${menuOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-          </svg>
         </button>
 
         {menuOpen && (
-          <div className="mt-2 bg-gray-50 rounded-lg py-1">
+          <div className="absolute left-full bottom-0 ml-2 bg-white rounded-lg shadow-lg border border-gray-200 py-1 w-44 z-50">
             <Link
               href="/onboarding"
               className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"

@@ -383,7 +383,7 @@ export default function MasterResumePage() {
     <div className="min-h-screen bg-gray-50">
       <TabsNav />
 
-      <div className="ml-64 p-8">
+      <div className="ml-16 p-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>

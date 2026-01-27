@@ -2,6 +2,8 @@ import puppeteer from 'puppeteer';
 import { ResumeData, CoverLetterData, TemplateName } from '@/types/resume';
 import { generateProfessionalHTML } from './templates/professional-resume';
 import { generateBasicHTML } from './templates/basic-resume';
+import { generateInterviewGuideHTML } from './templates/interview-guide';
+import { InterviewGuide } from './db';
 
 export async function generateResumePDF(
   data: ResumeData,
@@ -61,6 +63,35 @@ export async function generateCoverLetterPDF(
       format: 'Letter',
       printBackground: true,
       margin: { top: 0, right: 0, bottom: 0, left: 0 },
+    });
+
+    return Buffer.from(pdfBuffer);
+  } finally {
+    await browser.close();
+  }
+}
+
+export async function generateInterviewGuidePDF(
+  guide: InterviewGuide,
+  jobTitle: string,
+  companyName: string,
+  accentColor: string = '#3D5A80'
+): Promise<Buffer> {
+  const html = generateInterviewGuideHTML(guide, jobTitle, companyName, accentColor);
+
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+  });
+
+  try {
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: 'networkidle0' });
+
+    const pdfBuffer = await page.pdf({
+      format: 'Letter',
+      printBackground: true,
+      margin: { top: '0.5in', right: '0.5in', bottom: '0.5in', left: '0.5in' },
     });
 
     return Buffer.from(pdfBuffer);

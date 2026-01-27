@@ -439,6 +439,207 @@ export interface EmailClassification {
   company: string | null;
   confidence: number;
   summary: string;
+  recruiter_name?: string | null;
+  recruiter_email?: string | null;
+  recruiter_title?: string | null;
+}
+
+// Recruiter info extracted from job description
+export interface RecruiterInfo {
+  recruiter_name: string | null;
+  recruiter_email: string | null;
+  recruiter_title: string | null;
+  confidence: number;
+}
+
+// Extract recruiter/HR contact from job description
+export async function extractRecruiterFromDescription(jobDescription: string): Promise<RecruiterInfo> {
+  const prompt = `Analyze this job description and extract any recruiter, HR contact, or hiring manager information.
+
+JOB DESCRIPTION:
+${jobDescription.slice(0, 3000)}
+
+Look for:
+- Names of recruiters, HR contacts, or hiring managers
+- Email addresses (especially @company.com emails)
+- Titles like "Recruiter", "Talent Acquisition", "HR Manager", "Hiring Manager"
+- Phrases like "Contact:", "Apply to:", "Questions? Reach out to"
+
+Return ONLY valid JSON:
+{
+  "recruiter_name": "Full Name or null if not found",
+  "recruiter_email": "email@company.com or null if not found",
+  "recruiter_title": "Job Title or null if not found",
+  "confidence": 0.0 to 1.0 (based on how clearly the info was stated)
+}
+
+If no recruiter info is found, return all nulls with confidence 0.`;
+
+  try {
+    const response = await callAI(prompt);
+    const cleanedResponse = response
+      .replace(/```json\n?/g, "")
+      .replace(/```\n?/g, "")
+      .trim();
+
+    const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]);
+    }
+    return JSON.parse(cleanedResponse);
+  } catch {
+    return {
+      recruiter_name: null,
+      recruiter_email: null,
+      recruiter_title: null,
+      confidence: 0,
+    };
+  }
+}
+
+// Import InterviewGuide type
+import { InterviewGuide, InterviewRound } from "./db";
+
+// Generate comprehensive interview preparation guide
+export async function generateInterviewGuide(
+  jobDescription: string,
+  jobTitle: string,
+  companyName: string,
+  resume: ParsedResume,
+  jobDetails?: JobDetailsParsed
+): Promise<InterviewGuide> {
+  // Get company context first
+  const companyContext = await getCompanyContext(companyName);
+
+  // Extract user's top achievements for STAR answers
+  const allBullets = resume.work_experience.flatMap(exp => exp.description || []);
+  const achievementBullets = allBullets
+    .filter(b => /\d+%|\$[\d.,]+[KMB]?|\d+\+/.test(b))
+    .slice(0, 6);
+
+  const prompt = `Create a comprehensive interview preparation guide for this candidate.
+
+COMPANY: ${companyName}
+ABOUT THE COMPANY: ${companyContext}
+
+JOB TITLE: ${jobTitle}
+JOB DESCRIPTION:
+${jobDescription.slice(0, 2000)}
+
+${jobDetails ? `
+KEY REQUIREMENTS:
+${jobDetails.requirements.slice(0, 5).map(r => `• ${r}`).join('\n')}
+
+KEY RESPONSIBILITIES:
+${jobDetails.responsibilities.slice(0, 5).map(r => `• ${r}`).join('\n')}
+` : ''}
+
+CANDIDATE BACKGROUND:
+• Current/Recent Role: ${resume.work_experience[0]?.title} at ${resume.work_experience[0]?.company}
+• Skills: ${resume.skills.slice(0, 10).join(', ')}
+• Education: ${resume.education[0]?.degree} from ${resume.education[0]?.institution}
+
+TOP ACHIEVEMENTS (for STAR answers):
+${achievementBullets.map((b, i) => `${i + 1}. ${b}`).join('\n')}
+
+Generate a comprehensive interview guide with:
+
+1. COMPANY RESEARCH:
+   - Brief company overview (2-3 sentences)
+   - 3 recent news items or developments (can be general industry trends if specific news unknown)
+   - Company culture summary (1-2 sentences based on job description tone)
+   - 3-4 key competitors
+
+2. INTERVIEW ROUNDS (create 5 rounds):
+   Round 1: Phone Screen (30 min) - Initial HR/recruiter call
+   Round 2: Technical/Skills Assessment (45-60 min) - Role-specific evaluation
+   Round 3: Behavioral Interview (45 min) - Culture fit and soft skills
+   Round 4: Hiring Manager Interview (45-60 min) - Deep dive with future manager
+   Round 5: Final Round (30-45 min) - Executive or panel
+
+   For each round include:
+   - 4-5 likely questions specific to that round type
+   - 2 STAR-format answer frameworks using the candidate's ACTUAL achievements above
+   - 3 specific tips for that round
+
+3. QUESTIONS TO ASK (organize by category):
+   - About the Role (3 questions)
+   - About the Team (3 questions)
+   - About Growth (2 questions)
+   - About Company Culture (2 questions)
+
+4. GENERAL TIPS (5-6 tips specific to this role/company)
+
+Return ONLY valid JSON matching this structure:
+{
+  "companyResearch": {
+    "overview": "string",
+    "recentNews": ["news1", "news2", "news3"],
+    "culture": "string",
+    "competitors": ["comp1", "comp2", "comp3"]
+  },
+  "interviewRounds": [
+    {
+      "round": 1,
+      "type": "phone_screen",
+      "typicalDuration": "30 minutes",
+      "likelyQuestions": ["q1", "q2", "q3", "q4"],
+      "starAnswers": [
+        {
+          "question": "Tell me about a time when...",
+          "situation": "Context from candidate's background",
+          "task": "What needed to be done",
+          "action": "Specific actions taken",
+          "result": "Measurable outcome"
+        }
+      ],
+      "tips": ["tip1", "tip2", "tip3"]
+    }
+  ],
+  "questionsToAsk": [
+    { "category": "About the Role", "questions": ["q1", "q2", "q3"] }
+  ],
+  "generalTips": ["tip1", "tip2", "tip3", "tip4", "tip5"]
+}`;
+
+  try {
+    const response = await callAI(prompt);
+    const cleanedResponse = response
+      .replace(/```json\n?/g, "")
+      .replace(/```\n?/g, "")
+      .trim();
+
+    const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]);
+    }
+    return JSON.parse(cleanedResponse);
+  } catch (error) {
+    console.error("Failed to generate interview guide:", error);
+    // Return a minimal default guide
+    return {
+      companyResearch: {
+        overview: `${companyName} is hiring for the ${jobTitle} position.`,
+        recentNews: [],
+        culture: "Company culture details not available.",
+        competitors: [],
+      },
+      interviewRounds: [
+        {
+          round: 1,
+          type: "phone_screen",
+          typicalDuration: "30 minutes",
+          likelyQuestions: ["Tell me about yourself", "Why are you interested in this role?"],
+          starAnswers: [],
+          tips: ["Research the company", "Prepare questions to ask"],
+        },
+      ],
+      questionsToAsk: [
+        { category: "About the Role", questions: ["What does success look like in this role?"] },
+      ],
+      generalTips: ["Research the company thoroughly", "Prepare specific examples from your experience"],
+    };
+  }
 }
 
 // Import summary examples from reference sheet
@@ -682,7 +883,7 @@ export async function classifyEmail(
   email: { from: string; subject: string; body: string; snippet: string },
   knownCompanies: string[]
 ): Promise<EmailClassification> {
-  const prompt = `Classify this email related to job applications.
+  const prompt = `Classify this email related to job applications and extract recruiter information.
 
 EMAIL:
 From: ${email.from}
@@ -699,12 +900,20 @@ Classify this email as one of:
 - "offer": Job offer
 - "unrelated": Not related to any job application from the list
 
+Also extract recruiter/HR contact information from:
+- The "From" field (parse name and email)
+- Email signature (look for name, title, contact info)
+- Any mentioned recruiters or hiring managers
+
 Return ONLY valid JSON:
 {
   "type": "confirmation|rejection|interview|offer|unrelated",
   "company": "Company name from the list above, or null if unrelated",
   "confidence": 0.0 to 1.0,
-  "summary": "Brief one-sentence summary of the email"
+  "summary": "Brief one-sentence summary of the email",
+  "recruiter_name": "Full name of sender/recruiter or null",
+  "recruiter_email": "Email address of sender/recruiter or null",
+  "recruiter_title": "Title like 'Recruiter', 'HR Manager', etc. or null"
 }`;
 
   try {
@@ -714,6 +923,10 @@ Return ONLY valid JSON:
       .replace(/```\n?/g, "")
       .trim();
 
+    const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]);
+    }
     return JSON.parse(cleanedResponse);
   } catch {
     return {

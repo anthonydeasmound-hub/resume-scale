@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import TabsNav from "@/components/TabsNav";
+import ExpandedJobCard from "@/components/applied/ExpandedJobCard";
 
 interface Job {
   id: number;
@@ -16,6 +17,10 @@ interface Job {
   interview_3: string | null;
   interview_4: string | null;
   interview_5: string | null;
+  recruiter_name: string | null;
+  recruiter_email: string | null;
+  recruiter_title: string | null;
+  recruiter_source: 'email' | 'job_description' | 'manual' | null;
   created_at: string;
 }
 
@@ -30,6 +35,7 @@ export default function AppliedPage() {
   const [loading, setLoading] = useState(true);
   const [editingJob, setEditingJob] = useState<number | null>(null);
   const [reviewCount, setReviewCount] = useState(0);
+  const [expandedJob, setExpandedJob] = useState<Job | null>(null);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -80,7 +86,12 @@ export default function AppliedPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updates),
       });
-      fetchJobs();
+      await fetchJobs();
+
+      // Update expanded job if it's the one being updated
+      if (expandedJob && expandedJob.id === jobId) {
+        setExpandedJob(prev => prev ? { ...prev, ...updates } : null);
+      }
     } catch (err) {
       console.error("Failed to update job:", err);
     }
@@ -154,7 +165,7 @@ export default function AppliedPage() {
     <div className="min-h-screen bg-gray-50">
       <TabsNav reviewCount={reviewCount} />
 
-      <div className="ml-64 p-8">
+      <div className="ml-16 p-8">
         <h1 className="text-2xl font-bold text-gray-900 mb-6">
           Applied Jobs ({jobs.length})
         </h1>
@@ -176,6 +187,7 @@ export default function AppliedPage() {
                     <th className="px-4 py-3 text-center text-sm font-semibold text-gray-900" colSpan={5}>
                       Interview Progress
                     </th>
+                    <th className="px-4 py-3 text-center text-sm font-semibold text-gray-900">Actions</th>
                   </tr>
                   <tr className="bg-gray-50 border-b">
                     <th colSpan={4}></th>
@@ -184,6 +196,7 @@ export default function AppliedPage() {
                         {num}
                       </th>
                     ))}
+                    <th></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -245,6 +258,17 @@ export default function AppliedPage() {
                           </td>
                         );
                       })}
+                      <td className="px-4 py-3 text-center">
+                        <button
+                          onClick={() => setExpandedJob(job)}
+                          className="px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors inline-flex items-center gap-1"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          Interview Prep
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -274,6 +298,15 @@ export default function AppliedPage() {
           </div>
         )}
       </div>
+
+      {/* Expanded Job Card Modal */}
+      {expandedJob && (
+        <ExpandedJobCard
+          job={expandedJob}
+          onClose={() => setExpandedJob(null)}
+          onUpdate={updateJob}
+        />
+      )}
     </div>
   );
 }
