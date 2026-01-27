@@ -51,7 +51,25 @@ interface ResumeData {
   profile_photo_path: string | null;
   summary: string;
   resume_style: string;
+  accent_color: string;
 }
+
+const TEMPLATES = [
+  { id: "executive", name: "Executive", description: "Traditional corporate style" },
+  { id: "horizon", name: "Horizon", description: "Clean, contemporary design" },
+  { id: "canvas", name: "Canvas", description: "Bold and artistic" },
+  { id: "terminal", name: "Terminal", description: "Developer-focused minimal" },
+  { id: "summit", name: "Summit", description: "C-suite elegance" },
+  { id: "cornerstone", name: "Cornerstone", description: "Balanced two-column" },
+];
+
+const COLORS = [
+  { id: "blue", hex: "#2563eb", name: "Blue" },
+  { id: "emerald", hex: "#059669", name: "Emerald" },
+  { id: "violet", hex: "#7c3aed", name: "Violet" },
+  { id: "rose", hex: "#e11d48", name: "Rose" },
+  { id: "slate", hex: "#475569", name: "Slate" },
+];
 
 const emptyResume: ResumeData = {
   contact_info: { name: "", email: "", phone: "", location: "", linkedin: "" },
@@ -63,7 +81,8 @@ const emptyResume: ResumeData = {
   honors: [],
   profile_photo_path: null,
   summary: "",
-  resume_style: "basic",
+  resume_style: "executive",
+  accent_color: "#2563eb",
 };
 
 export default function MasterResumePage() {
@@ -79,6 +98,12 @@ export default function MasterResumePage() {
   const [newSkill, setNewSkill] = useState("");
   const [newLanguage, setNewLanguage] = useState("");
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+  // Template and color state
+  const [selectedTemplate, setSelectedTemplate] = useState("executive");
+  const [selectedColor, setSelectedColor] = useState("#2563eb");
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [showFullPreview, setShowFullPreview] = useState(false);
 
   // Preview state
   const [previewHtml, setPreviewHtml] = useState("");
@@ -139,7 +164,11 @@ export default function MasterResumePage() {
       const response = await fetch("/api/resume/preview-html", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ data: transformedData }),
+        body: JSON.stringify({
+          data: transformedData,
+          templateId: selectedTemplate,
+          accentColor: selectedColor,
+        }),
       });
 
       if (response.ok) {
@@ -151,7 +180,7 @@ export default function MasterResumePage() {
     } finally {
       setLoadingPreview(false);
     }
-  }, [resumeData]);
+  }, [resumeData, selectedTemplate, selectedColor]);
 
   useEffect(() => {
     // Debounce preview fetching
@@ -184,10 +213,13 @@ export default function MasterResumePage() {
           honors: data.honors || [],
           profile_photo_path: data.profile_photo_path || null,
           summary: data.summary || "",
-          resume_style: data.resume_style || "basic",
+          resume_style: data.resume_style || "executive",
+          accent_color: data.accent_color || "#2563eb",
         };
         setResumeData(formatted);
         setOriginalData(formatted);
+        setSelectedTemplate(formatted.resume_style);
+        setSelectedColor(formatted.accent_color);
       }
     } catch (err) {
       console.error("Failed to fetch resume:", err);
@@ -219,6 +251,72 @@ export default function MasterResumePage() {
       setSaveMessage("Failed to save changes. Please try again.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleTemplateChange = (templateId: string) => {
+    setSelectedTemplate(templateId);
+    setResumeData(prev => ({ ...prev, resume_style: templateId }));
+  };
+
+  const handleColorChange = (hex: string) => {
+    setSelectedColor(hex);
+    setResumeData(prev => ({ ...prev, accent_color: hex }));
+  };
+
+  const handleDownloadPdf = async () => {
+    setDownloadingPdf(true);
+    try {
+      const transformedData = {
+        contactInfo: {
+          name: resumeData.contact_info.name || "",
+          email: resumeData.contact_info.email || "",
+          phone: resumeData.contact_info.phone || "",
+          location: resumeData.contact_info.location || "",
+          linkedin: resumeData.contact_info.linkedin || "",
+        },
+        jobTitle: resumeData.work_experience[0]?.title || "",
+        summary: resumeData.summary || "",
+        experience: resumeData.work_experience.map(exp => ({
+          title: exp.title,
+          company: exp.company,
+          dates: `${exp.start_date} - ${exp.end_date}`,
+          description: exp.description.filter(d => d.trim() !== ""),
+        })),
+        education: resumeData.education.map(edu => ({
+          school: edu.institution,
+          degree: edu.degree,
+          dates: edu.graduation_date,
+          specialty: edu.field,
+        })),
+        skills: resumeData.skills,
+      };
+
+      const response = await fetch("/api/generate-resume-pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          data: transformedData,
+          templateId: selectedTemplate,
+          accentColor: selectedColor,
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed to generate PDF");
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `resume-${selectedTemplate}-${Date.now()}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("PDF download error:", err);
+    } finally {
+      setDownloadingPdf(false);
     }
   };
 
@@ -471,12 +569,36 @@ export default function MasterResumePage() {
               Edit your profile information. This data is used to generate tailored resumes.
             </p>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             {saveMessage && (
               <span className={`text-sm ${saveMessage.includes("success") ? "text-green-600" : "text-red-600"}`}>
                 {saveMessage}
               </span>
             )}
+            <button
+              onClick={() => setShowFullPreview(true)}
+              className="px-4 py-2 rounded-lg font-medium border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+              Full Preview
+            </button>
+            <button
+              onClick={handleDownloadPdf}
+              disabled={downloadingPdf}
+              className="px-4 py-2 rounded-lg font-medium bg-green-600 text-white hover:bg-green-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+            >
+              {downloadingPdf ? (
+                <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+              ) : (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              )}
+              {downloadingPdf ? "Generating..." : "Download PDF"}
+            </button>
             <button
               onClick={handleSave}
               disabled={!hasChanges || saving}
@@ -570,31 +692,44 @@ export default function MasterResumePage() {
         {/* Resume Template */}
         <div className="bg-white rounded-xl shadow p-6 mb-6">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">Resume Template</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <button
-              onClick={() => setResumeData(prev => ({ ...prev, resume_style: "basic" }))}
-              className={`p-4 rounded-lg border-2 transition-colors ${
-                resumeData.resume_style === "basic"
-                  ? "border-blue-500 bg-blue-50"
-                  : "border-gray-200 hover:border-gray-300"
-              }`}
-            >
-              <div className="w-full h-20 bg-gray-100 rounded mb-2 flex items-center justify-center">
-                <svg className="w-10 h-14 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              </div>
-              <p className="text-sm font-medium text-gray-700">Basic</p>
-              <p className="text-xs text-gray-500">Clean and professional</p>
-            </button>
-            {/* Placeholder for future templates */}
-            <div className="p-4 rounded-lg border-2 border-dashed border-gray-200 opacity-50">
-              <div className="w-full h-20 bg-gray-50 rounded mb-2 flex items-center justify-center">
-                <span className="text-xs text-gray-400">Coming soon</span>
-              </div>
-              <p className="text-sm font-medium text-gray-400">More templates</p>
-              <p className="text-xs text-gray-400">Stay tuned</p>
-            </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {TEMPLATES.map(tmpl => (
+              <button
+                key={tmpl.id}
+                onClick={() => handleTemplateChange(tmpl.id)}
+                className={`p-3 rounded-lg border-2 transition-colors text-left ${
+                  selectedTemplate === tmpl.id
+                    ? "border-blue-500 bg-blue-50"
+                    : "border-gray-200 hover:border-gray-300"
+                }`}
+              >
+                <div className="w-full h-16 bg-gray-100 rounded mb-2 flex items-center justify-center">
+                  <svg className="w-8 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <p className="text-sm font-medium text-gray-700">{tmpl.name}</p>
+                <p className="text-xs text-gray-500">{tmpl.description}</p>
+              </button>
+            ))}
+          </div>
+
+          {/* Accent Color */}
+          <h3 className="text-sm font-semibold text-gray-700 mt-5 mb-3">Accent Color</h3>
+          <div className="flex gap-3">
+            {COLORS.map(color => (
+              <button
+                key={color.id}
+                onClick={() => handleColorChange(color.hex)}
+                className={`w-9 h-9 rounded-full border-2 transition-all ${
+                  selectedColor === color.hex
+                    ? "border-gray-800 scale-110 ring-2 ring-offset-2 ring-gray-300"
+                    : "border-gray-200 hover:scale-105"
+                }`}
+                style={{ backgroundColor: color.hex }}
+                title={color.name}
+              />
+            ))}
           </div>
         </div>
 
@@ -1174,6 +1309,70 @@ export default function MasterResumePage() {
         {/* End of grid */}
 
       </div>
+
+      {/* Full Preview Modal */}
+      {showFullPreview && (
+        <div className="fixed inset-0 z-50 bg-black bg-opacity-75 flex items-start justify-center overflow-auto py-8">
+          {/* Close and Download bar */}
+          <div className="fixed top-0 left-0 right-0 z-60 bg-gray-900 bg-opacity-90 px-6 py-3 flex items-center justify-between">
+            <span className="text-white font-medium">Resume Preview</span>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleDownloadPdf}
+                disabled={downloadingPdf}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
+              >
+                {downloadingPdf ? (
+                  <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                )}
+                {downloadingPdf ? "Generating..." : "Download PDF"}
+              </button>
+              <button
+                onClick={() => setShowFullPreview(false)}
+                className="flex items-center gap-1 px-4 py-2 bg-gray-700 text-white rounded-lg font-medium hover:bg-gray-600 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Close
+              </button>
+            </div>
+          </div>
+
+          {/* Resume at full scale */}
+          <div className="mt-16">
+            {previewHtml ? (
+              <div
+                className="bg-white shadow-2xl"
+                style={{
+                  width: `${8.5 * 96}px`,
+                  height: `${11 * 96}px`,
+                  overflow: "hidden",
+                }}
+              >
+                <iframe
+                  srcDoc={previewHtml}
+                  title="Resume Full Preview"
+                  style={{
+                    width: `${8.5 * 96}px`,
+                    height: `${11 * 96}px`,
+                    border: "none",
+                    background: "white",
+                  }}
+                />
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-96 text-white">
+                <div className="animate-spin w-8 h-8 border-4 border-white border-t-transparent rounded-full" />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

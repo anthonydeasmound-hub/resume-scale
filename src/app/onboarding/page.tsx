@@ -1,8 +1,8 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import { useState, useEffect, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useEffect, useRef, Suspense } from "react";
 
 interface Certification {
   name: string;
@@ -44,7 +44,7 @@ interface LinkedInData {
   profile_picture_url?: string;
 }
 
-type Step = "entry" | "upload" | "connect" | "import" | "template" | "contact" | "work-experience" | "achievements" | "skills" | "education" | "certifications" | "languages" | "honors" | "summary" | "saving";
+type Step = "entry" | "upload" | "connect" | "import" | "template" | "contact" | "work-experience" | "achievements" | "skills" | "education" | "certifications" | "languages" | "honors" | "summary" | "saving" | "complete";
 
 type EntryPath = "upload" | "linkedin" | "fresh" | null;
 
@@ -129,8 +129,8 @@ function processWorkExperience(experiences: LinkedInData["work_experience"]): Li
   // Remove duplicates based on company + title + dates
   const seen = new Set<string>();
   const deduped = experiences.filter(exp => {
-    // Skip entries with empty title
-    if (!exp.title || exp.title.trim() === "") return false;
+    // Skip entries with no title AND no company
+    if ((!exp.title || exp.title.trim() === "") && (!exp.company || exp.company.trim() === "")) return false;
 
     const key = `${exp.company}|${exp.title}|${exp.start_date}|${exp.end_date}`.toLowerCase();
     if (seen.has(key)) return false;
@@ -155,13 +155,15 @@ function processWorkExperience(experiences: LinkedInData["work_experience"]): Li
 function OnboardingContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [step, setStep] = useState<Step>("entry");
   const [entryPath, setEntryPath] = useState<EntryPath>(null);
-  const [linkedinUrl, setLinkedinUrl] = useState("");
   const [linkedinData, setLinkedinData] = useState<LinkedInData | null>(null);
   const [editableData, setEditableData] = useState<LinkedInData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [token, setToken] = useState("");
+  const [tokenCopied, setTokenCopied] = useState(false);
   const [newSkill, setNewSkill] = useState("");
   const [aiRecommendations, setAiRecommendations] = useState<Record<number, string[]>>({});
   const [loadingRecommendations, setLoadingRecommendations] = useState<Record<number, boolean>>({});
@@ -214,6 +216,27 @@ function OnboardingContent() {
     }
   }, [status, router]);
 
+  // Check for LinkedIn extension import result
+  useEffect(() => {
+    const importStatus = searchParams.get("linkedin_import");
+    const errorMessage = searchParams.get("message");
+
+    if (importStatus === "success") {
+      setEntryPath("linkedin");
+      fetchLinkedInData();
+    } else if (importStatus === "error") {
+      setError(errorMessage || "Failed to import LinkedIn data. Please try again.");
+      setEntryPath("linkedin");
+      setStep("connect");
+    }
+  }, [searchParams]);
+
+  // Fetch extension token when entering connect step
+  useEffect(() => {
+    if (step === "connect" && !token) {
+      fetchToken();
+    }
+  }, [step]);
 
   // Fetch AI recommendations when entering achievements step
   useEffect(() => {
@@ -266,7 +289,7 @@ function OnboardingContent() {
 
   // Fetch preview immediately when entering a content step
   useEffect(() => {
-    const contentSteps = ["template", "contact", "work-experience", "achievements", "skills", "education", "certifications", "languages", "honors", "summary"];
+    const contentSteps = ["template", "contact", "work-experience", "achievements", "skills", "education", "certifications", "languages", "honors", "summary", "complete"];
     if (contentSteps.includes(step) && editableData) {
       fetchPreviewHtml();
     }
@@ -579,42 +602,26 @@ function OnboardingContent() {
     }
   };
 
-  const handleLinkedInUrlImport = async () => {
-    if (!linkedinUrl.includes("linkedin.com/in/")) {
-      setError("Please enter a valid LinkedIn profile URL (e.g. https://linkedin.com/in/your-name)");
-      return;
-    }
-
-    setLoading(true);
-    setError("");
-
+  const fetchToken = async () => {
     try {
-      const response = await fetch("/api/linkedin/scrape", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ linkedin_url: linkedinUrl }),
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        setLinkedinData(result.data);
-        const processedData = JSON.parse(JSON.stringify(result.data)) as LinkedInData;
-        processedData.work_experience = processWorkExperience(processedData.work_experience);
-        processedData.certifications = processedData.certifications || [];
-        processedData.languages = processedData.languages || [];
-        processedData.honors = processedData.honors || [];
-        setEditableData(processedData);
-        setStep("template");
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        setError(errorData.error || "Failed to import LinkedIn profile. Please check the URL and try again.");
+      const res = await fetch("/api/extension/token");
+      if (res.ok) {
+        const data = await res.json();
+        setToken(data.token);
       }
     } catch (err) {
-      console.error("Failed to scrape LinkedIn:", err);
-      setError("Something went wrong. Please try again.");
-    } finally {
-      setLoading(false);
+      console.error("Failed to fetch token:", err);
     }
+  };
+
+  const copyToken = async (text: string) => {
+    await navigator.clipboard.writeText(text);
+    setTokenCopied(true);
+    setTimeout(() => setTokenCopied(false), 2000);
+  };
+
+  const handleImportLinkedIn = () => {
+    window.open("https://www.linkedin.com/in/me?resumegenie_import=auto", "_blank");
   };
 
   const handleSave = async () => {
@@ -637,12 +644,13 @@ function OnboardingContent() {
           honors: editableData.honors,
           summary: selectedSummary,
           resume_style: selectedTemplate,
+          accent_color: selectedColor,
         }),
       });
 
       if (!response.ok) throw new Error("Failed to save");
 
-      router.push("/dashboard");
+      setStep("complete");
     } catch (err) {
       setError("Failed to save profile. Please try again.");
       setStep("summary");
@@ -652,6 +660,67 @@ function OnboardingContent() {
 
   const handleSkip = () => {
     router.push("/dashboard");
+  };
+
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+
+  const handleDownloadPdf = async () => {
+    if (!editableData) return;
+    setDownloadingPdf(true);
+
+    try {
+      const transformedData = {
+        contactInfo: {
+          name: editableData.contact_info.name || "",
+          email: editableData.contact_info.email || "",
+          phone: editableData.contact_info.phone || "",
+          location: editableData.contact_info.location || "",
+          linkedin: editableData.contact_info.linkedin || "",
+        },
+        jobTitle: editableData.work_experience[0]?.title || "",
+        summary: selectedSummary,
+        experience: editableData.work_experience.map(exp => ({
+          title: exp.title,
+          company: exp.company,
+          dates: `${exp.start_date} - ${exp.end_date}`,
+          description: exp.description.filter(d => d.trim() !== ""),
+        })),
+        education: editableData.education.map(edu => ({
+          school: edu.institution,
+          degree: edu.degree,
+          dates: edu.graduation_date,
+          specialty: edu.field,
+        })),
+        skills: editableData.skills,
+      };
+
+      const response = await fetch("/api/generate-resume-pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          data: transformedData,
+          templateId: selectedTemplate,
+          accentColor: selectedColor,
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed to generate PDF");
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `resume-${selectedTemplate}-${Date.now()}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("PDF download error:", err);
+      setError("Failed to download PDF. Please try again.");
+    } finally {
+      setDownloadingPdf(false);
+    }
   };
 
   if (status === "loading") {
@@ -679,6 +748,7 @@ function OnboardingContent() {
       case "honors": return 9;
       case "summary": return 10;
       case "saving": return 11;
+      case "complete": return 11;
       default: return 0;
     }
   };
@@ -694,12 +764,12 @@ function OnboardingContent() {
 
   const stepLabels = getVisibleSteps();
 
-  // Determine if we should show side-by-side layout with preview
+  // Determine if we should show side-by-side layout with preview (not on complete step - it has its own full preview)
   const showPreviewLayout = ["template", "contact", "work-experience", "achievements", "skills", "education", "certifications", "languages", "honors", "summary"].includes(step);
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
-      <div className={`mx-auto px-4 ${showPreviewLayout ? "max-w-7xl" : "max-w-2xl"}`}>
+      <div className={`mx-auto px-4 ${step === "complete" ? "max-w-4xl" : showPreviewLayout ? "max-w-7xl" : "max-w-2xl"}`}>
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900">Welcome to ResumeGenie</h1>
           <p className="text-gray-600 mt-2">
@@ -708,7 +778,7 @@ function OnboardingContent() {
         </div>
 
         {/* Progress indicator - only show after entry/import steps */}
-        {!["entry", "upload", "connect", "import", "saving"].includes(step) && (
+        {!["entry", "upload", "connect", "import", "saving", "complete"].includes(step) && (
         <div className="flex items-center mb-6 overflow-x-auto pb-2">
           {stepLabels.map((label, idx) => {
             const stepNum = idx + 1;
@@ -945,55 +1015,110 @@ function OnboardingContent() {
               Import from LinkedIn
             </h2>
             <p className="text-gray-600 mb-6 text-sm">
-              Paste your LinkedIn profile URL below and we&apos;ll import your work experience, education, and skills.
+              Use the ResumeGenie Chrome extension to import your full LinkedIn profile — work history, education, skills, and more.
             </p>
 
-            <div className="mb-6">
-              <label htmlFor="linkedin-url" className="block text-sm font-medium text-gray-700 mb-2">
-                LinkedIn Profile URL
-              </label>
-              <input
-                id="linkedin-url"
-                type="url"
-                value={linkedinUrl}
-                onChange={(e) => setLinkedinUrl(e.target.value)}
-                placeholder="https://linkedin.com/in/your-name"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                disabled={loading}
-              />
-              <p className="mt-2 text-xs text-gray-400">
-                URL must contain linkedin.com/in/ (e.g. https://www.linkedin.com/in/john-doe)
-              </p>
+            {/* Step 1: Install extension */}
+            <div className="mb-5">
+              <div className="flex items-start gap-3 mb-3">
+                <div className="w-7 h-7 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5">1</div>
+                <div>
+                  <h3 className="font-semibold text-gray-800 text-sm">Install the Chrome Extension</h3>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Add ResumeGenie to your browser to enable profile imports.
+                  </p>
+                  <a
+                    href="#"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 mt-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
+                  >
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    Download Extension (Coming Soon)
+                  </a>
+                </div>
+              </div>
             </div>
 
-            <p className="text-xs text-gray-500 mb-6 text-center">
-              Your profile is fetched securely — we never store your LinkedIn password.
+            {/* Step 2: Connect extension */}
+            <div className="mb-5">
+              <div className="flex items-start gap-3 mb-3">
+                <div className="w-7 h-7 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5">2</div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-gray-800 text-sm">Connect the extension</h3>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Open the extension side panel, expand &quot;Settings&quot;, and paste these values:
+                  </p>
+                  <div className="mt-2 space-y-2">
+                    <div>
+                      <label className="text-xs text-gray-500 font-medium">Server URL</label>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <code className="flex-1 bg-gray-100 px-3 py-1.5 rounded text-xs text-gray-700 font-mono truncate">
+                          {typeof window !== "undefined" ? window.location.origin : "http://localhost:3000"}
+                        </code>
+                        <button
+                          onClick={() => copyToken(typeof window !== "undefined" ? window.location.origin : "http://localhost:3000")}
+                          className="px-2 py-1.5 bg-gray-100 rounded text-xs text-gray-600 hover:bg-gray-200 transition-colors flex-shrink-0"
+                        >
+                          Copy
+                        </button>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500 font-medium">Token</label>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <code className="flex-1 bg-gray-100 px-3 py-1.5 rounded text-xs text-gray-700 font-mono truncate">
+                          {token || "Loading..."}
+                        </code>
+                        <button
+                          onClick={() => token && copyToken(token)}
+                          disabled={!token}
+                          className="px-2 py-1.5 bg-gray-100 rounded text-xs text-gray-600 hover:bg-gray-200 transition-colors flex-shrink-0 disabled:opacity-50"
+                        >
+                          {tokenCopied ? "Copied!" : "Copy"}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Step 3: Log in & Import */}
+            <div className="mb-6">
+              <div className="flex items-start gap-3 mb-3">
+                <div className="w-7 h-7 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5">3</div>
+                <div>
+                  <h3 className="font-semibold text-gray-800 text-sm">Log into LinkedIn & import</h3>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Make sure you&apos;re signed into LinkedIn, then click the button below. The extension will capture your profile and bring you back here automatically.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={handleImportLinkedIn}
+              className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+              </svg>
+              Open LinkedIn & Import Profile
+            </button>
+
+            <p className="text-xs text-gray-400 mt-4 text-center">
+              We never store your LinkedIn password. The extension only reads your profile page.
             </p>
 
-            <div className="flex gap-4">
+            <div className="mt-4">
               <button
                 onClick={() => setStep("entry")}
-                disabled={loading}
-                className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors disabled:opacity-50"
+                className="w-full bg-gray-100 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors"
               >
                 Back
-              </button>
-              <button
-                onClick={handleLinkedInUrlImport}
-                disabled={loading || !linkedinUrl.trim()}
-                className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {loading ? (
-                  <>
-                    <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                    Importing...
-                  </>
-                ) : (
-                  "Continue"
-                )}
               </button>
             </div>
           </div>
@@ -2675,6 +2800,86 @@ function OnboardingContent() {
           </div>
         )}
 
+        {/* Complete Step: Full Preview + Download */}
+        {step === "complete" && (
+          <div className="bg-white rounded-xl shadow-lg p-8 lg:col-span-2">
+            <div className="text-center mb-8">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Your resume is ready!</h2>
+              <p className="text-gray-600">Review your resume below, download it as a PDF, or head to your dashboard.</p>
+            </div>
+
+            {/* Full-page preview */}
+            <div className="flex justify-center mb-8">
+              <div
+                className="bg-white shadow-2xl border border-gray-200 rounded-lg overflow-hidden"
+                style={{
+                  width: "min(100%, 680px)",
+                }}
+              >
+                {previewHtml ? (
+                  <div style={{ position: "relative", width: "100%", paddingBottom: `${(11 / 8.5) * 100}%` }}>
+                    <iframe
+                      srcDoc={previewHtml}
+                      title="Resume Preview"
+                      style={{
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        width: `${8.5 * 96}px`,
+                        height: `${11 * 96}px`,
+                        transform: `scale(${680 / (8.5 * 96)})`,
+                        transformOrigin: "top left",
+                        border: "none",
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center h-96">
+                    <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full" />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <button
+                onClick={handleDownloadPdf}
+                disabled={downloadingPdf}
+                className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
+              >
+                {downloadingPdf ? (
+                  <>
+                    <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full" />
+                    Generating PDF...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Download PDF
+                  </>
+                )}
+              </button>
+              <button
+                onClick={() => router.push("/dashboard")}
+                className="flex items-center gap-2 px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+              >
+                Go to Dashboard
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        )}
+
           </div>
           {/* End of left column */}
 
@@ -2778,5 +2983,9 @@ function OnboardingContent() {
 }
 
 export default function OnboardingPage() {
-  return <OnboardingContent />;
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center"><div className="text-gray-500">Loading...</div></div>}>
+      <OnboardingContent />
+    </Suspense>
+  );
 }

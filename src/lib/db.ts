@@ -97,6 +97,7 @@ const newResumeColumns = [
   { name: 'profile_photo_path', type: 'TEXT' },
   { name: 'summary', type: 'TEXT' },
   { name: 'resume_style', type: 'TEXT', default: "'basic'" },
+  { name: 'accent_color', type: 'TEXT', default: "'#2563eb'" },
 ];
 
 for (const col of newResumeColumns) {
@@ -350,6 +351,7 @@ export interface Resume {
   profile_photo_path: string | null;
   summary: string | null;
   resume_style: string;
+  accent_color: string | null;
   raw_text: string | null;
   created_at: string;
   updated_at: string;

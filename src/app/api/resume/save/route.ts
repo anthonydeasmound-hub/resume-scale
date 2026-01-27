@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { contact_info, work_experience, skills, education, certifications, languages, honors, profile_photo_path, raw_text, summary, resume_style } = await request.json();
+    const { contact_info, work_experience, skills, education, certifications, languages, honors, profile_photo_path, raw_text, summary, resume_style, accent_color } = await request.json();
 
     // Get or create user
     let user = db.prepare("SELECT id FROM users WHERE email = ?").get(session.user.email) as { id: number } | undefined;
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
         UPDATE resumes
         SET contact_info = ?, work_experience = ?, skills = ?, education = ?,
             certifications = ?, languages = ?, honors = ?, profile_photo_path = ?,
-            raw_text = ?, summary = ?, resume_style = ?, updated_at = CURRENT_TIMESTAMP
+            raw_text = ?, summary = ?, resume_style = ?, accent_color = ?, updated_at = CURRENT_TIMESTAMP
         WHERE user_id = ?
       `).run(
         JSON.stringify(contact_info),
@@ -46,13 +46,14 @@ export async function POST(request: NextRequest) {
         raw_text,
         summary || null,
         resume_style || 'basic',
+        accent_color || '#2563eb',
         user.id
       );
     } else {
       // Insert new resume
       db.prepare(`
-        INSERT INTO resumes (user_id, contact_info, work_experience, skills, education, certifications, languages, honors, profile_photo_path, raw_text, summary, resume_style)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO resumes (user_id, contact_info, work_experience, skills, education, certifications, languages, honors, profile_photo_path, raw_text, summary, resume_style, accent_color)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         user.id,
         JSON.stringify(contact_info),
@@ -65,7 +66,8 @@ export async function POST(request: NextRequest) {
         profile_photo_path || null,
         raw_text,
         summary || null,
-        resume_style || 'basic'
+        resume_style || 'basic',
+        accent_color || '#2563eb'
       );
     }
 
