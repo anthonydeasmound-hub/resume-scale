@@ -2605,8 +2605,7 @@ function OnboardingContent() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Left column: Summary & Template selection */}
+            <div>
               <div className="space-y-6">
                 {/* Summary Section */}
                 <div>
@@ -2667,106 +2666,6 @@ function OnboardingContent() {
                   )}
                 </div>
 
-                {/* Template Section */}
-                <div>
-                  <h3 className="font-medium text-gray-800 mb-3">Resume Template</h3>
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      onClick={() => setSelectedTemplate("basic")}
-                      className={`p-4 rounded-lg border-2 transition-colors ${
-                        selectedTemplate === "basic"
-                          ? "border-indigo-500 bg-indigo-50"
-                          : "border-gray-200 hover:border-gray-300"
-                      }`}
-                    >
-                      <div className="w-full h-24 bg-gray-100 rounded mb-2 flex items-center justify-center">
-                        <svg className="w-12 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                      </div>
-                      <p className="text-sm font-medium text-gray-700">Basic</p>
-                      <p className="text-xs text-gray-500">Clean and professional</p>
-                    </button>
-                    {/* Placeholder for future templates */}
-                    <div className="p-4 rounded-lg border-2 border-dashed border-gray-200 opacity-50">
-                      <div className="w-full h-24 bg-gray-50 rounded mb-2 flex items-center justify-center">
-                        <span className="text-xs text-gray-400">Coming soon</span>
-                      </div>
-                      <p className="text-sm font-medium text-gray-400">More templates</p>
-                      <p className="text-xs text-gray-400">Stay tuned</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right column: Live Preview */}
-              <div className="lg:sticky lg:top-4">
-                <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-                  <div className="bg-gray-100 px-4 py-2 border-b flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">Live Preview</span>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => setPreviewScale(Math.max(0.3, previewScale - 0.1))}
-                        className="p-1 hover:bg-gray-200 rounded text-gray-600"
-                        title="Zoom out"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
-                        </svg>
-                      </button>
-                      <span className="text-xs text-gray-500 w-12 text-center">{Math.round(previewScale * 100)}%</span>
-                      <button
-                        onClick={() => setPreviewScale(Math.min(1, previewScale + 0.1))}
-                        className="p-1 hover:bg-gray-200 rounded text-gray-600"
-                        title="Zoom in"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="overflow-auto p-4 bg-gray-100" style={{ maxHeight: "550px" }}>
-                    <div className="flex justify-center">
-                      {loadingPreview && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 z-10">
-                          <div className="animate-spin w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full" />
-                        </div>
-                      )}
-                      {previewHtml ? (
-                        <div
-                          className="shadow-lg bg-white relative"
-                          style={{
-                            width: `${8.5 * previewScale}in`,
-                            height: `${11 * previewScale}in`,
-                            overflow: "hidden",
-                          }}
-                        >
-                          <iframe
-                            srcDoc={previewHtml}
-                            title="Resume Preview"
-                            style={{
-                              width: "8.5in",
-                              height: "11in",
-                              transform: `scale(${previewScale})`,
-                              transformOrigin: "top left",
-                              border: "none",
-                              background: "white",
-                              position: "absolute",
-                              top: 0,
-                              left: 0,
-                            }}
-                          />
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-center h-64 text-gray-400">
-                          <p>{selectedSummary ? "Loading preview..." : "Select a summary to see preview"}</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
 
