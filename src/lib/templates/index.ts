@@ -169,6 +169,18 @@ const DENSITY_TIER_CSS = `
     .page.dense .contact-line { font-size: 7.5pt; }
     .page.dense .dates, .page.dense .exp-dates, .page.dense .edu-dates { font-size: 7.5pt; }
     .page.dense .photo-placeholder { width: 60px; height: 60px; margin-bottom: 8px; }
+
+    /* ===== One-page enforcement ===== */
+    body {
+      width: 8.5in;
+      height: 11in;
+      max-height: 11in;
+      overflow: hidden;
+    }
+    .page {
+      max-height: 11in;
+      overflow: hidden;
+    }
 `;
 
 // Script that measures content height and applies the lightest tier that fits.
@@ -179,21 +191,32 @@ const DENSITY_TIER_SCRIPT = `
   if (!page) return;
   var pageHeight = 11 * 96; // 11 inches at 96 dpi
 
+  // Temporarily lift the cap so we can measure true content height
+  page.style.maxHeight = 'none';
+  page.style.overflow = 'visible';
+
   // Normal tier — already fits?
-  if (page.scrollHeight <= pageHeight) return;
+  if (page.scrollHeight <= pageHeight) {
+    page.style.maxHeight = '11in';
+    page.style.overflow = 'hidden';
+    return;
+  }
 
   // Try compact
   page.classList.add('compact');
-  if (page.scrollHeight <= pageHeight) return;
+  if (page.scrollHeight <= pageHeight) {
+    page.style.maxHeight = '11in';
+    page.style.overflow = 'hidden';
+    return;
+  }
 
   // Try dense
   page.classList.remove('compact');
   page.classList.add('dense');
-  if (page.scrollHeight <= pageHeight) return;
 
-  // Still overflows at dense — hard-clip as safety net
-  document.body.style.height = '11in';
-  document.body.style.overflow = 'hidden';
+  // Re-enforce cap regardless
+  page.style.maxHeight = '11in';
+  page.style.overflow = 'hidden';
 })();
 </script>`;
 
