@@ -33,20 +33,30 @@ export async function POST(request: NextRequest) {
 
     // Call Scrapingdog LinkedIn scraper
     const response = await fetch(
-      `https://api.scrapingdog.com/linkedin/?api_key=${SCRAPINGDOG_API_KEY}&type=profile&linkId=${username}`,
+      `https://api.scrapingdog.com/linkedin/?api_key=${SCRAPINGDOG_API_KEY}&type=profile&linkId=${username}&premium=true`,
       {
         method: "GET",
       }
     );
 
+    if (response.status === 202) {
+      return NextResponse.json(
+        { error: "LinkedIn profile is being fetched. Please wait a moment and try again." },
+        { status: 202 }
+      );
+    }
+
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("RapidAPI error:", response.status, errorText);
+      console.error("Scrapingdog error:", response.status, errorText);
       return NextResponse.json({ error: "Failed to fetch LinkedIn profile" }, { status: 500 });
     }
 
-    const profileData = await response.json();
-    console.log("LinkedIn API response:", JSON.stringify(profileData, null, 2));
+    const rawData = await response.json();
+    console.log("LinkedIn API response:", JSON.stringify(rawData, null, 2));
+
+    // Scrapingdog returns an array — use the first element
+    const profileData = Array.isArray(rawData) ? rawData[0] : rawData;
 
     // Transform API response to our format
     const transformedData = transformLinkedInData(profileData, session.user.email);
@@ -80,55 +90,108 @@ export async function POST(request: NextRequest) {
 }
 
 function transformLinkedInData(apiData: any, userEmail: string) {
-  // Handle the API response structure
   const data = apiData.data || apiData;
 
   const contactInfo = {
-    name: data.full_name || data.first_name + " " + data.last_name || "",
+    name: data.fullName || data.full_name || [data.first_name, data.last_name].filter(Boolean).join(" ") || "",
     email: userEmail,
     phone: "",
     location: data.location || data.city || "",
-    linkedin: data.linkedin_url || data.profile_url || "",
+    linkedin: data.linkedin_url || data.profile_url || (data.public_identifier
+      ? `https://www.linkedin.com/in/${data.public_identifier}`
+      : ""),
   };
 
   // Transform work experience
-  const workExperience = (data.experiences || data.experience || []).map((exp: any) => ({
-    company: exp.company || exp.company_name || "",
-    title: exp.title || exp.position || "",
-    start_date: exp.start_date || exp.starts_at?.month && exp.starts_at?.year
-      ? `${exp.starts_at.month}/${exp.starts_at.year}`
-      : "",
-    end_date: exp.end_date || (exp.ends_at?.month && exp.ends_at?.year
-      ? `${exp.ends_at.month}/${exp.ends_at.year}`
-      : exp.ends_at === null ? "Present" : ""),
-    description: Array.isArray(exp.description) ? exp.description : (exp.description ? [exp.description] : []),
-  }));
+  // Scrapingdog fields: position, company_name, starts_at, ends_at, summary, duration
+  const rawExperience = data.experiences || data.experience || [];
+  const workExperience = rawExperience.map((exp: any) => {
+    // starts_at / ends_at can be plain strings ("2000", "Present") or objects ({month, year})
+    let startDate = exp.start_date || "";
+    if (!startDate && exp.starts_at) {
+      startDate = typeof exp.starts_at === "string"
+        ? exp.starts_at
+        : (exp.starts_at.month && exp.starts_at.year ? `${exp.starts_at.month}/${exp.starts_at.year}` : String(exp.starts_at.year || ""));
+    }
+
+    let endDate = exp.end_date || "";
+    if (!endDate && exp.ends_at) {
+      endDate = typeof exp.ends_at === "string"
+        ? exp.ends_at
+        : (exp.ends_at.month && exp.ends_at.year ? `${exp.ends_at.month}/${exp.ends_at.year}` : String(exp.ends_at.year || ""));
+    } else if (!endDate && exp.ends_at === null) {
+      endDate = "Present";
+    }
+
+    // Description can be in summary or description fields
+    const rawDesc = exp.summary || exp.description;
+    const description = Array.isArray(rawDesc)
+      ? rawDesc
+      : rawDesc ? [rawDesc] : [];
+
+    return {
+      company: exp.company || exp.company_name || "",
+      title: exp.title || exp.position || "",
+      start_date: startDate,
+      end_date: endDate,
+      description,
+    };
+  });
 
   // Transform education
-  const education = (data.education || []).map((edu: any) => ({
-    institution: edu.school || edu.school_name || edu.institution || "",
-    degree: edu.degree || edu.degree_name || "",
-    field: edu.field_of_study || edu.field || "",
-    graduation_date: edu.end_date || (edu.ends_at?.year ? String(edu.ends_at.year) : ""),
-  }));
+  // Scrapingdog fields: college_name, college_degree, college_degree_field, college_duration
+  let education = (data.education || []).map((edu: any) => {
+    // Parse graduation date from college_duration ("1973 - 1975") or ends_at
+    let gradDate = edu.graduation_date || edu.end_date || "";
+    if (!gradDate && edu.college_duration) {
+      const parts = edu.college_duration.split(" - ");
+      gradDate = (parts[1] || "").trim();
+    }
+    if (!gradDate && edu.ends_at) {
+      gradDate = typeof edu.ends_at === "string" ? edu.ends_at : String(edu.ends_at.year || "");
+    }
 
-  // Extract skills
-  const skills = data.skills || [];
+    return {
+      institution: edu.school || edu.school_name || edu.institution || edu.college_name || "",
+      degree: edu.degree || edu.degree_name || edu.college_degree || "",
+      field: edu.field_of_study || edu.field || edu.college_degree_field || "",
+      graduation_date: gradDate,
+    };
+  });
 
-  // Transform certifications
-  const certifications = (data.certifications || []).map((cert: any) => ({
+  // Fallback: extract education from the top-card description fields if education array is empty
+  if (education.length === 0 && data.description) {
+    const desc = data.description;
+    // description2 typically contains the education institution on public profiles
+    const schoolName = desc.description2 || "";
+    if (schoolName && desc.description2_link && desc.description2_link.includes("/school/")) {
+      education = [{
+        institution: schoolName,
+        degree: "",
+        field: "",
+        graduation_date: "",
+      }];
+    }
+  }
+
+  // Extract skills — may be strings or objects
+  const rawSkills = data.skills || [];
+  const skills = rawSkills.map((s: any) => (typeof s === "string" ? s : s.name || s.skill || "")).filter(Boolean);
+
+  // Transform certifications (Scrapingdog may use "certification")
+  const certifications = (data.certifications || data.certification || []).map((cert: any) => ({
     name: cert.name || cert.title || "",
     issuer: cert.authority || cert.issuer || "",
     date: cert.start_date || "",
   }));
 
-  // Extract languages
+  // Extract languages — may be strings or objects
   const languages = (data.languages || []).map((lang: any) =>
     typeof lang === "string" ? lang : lang.name || lang.language || ""
-  );
+  ).filter(Boolean);
 
-  // Transform honors
-  const honors = (data.honors_awards || data.honors || []).map((honor: any) => ({
+  // Transform honors/awards
+  const honors = (data.honors_awards || data.honors || data.awards || []).map((honor: any) => ({
     title: honor.title || honor.name || "",
     issuer: honor.issuer || "",
     date: honor.date || "",
@@ -142,7 +205,7 @@ function transformLinkedInData(apiData: any, userEmail: string) {
     certifications,
     languages,
     honors,
-    profile_picture_url: data.profile_pic_url || data.profile_picture_url || "",
-    about: data.summary || data.about || "",
+    profile_picture_url: data.profile_photo || data.profile_pic_url || data.profile_picture_url || "",
+    about: data.about || data.summary || "",
   };
 }
