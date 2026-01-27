@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+  <div class="header">
+    <h1>ResumeGenie</h1>
+    <div class="connection-badge" id="connection-badge">
+      <span class="status-dot"></span>
+      <span id="connection-text">Checking...</span>
+    </div>
+  </div>
+
+  <div class="content">
+    <!-- Job detected state -->
+    <div id="job-section" style="display: none;">
+      <div class="section-label">Current Page</div>
+      <div class="job-card" id="job-card">
+        <div class="job-title" id="job-title"></div>
+        <div class="job-meta" id="job-company"></div>
+        <div class="job-meta" id="job-location"></div>
+        <div class="job-meta" id="job-salary"></div>
+        <div class="job-source" id="job-source"></div>
+      </div>
+      <button class="btn btn-save" id="save-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+          <polyline points="17 21 17 13 7 13 7 21"></polyline>
+          <polyline points="7 3 7 8 15 8"></polyline>
+        </svg>
+        <span id="save-btn-text">Save to ResumeGenie</span>
+      </button>
+    </div>
+
+    <!-- No job state -->
+    <div id="no-job-section">
+      <div class="empty-state">
+        <div class="empty-icon">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+          </svg>
+        </div>
+        <p class="empty-title">No job listing detected</p>
+        <p class="empty-subtitle">Navigate to a job listing on LinkedIn, Indeed, or Glassdoor to get started.</p>
+      </div>
+    </div>
+
+    <!-- Quick links -->
+    <div class="quick-links">
+      <div class="section-label">Quick Links</div>
+      <button class="btn btn-link" id="linkedin-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+        </svg>
+        LinkedIn Jobs
+      </button>
+      <button class="btn btn-link" id="indeed-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <circle cx="12" cy="12" r="10"/>
+          <text x="12" y="16" text-anchor="middle" fill="white" font-size="12" font-weight="bold">i</text>
+        </svg>
+        Indeed Jobs
+      </button>
+      <button class="btn btn-link" id="glassdoor-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <rect x="3" y="3" width="18" height="18" rx="3"/>
+          <text x="12" y="16" text-anchor="middle" fill="white" font-size="11" font-weight="bold">G</text>
+        </svg>
+        Glassdoor Jobs
+      </button>
+    </div>
+
+    <!-- Message area -->
+    <div id="message" class="message"></div>
+  </div>
+
+  <!-- Settings section -->
+  <div class="settings-section" id="settings-section">
+    <button class="settings-toggle" id="settings-toggle">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="3"></circle>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+      </svg>
+      <span>Settings</span>
+      <svg class="chevron" id="settings-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="6 9 12 15 18 9"></polyline>
+      </svg>
+    </button>
+    <div class="settings-body" id="settings-body" style="display: none;">
+      <div class="form-group">
+        <label for="server-url">Server URL</label>
+        <input type="url" id="server-url" value="http://localhost:3000" placeholder="http://localhost:3000">
+      </div>
+      <div class="form-group">
+        <label for="token">Extension Token</label>
+        <input type="password" id="token" placeholder="Paste your token here">
+      </div>
+      <button class="btn btn-connect" id="connect-btn">Connect</button>
+      <button class="btn btn-disconnect" id="disconnect-btn" style="display: none;">Disconnect</button>
+      <p class="help-text">Get your token from Settings in the ResumeGenie app.</p>
+    </div>
+  </div>
+
+  <script src="sidepanel.js"></script>
+</body>
+</html>

@@ -3,21 +3,7 @@
 (function() {
   console.log('[ResumeGenie] Content script loaded on:', window.location.href);
 
-  let notifiedJobs = new Set();
-  let lastCheckedUrl = '';
-
-  // Load previously notified jobs from Chrome storage
-  chrome.storage.local.get(['notifiedJobs'], (result) => {
-    if (result.notifiedJobs && Array.isArray(result.notifiedJobs)) {
-      notifiedJobs = new Set(result.notifiedJobs);
-      console.log('[ResumeGenie] Loaded', notifiedJobs.size, 'previously notified jobs');
-    }
-  });
-
-  // Save notified jobs to Chrome storage
-  function saveNotifiedJobs() {
-    chrome.storage.local.set({ notifiedJobs: Array.from(notifiedJobs) });
-  }
+  let lastSentJobKey = '';
 
   function extractJobData() {
     // Job title - LinkedIn uses obfuscated classes, need multiple strategies
@@ -256,53 +242,12 @@
       benefits: benefits,
       recruiter: recruiter,
       employment_type: employmentType,
-      posted_date: postedDate
+      posted_date: postedDate,
+      source: 'linkedin'
     };
   }
 
-  function showJobNotification(jobTitle) {
-    console.log('[ResumeGenie] showJobNotification called with:', jobTitle);
-
-    // Remove any existing notification
-    const existing = document.querySelector('.resumegenie-job-notification');
-    if (existing) existing.remove();
-
-    const notification = document.createElement('div');
-    notification.className = 'resumegenie-job-notification';
-    notification.innerHTML = `
-      <div class="resumegenie-notif-icon">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-          <polyline points="17 21 17 13 7 13 7 21"></polyline>
-          <polyline points="7 3 7 8 15 8"></polyline>
-        </svg>
-      </div>
-      <div class="resumegenie-notif-content">
-        <div class="resumegenie-notif-title">Import "${jobTitle}"</div>
-        <div class="resumegenie-notif-subtitle">Click the ResumeGenie extension</div>
-      </div>
-      <button class="resumegenie-notif-close">&times;</button>
-    `;
-
-    // Close button handler
-    notification.querySelector('.resumegenie-notif-close').addEventListener('click', (e) => {
-      e.stopPropagation();
-      notification.remove();
-    });
-
-    // Auto-hide after 5 seconds
-    setTimeout(() => {
-      if (notification.parentNode) {
-        notification.classList.add('resumegenie-notif-fadeout');
-        setTimeout(() => notification.remove(), 300);
-      }
-    }, 5000);
-
-    document.body.appendChild(notification);
-  }
-
-  function checkForNewJob() {
-    console.log('[ResumeGenie] Checking for new job...');
+  function sendJobToSidePanel() {
     const jobData = extractJobData();
     console.log('[ResumeGenie] Extracted job data:', {
       title: jobData.job_title,
@@ -311,17 +256,28 @@
     });
 
     if (jobData.job_title && jobData.job_title.length > 0) {
-      // Create a unique key for this job
       const jobKey = `${jobData.job_title}|${jobData.company_name}`;
-      console.log('[ResumeGenie] Job key:', jobKey, 'Already notified:', notifiedJobs.has(jobKey));
 
-      if (!notifiedJobs.has(jobKey)) {
-        notifiedJobs.add(jobKey);
-        saveNotifiedJobs(); // Persist to Chrome storage
-        console.log('[ResumeGenie] Showing notification for:', jobData.job_title);
-        showJobNotification(jobData.job_title);
+      // Only send if it's a new/different job
+      if (jobKey !== lastSentJobKey) {
+        lastSentJobKey = jobKey;
+        console.log('[ResumeGenie] Sending job to side panel:', jobData.job_title);
+        chrome.runtime.sendMessage({
+          type: 'JOB_DETECTED',
+          source: 'linkedin',
+          data: jobData
+        }).catch(() => {
+          // Side panel or background may not be ready
+        });
       }
     } else {
+      if (lastSentJobKey !== '') {
+        lastSentJobKey = '';
+        chrome.runtime.sendMessage({
+          type: 'NO_JOB',
+          source: 'linkedin'
+        }).catch(() => {});
+      }
       console.log('[ResumeGenie] No job title found. Page title:', document.title);
     }
   }
@@ -339,11 +295,11 @@
     };
   }
 
-  const debouncedCheck = debounce(checkForNewJob, 500);
+  const debouncedSend = debounce(sendJobToSidePanel, 500);
 
   // Watch for DOM changes (LinkedIn is a SPA)
   const observer = new MutationObserver(() => {
-    debouncedCheck();
+    debouncedSend();
   });
 
   observer.observe(document.body, {
@@ -355,14 +311,18 @@
   console.log('[ResumeGenie] Will check for job in 1.5 seconds...');
   setTimeout(() => {
     console.log('[ResumeGenie] Running initial job check');
-    checkForNewJob();
+    sendJobToSidePanel();
   }, 1500);
 
-  // Listen for messages from the popup
+  // Listen for messages from the side panel (via background)
   chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'getJobData') {
       const jobData = extractJobData();
       sendResponse(jobData);
+    }
+    if (request.action === 'scanForJob') {
+      sendJobToSidePanel();
+      sendResponse({ status: 'scanning' });
     }
     return true; // Keep the message channel open for async response
   });
