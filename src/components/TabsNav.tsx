@@ -80,26 +80,30 @@ export default function TabsNav({ reviewCount = 0 }: { reviewCount?: number }) {
 
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-1">
-        {tabs.map((tab) => {
+        {tabs.map((tab, index) => {
           const isActive = pathname === tab.href || pathname.startsWith(tab.href + "/");
           return (
-            <Link
-              key={tab.name}
-              href={tab.href}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors relative ${
-                isActive
-                  ? "bg-blue-50 text-blue-700"
-                  : "text-gray-600 hover:bg-gray-50"
-              }`}
-            >
-              {tab.icon}
-              <span>{tab.name}</span>
-              {tab.badge && (
-                <span className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
-                  {tab.badge}
-                </span>
+            <div key={tab.name}>
+              <Link
+                href={tab.href}
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors relative ${
+                  isActive
+                    ? "bg-blue-50 text-blue-700"
+                    : "text-gray-600 hover:bg-gray-50"
+                }`}
+              >
+                {tab.icon}
+                <span>{tab.name}</span>
+                {tab.badge && (
+                  <span className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
+                    {tab.badge}
+                  </span>
+                )}
+              </Link>
+              {index === 0 && (
+                <div className="border-t border-gray-200 my-2" />
               )}
-            </Link>
+            </div>
           );
         })}
       </nav>
