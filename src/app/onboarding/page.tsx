@@ -1,8 +1,8 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useEffect, useRef, Suspense } from "react";
+import { useRouter } from "next/navigation";
+import { useState, useEffect, useRef } from "react";
 
 interface Certification {
   name: string;
@@ -155,12 +155,9 @@ function processWorkExperience(experiences: LinkedInData["work_experience"]): Li
 function OnboardingContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const searchParams = useSearchParams();
-
   const [step, setStep] = useState<Step>("entry");
   const [entryPath, setEntryPath] = useState<EntryPath>(null);
-  const [token, setToken] = useState("");
-  const [tokenCopied, setTokenCopied] = useState(false);
+  const [linkedinUrl, setLinkedinUrl] = useState("");
   const [linkedinData, setLinkedinData] = useState<LinkedInData | null>(null);
   const [editableData, setEditableData] = useState<LinkedInData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -217,25 +214,6 @@ function OnboardingContent() {
     }
   }, [status, router]);
 
-  // Fetch token on mount
-  useEffect(() => {
-    if (session) {
-      fetchToken();
-    }
-  }, [session]);
-
-  // Check for LinkedIn import result
-  useEffect(() => {
-    const importStatus = searchParams.get("linkedin_import");
-    const errorMessage = searchParams.get("message");
-
-    if (importStatus === "success") {
-      fetchLinkedInData();
-    } else if (importStatus === "error") {
-      setError(errorMessage || "Failed to import LinkedIn data. Please try again.");
-      setStep("import");
-    }
-  }, [searchParams]);
 
   // Fetch AI recommendations when entering achievements step
   useEffect(() => {
@@ -567,18 +545,6 @@ function OnboardingContent() {
     }
   };
 
-  const fetchToken = async () => {
-    try {
-      const response = await fetch("/api/extension/token");
-      if (response.ok) {
-        const data = await response.json();
-        setToken(data.token);
-      }
-    } catch (err) {
-      console.error("Failed to fetch token:", err);
-    }
-  };
-
   const fetchLinkedInData = async () => {
     setLoading(true);
     try {
@@ -613,20 +579,42 @@ function OnboardingContent() {
     }
   };
 
-  const copyToken = async () => {
-    try {
-      await navigator.clipboard.writeText(token);
-      setTokenCopied(true);
-      setTimeout(() => setTokenCopied(false), 2000);
-    } catch (err) {
-      console.error("Failed to copy:", err);
+  const handleLinkedInUrlImport = async () => {
+    if (!linkedinUrl.includes("linkedin.com/in/")) {
+      setError("Please enter a valid LinkedIn profile URL (e.g. https://linkedin.com/in/your-name)");
+      return;
     }
-  };
 
-  const handleImportLinkedIn = () => {
-    // Open LinkedIn profile with auto-import parameter
-    // The Chrome extension will detect this and capture the page
-    window.open("https://www.linkedin.com/in/me?resumegenie_import=auto", "_blank");
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch("/api/linkedin/scrape", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ linkedin_url: linkedinUrl }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setLinkedinData(result.data);
+        const processedData = JSON.parse(JSON.stringify(result.data)) as LinkedInData;
+        processedData.work_experience = processWorkExperience(processedData.work_experience);
+        processedData.certifications = processedData.certifications || [];
+        processedData.languages = processedData.languages || [];
+        processedData.honors = processedData.honors || [];
+        setEditableData(processedData);
+        setStep("template");
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        setError(errorData.error || "Failed to import LinkedIn profile. Please check the URL and try again.");
+      }
+    } catch (err) {
+      console.error("Failed to scrape LinkedIn:", err);
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSave = async () => {
@@ -957,52 +945,55 @@ function OnboardingContent() {
               Import from LinkedIn
             </h2>
             <p className="text-gray-600 mb-6 text-sm">
-              Click below to import your work experience, education, and skills from LinkedIn.
+              Paste your LinkedIn profile URL below and we&apos;ll import your work experience, education, and skills.
             </p>
 
-            <div className="mb-6 p-4 bg-blue-50 rounded-lg">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                  <svg className="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="font-medium text-gray-800">Import from LinkedIn</h3>
-                  <p className="text-sm text-gray-600">Opens your LinkedIn profile in a new tab</p>
-                </div>
-              </div>
-
-              <button
-                onClick={handleImportLinkedIn}
-                className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
-              >
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
-                </svg>
-                Import from LinkedIn
-              </button>
+            <div className="mb-6">
+              <label htmlFor="linkedin-url" className="block text-sm font-medium text-gray-700 mb-2">
+                LinkedIn Profile URL
+              </label>
+              <input
+                id="linkedin-url"
+                type="url"
+                value={linkedinUrl}
+                onChange={(e) => setLinkedinUrl(e.target.value)}
+                placeholder="https://linkedin.com/in/your-name"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={loading}
+              />
+              <p className="mt-2 text-xs text-gray-400">
+                URL must contain linkedin.com/in/ (e.g. https://www.linkedin.com/in/john-doe)
+              </p>
             </div>
 
-            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-              <h4 className="font-medium text-amber-800 text-sm mb-2">Before you click:</h4>
-              <ol className="text-sm text-amber-700 list-decimal list-inside space-y-1">
-                <li>Make sure you&apos;re logged into LinkedIn</li>
-                <li>Make sure the ResumeGenie Chrome extension is installed and connected</li>
-                <li>The extension will capture your profile and redirect you back here</li>
-              </ol>
-            </div>
-
-            <p className="text-sm text-gray-500 mb-6 text-center">
-              We&apos;ll automatically extract your work experience, education, and skills using AI.
+            <p className="text-xs text-gray-500 mb-6 text-center">
+              Your profile is fetched securely — we never store your LinkedIn password.
             </p>
 
             <div className="flex gap-4">
               <button
                 onClick={() => setStep("entry")}
-                className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+                disabled={loading}
+                className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors disabled:opacity-50"
               >
                 Back
+              </button>
+              <button
+                onClick={handleLinkedInUrlImport}
+                disabled={loading || !linkedinUrl.trim()}
+                className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {loading ? (
+                  <>
+                    <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Importing...
+                  </>
+                ) : (
+                  "Continue"
+                )}
               </button>
             </div>
           </div>
@@ -2787,15 +2778,5 @@ function OnboardingContent() {
 }
 
 export default function OnboardingPage() {
-  return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
-          <div className="text-lg text-gray-600">Loading...</div>
-        </div>
-      }
-    >
-      <OnboardingContent />
-    </Suspense>
-  );
+  return <OnboardingContent />;
 }
