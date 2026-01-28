@@ -536,13 +536,22 @@ export default function DashboardPage() {
                             className="w-full h-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue resize-none text-sm text-gray-900"
                             placeholder="Paste a job description here..."
                           />
-                          <button
-                            type="submit"
-                            disabled={submitting}
-                            className="bg-brand-gold text-gray-900 px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-gold-dark disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                          >
-                            {submitting ? "Analyzing..." : "Generate Tailored Resume"}
-                          </button>
+                          <div className="flex items-center justify-between">
+                            <span className={`text-xs ${jobDescription.length < 100 ? "text-gray-400" : "text-green-600"}`}>
+                              {jobDescription.length > 0
+                                ? jobDescription.length < 100
+                                  ? `${jobDescription.length} chars — paste the full description for best results`
+                                  : `${jobDescription.length} chars`
+                                : ""}
+                            </span>
+                            <button
+                              type="submit"
+                              disabled={submitting}
+                              className="bg-brand-gold text-gray-900 px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-gold-dark disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                              {submitting ? "Analyzing..." : "Generate Tailored Resume"}
+                            </button>
+                          </div>
                         </form>
                       )}
                     </div>

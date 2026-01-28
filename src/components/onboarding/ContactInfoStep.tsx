@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { LinkedInData, Step } from "./types";
 
 interface ContactInfoStepProps {
@@ -13,6 +14,27 @@ export default function ContactInfoStep({
   setEditableData,
   setStep,
 }: ContactInfoStepProps) {
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validate = () => {
+    const newErrors: Record<string, string> = {};
+    if (!editableData.contact_info.name.trim()) newErrors.name = "Name is required";
+    if (!editableData.contact_info.email.trim()) newErrors.email = "Email is required";
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleContinue = () => {
+    if (validate()) {
+      setStep("work-experience");
+    }
+  };
+
+  const inputClass = (field: string) =>
+    `w-full px-4 py-3 border rounded-lg text-gray-900 focus:ring-2 focus:ring-brand-blue focus:border-transparent ${
+      errors[field] ? "border-red-400" : "border-gray-300"
+    }`;
+
   return (
     <div className="bg-white rounded-xl shadow-lg p-6">
       <div className="flex items-center gap-3 mb-6">
@@ -29,7 +51,9 @@ export default function ContactInfoStep({
 
       <div className="space-y-4 mb-6">
         <div>
-          <label htmlFor="contact-name" className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+          <label htmlFor="contact-name" className="block text-sm font-medium text-gray-700 mb-1">
+            Full Name <span className="text-red-500">*</span>
+          </label>
           <input
             id="contact-name"
             type="text"
@@ -38,14 +62,18 @@ export default function ContactInfoStep({
               const updated = { ...editableData };
               updated.contact_info.name = e.target.value;
               setEditableData(updated);
+              if (errors.name && e.target.value.trim()) setErrors((prev) => ({ ...prev, name: "" }));
             }}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-brand-blue focus:border-transparent"
+            className={inputClass("name")}
             placeholder="John Doe"
           />
+          {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label htmlFor="contact-email" className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <label htmlFor="contact-email" className="block text-sm font-medium text-gray-700 mb-1">
+              Email <span className="text-red-500">*</span>
+            </label>
             <input
               id="contact-email"
               type="email"
@@ -54,10 +82,12 @@ export default function ContactInfoStep({
                 const updated = { ...editableData };
                 updated.contact_info.email = e.target.value;
                 setEditableData(updated);
+                if (errors.email && e.target.value.trim()) setErrors((prev) => ({ ...prev, email: "" }));
               }}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-brand-blue focus:border-transparent"
+              className={inputClass("email")}
               placeholder="john@example.com"
             />
+            {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
           </div>
           <div>
             <label htmlFor="contact-phone" className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
@@ -115,7 +145,7 @@ export default function ContactInfoStep({
           Back
         </button>
         <button
-          onClick={() => setStep("work-experience")}
+          onClick={handleContinue}
           className="flex-1 bg-brand-gold text-gray-900 py-3 rounded-lg font-medium hover:bg-brand-gold-dark transition-colors"
         >
           Continue
