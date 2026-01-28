@@ -4,14 +4,49 @@ import { authOptions } from "@/lib/auth";
 import { queryOne, execute } from "@/lib/db";
 import { z } from "zod";
 
+const contactInfoSchema = z.object({
+  name: z.string().max(200),
+  email: z.string().max(200),
+  phone: z.string().max(50),
+  location: z.string().max(200),
+  linkedin: z.string().max(500).optional().default(""),
+});
+
+const workExperienceSchema = z.array(z.object({
+  company: z.string().max(200),
+  title: z.string().max(200),
+  start_date: z.string().max(50),
+  end_date: z.string().max(50),
+  description: z.array(z.string().max(2000)),
+})).max(50);
+
+const educationSchema = z.array(z.object({
+  institution: z.string().max(200),
+  degree: z.string().max(200),
+  field: z.string().max(200),
+  graduation_date: z.string().max(50),
+})).max(20);
+
+const certificationSchema = z.array(z.object({
+  name: z.string().max(200),
+  issuer: z.string().max(200),
+  date: z.string().max(50),
+})).max(50);
+
+const honorSchema = z.array(z.object({
+  title: z.string().max(200),
+  issuer: z.string().max(200),
+  date: z.string().max(50),
+})).max(50);
+
 const inputSchema = z.object({
-  contact_info: z.any(),
-  work_experience: z.any(),
-  skills: z.any(),
-  education: z.any(),
-  certifications: z.any().optional(),
-  languages: z.any().optional(),
-  honors: z.any().optional(),
+  contact_info: contactInfoSchema,
+  work_experience: workExperienceSchema,
+  skills: z.array(z.string().max(200)).max(100),
+  education: educationSchema,
+  certifications: certificationSchema.optional(),
+  languages: z.array(z.string().max(100)).max(50).optional(),
+  honors: honorSchema.optional(),
   profile_photo_path: z.string().max(1000).optional().nullable(),
   raw_text: z.string().max(100000).optional(),
   summary: z.string().max(50000).optional().nullable(),

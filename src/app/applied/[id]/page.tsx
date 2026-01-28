@@ -71,6 +71,7 @@ export default function JobDetailPage() {
   const [loading, setLoading] = useState(true);
   const [newNote, setNewNote] = useState("");
   const [addingNote, setAddingNote] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     document.title = "ResumeGenie - Job Details";
@@ -109,6 +110,7 @@ export default function JobDetailPage() {
       }
     } catch (err) {
       console.error("Failed to fetch job data:", err);
+      setError("Failed to load job details. Please refresh the page.");
     } finally {
       setLoading(false);
     }
@@ -125,12 +127,14 @@ export default function JobDetailPage() {
       setJob((prev) => (prev ? { ...prev, pinned: prev.pinned ? 0 : 1 } : null));
     } catch (err) {
       console.error("Failed to toggle pin:", err);
+      setError("Failed to update pin status.");
     }
   };
 
   const addNote = async () => {
     if (!newNote.trim()) return;
     setAddingNote(true);
+    setError(null);
     try {
       const res = await fetch(`/api/jobs/${jobId}/notes`, {
         method: "POST",
@@ -141,9 +145,12 @@ export default function JobDetailPage() {
         const note = await res.json();
         setNotes((prev) => [note, ...prev]);
         setNewNote("");
+      } else {
+        setError("Failed to add note. Please try again.");
       }
     } catch (err) {
       console.error("Failed to add note:", err);
+      setError("Failed to add note. Please try again.");
     } finally {
       setAddingNote(false);
     }
@@ -161,6 +168,7 @@ export default function JobDetailPage() {
       );
     } catch (err) {
       console.error("Failed to update stage:", err);
+      setError("Failed to update stage status.");
     }
   };
 
@@ -258,6 +266,12 @@ export default function JobDetailPage() {
       <TabsNav reviewCount={0} />
 
       <div className="pt-14 md:pt-0 md:ml-64 p-4 md:p-8">
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3 mb-4 flex items-center justify-between">
+            <span>{error}</span>
+            <button onClick={() => setError(null)} className="text-red-500 hover:text-red-700 ml-2">&times;</button>
+          </div>
+        )}
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <button

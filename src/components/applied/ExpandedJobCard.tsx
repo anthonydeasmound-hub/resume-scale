@@ -56,11 +56,16 @@ export default function ExpandedJobCard({ job, onClose, onUpdate }: ExpandedJobC
   }, [job.id]);
 
   const handleGenerateGuide = async () => {
-    const response = await fetch(`/api/jobs/${job.id}/interview-guide`, { method: "POST" });
-    if (response.ok) {
-      const data = await response.json();
-      setInterviewGuide(data.guide);
-      setGuideGeneratedAt(data.generated_at);
+    try {
+      const response = await fetch(`/api/jobs/${job.id}/interview-guide`, { method: "POST" });
+      if (response.ok) {
+        const data = await response.json();
+        setInterviewGuide(data.guide);
+        setGuideGeneratedAt(data.generated_at);
+      }
+    } catch (error) {
+      console.error("Failed to generate interview guide:", error);
+      throw error;
     }
   };
 

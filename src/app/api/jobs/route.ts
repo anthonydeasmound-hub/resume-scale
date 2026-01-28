@@ -71,14 +71,18 @@ export async function GET(request: NextRequest) {
       return NextResponse.json([]);
     }
 
+    const url = new URL(request.url);
+    const limit = Math.min(parseInt(url.searchParams.get("limit") || "200", 10) || 200, 500);
+    const offset = Math.max(parseInt(url.searchParams.get("offset") || "0", 10) || 0, 0);
+
     const jobs = await queryAll<Record<string, unknown>>(`
       SELECT * FROM job_applications
       WHERE user_id = $1
       ORDER BY created_at DESC
-    `, [user.id]);
+      LIMIT $2 OFFSET $3
+    `, [user.id, limit, offset]);
 
     // Check if we need to include related data
-    const url = new URL(request.url);
     const include = url.searchParams.get("include")?.split(",") || [];
 
     if (include.length > 0 && jobs.length > 0) {

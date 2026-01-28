@@ -44,6 +44,7 @@ export default function InterviewRoadmap({ jobId, interviews, onUpdateInterview 
   const [showAddStage, setShowAddStage] = useState(false);
   const [newStageType, setNewStageType] = useState<StageType>('phone_screen');
   const [newStageName, setNewStageName] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchStages();
@@ -51,13 +52,17 @@ export default function InterviewRoadmap({ jobId, interviews, onUpdateInterview 
 
   const fetchStages = async () => {
     try {
+      setError(null);
       const response = await fetch(`/api/jobs/${jobId}/stages`);
       if (response.ok) {
         const data = await response.json();
         setStages(data);
+      } else {
+        setError("Failed to load interview stages.");
       }
-    } catch (error) {
-      console.error("Failed to fetch stages:", error);
+    } catch (err) {
+      console.error("Failed to fetch stages:", err);
+      setError("Failed to load interview stages.");
     } finally {
       setLoading(false);
     }
@@ -97,13 +102,15 @@ export default function InterviewRoadmap({ jobId, interviews, onUpdateInterview 
       if (response.ok) {
         await fetchStages();
       }
-    } catch (error) {
-      console.error("Failed to update stage:", error);
+    } catch (err) {
+      console.error("Failed to update stage:", err);
+      setError("Failed to update stage status.");
     }
   };
 
   const addStage = async () => {
     try {
+      setError(null);
       const response = await fetch(`/api/jobs/${jobId}/stages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -118,9 +125,12 @@ export default function InterviewRoadmap({ jobId, interviews, onUpdateInterview 
         setShowAddStage(false);
         setNewStageType('phone_screen');
         setNewStageName('');
+      } else {
+        setError("Failed to add interview stage.");
       }
-    } catch (error) {
-      console.error("Failed to add stage:", error);
+    } catch (err) {
+      console.error("Failed to add stage:", err);
+      setError("Failed to add interview stage.");
     }
   };
 
@@ -128,15 +138,19 @@ export default function InterviewRoadmap({ jobId, interviews, onUpdateInterview 
     if (!confirm('Are you sure you want to delete this interview stage?')) return;
 
     try {
+      setError(null);
       const response = await fetch(`/api/jobs/${jobId}/stages/${stageId}`, {
         method: 'DELETE',
       });
 
       if (response.ok) {
         await fetchStages();
+      } else {
+        setError("Failed to delete interview stage.");
       }
-    } catch (error) {
-      console.error("Failed to delete stage:", error);
+    } catch (err) {
+      console.error("Failed to delete stage:", err);
+      setError("Failed to delete interview stage.");
     }
   };
 
@@ -163,6 +177,12 @@ export default function InterviewRoadmap({ jobId, interviews, onUpdateInterview 
 
   return (
     <div className="space-y-6">
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3 flex items-center justify-between">
+          <span>{error}</span>
+          <button onClick={() => setError(null)} className="text-red-500 hover:text-red-700 ml-2">&times;</button>
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <h3 className="font-semibold text-gray-900">Interview Roadmap</h3>
         <button

@@ -14,14 +14,24 @@ export default function InterviewGuideDisplay({ jobId, guide, generatedAt, onGen
   const [isGenerating, setIsGenerating] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [expandedRound, setExpandedRound] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const handleGenerate = async () => {
     setIsGenerating(true);
-    try { await onGenerate(); } finally { setIsGenerating(false); }
+    setError(null);
+    try {
+      await onGenerate();
+    } catch (err) {
+      console.error("Failed to generate guide:", err);
+      setError("Failed to generate interview guide. Please try again.");
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleDownloadPDF = async () => {
     setIsDownloading(true);
+    setError(null);
     try {
       const response = await fetch(`/api/jobs/${jobId}/interview-guide/pdf`);
       if (response.ok) {
@@ -34,9 +44,12 @@ export default function InterviewGuideDisplay({ jobId, guide, generatedAt, onGen
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
+      } else {
+        setError("Failed to download PDF. Please try again.");
       }
-    } catch (error) {
-      console.error("Failed to download PDF:", error);
+    } catch (err) {
+      console.error("Failed to download PDF:", err);
+      setError("Failed to download PDF. Please try again.");
     } finally {
       setIsDownloading(false);
     }
@@ -47,9 +60,17 @@ export default function InterviewGuideDisplay({ jobId, guide, generatedAt, onGen
     return labels[type] || type;
   };
 
+  const errorBanner = error ? (
+    <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3 mb-4 flex items-center justify-between">
+      <span>{error}</span>
+      <button onClick={() => setError(null)} className="text-red-500 hover:text-red-700 ml-2">&times;</button>
+    </div>
+  ) : null;
+
   if (!guide) {
     return (
       <div className="text-center py-12">
+        {errorBanner}
         <div className="text-gray-400 mb-4">
           <svg className="w-16 h-16 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
         </div>
@@ -64,6 +85,7 @@ export default function InterviewGuideDisplay({ jobId, guide, generatedAt, onGen
 
   return (
     <div className="space-y-6">
+      {errorBanner}
       <div className="flex items-center justify-between">
         <div>
           <h3 className="font-semibold text-gray-900">Interview Preparation Guide</h3>

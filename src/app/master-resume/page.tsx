@@ -285,6 +285,7 @@ export default function MasterResumePage() {
       URL.revokeObjectURL(url);
     } catch (err) {
       console.error("PDF download error:", err);
+      setSaveMessage("Failed to download PDF. Please try again.");
     } finally {
       setDownloadingPdf(false);
     }
@@ -485,6 +486,7 @@ export default function MasterResumePage() {
       }
     } catch (err) {
       console.error("Photo upload error:", err);
+      setSaveMessage("Failed to upload photo. Please try again.");
     } finally {
       setUploadingPhoto(false);
     }
@@ -496,9 +498,12 @@ export default function MasterResumePage() {
       if (response.ok) {
         setResumeData((prev) => ({ ...prev, profile_photo_path: null }));
         setOriginalData((prev) => ({ ...prev, profile_photo_path: null }));
+      } else {
+        setSaveMessage("Failed to delete photo. Please try again.");
       }
     } catch (err) {
       console.error("Photo delete error:", err);
+      setSaveMessage("Failed to delete photo. Please try again.");
     }
   };
 
