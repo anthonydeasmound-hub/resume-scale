@@ -16,6 +16,15 @@
     },
     "src/app/api/review-resume/route.ts": {
       "maxDuration": 30
+    },
+    "src/app/api/generate-resume-pdf/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/generate-cover-letter-pdf/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/jobs/*/interview-guide/pdf/route.ts": {
+      "maxDuration": 60
     }
   }
 }

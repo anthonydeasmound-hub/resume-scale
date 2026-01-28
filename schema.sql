@@ -132,6 +132,15 @@ CREATE TABLE IF NOT EXISTS extension_tokens (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS linkedin_imports (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) UNIQUE,
+  profile_data TEXT,
+  status TEXT DEFAULT 'pending',
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
 -- Indexes for performance (foreign keys and frequently filtered columns)
 CREATE INDEX IF NOT EXISTS idx_resumes_user_id ON resumes(user_id);
 CREATE INDEX IF NOT EXISTS idx_job_applications_user_id ON job_applications(user_id);
