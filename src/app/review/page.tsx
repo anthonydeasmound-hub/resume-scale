@@ -9,6 +9,7 @@ import JobAnalysisPanel from "@/components/review/JobAnalysisPanel";
 import ATSScoreCard from "@/components/review/ATSScoreCard";
 import { ATSScore } from "@/lib/ats-scorer";
 import { ReviewSkeleton } from "@/components/Skeleton";
+import { showToast } from "@/components/Toast";
 import { Job, MasterResume, TailoredResume, SelectedRole, ResumeReviewResult } from "@/components/review/types";
 import JobSelectionList from "@/components/review/JobSelectionList";
 import SummarySection from "@/components/review/SummarySection";
@@ -825,7 +826,7 @@ function ReviewContent() {
       }
     } catch (error) {
       console.error("PDF generation error:", error);
-      alert("Failed to generate PDF. Please try again.");
+      showToast("error", "Failed to generate PDF. Please try again.");
     }
   };
 
@@ -872,7 +873,7 @@ function ReviewContent() {
       URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Cover letter PDF error:", error);
-      alert("Failed to generate cover letter PDF.");
+      showToast("error", "Failed to generate cover letter PDF.");
     }
   };
 

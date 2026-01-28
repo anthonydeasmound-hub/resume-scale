@@ -496,10 +496,7 @@ export default function JobDetailPage() {
                 View Resume & Cover Letter
               </button>
               <button
-                onClick={() => {
-                  // TODO: Generate thank you email
-                  alert("Generate Thank You Email - Coming soon");
-                }}
+                onClick={() => showToast("info", "Thank you email generation coming soon")}
                 className="w-full flex items-center gap-3 px-4 py-3 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -508,10 +505,7 @@ export default function JobDetailPage() {
                 Generate Thank You Email
               </button>
               <button
-                onClick={() => {
-                  // TODO: View interview guide
-                  alert("View Interview Guide - Coming soon");
-                }}
+                onClick={() => showToast("info", "Interview guide available from Applied page")}
                 className="w-full flex items-center gap-3 px-4 py-3 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
