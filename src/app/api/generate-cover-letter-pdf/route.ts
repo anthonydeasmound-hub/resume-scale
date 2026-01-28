@@ -48,9 +48,8 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: unknown) {
     console.error('Cover letter PDF generation error:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Failed to generate cover letter PDF';
     return NextResponse.json(
-      { error: errorMessage },
+      { error: 'Failed to generate cover letter PDF' },
       { status: 500 }
     );
   }
