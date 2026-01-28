@@ -5,6 +5,7 @@ import { checkRateLimit } from "@/lib/rate-limit";
 import { queryOne, execute } from "@/lib/db";
 import { generateThankYouEmail, generateFollowUpEmail } from "@/lib/gemini";
 import { z } from "zod";
+import { parseIdParam } from "@/lib/params";
 
 const inputSchema = z.object({
   email_type: z.enum(["thank_you", "follow_up"]),

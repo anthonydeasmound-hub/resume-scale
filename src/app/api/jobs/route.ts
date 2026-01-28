@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json([]);
     }
 
-    const jobs = await queryAll<{ id: number }>(`
+    const jobs = await queryAll<Record<string, unknown>>(`
       SELECT * FROM job_applications
       WHERE user_id = $1
       ORDER BY created_at DESC
@@ -81,30 +81,49 @@ export async function GET(request: NextRequest) {
     const url = new URL(request.url);
     const include = url.searchParams.get("include")?.split(",") || [];
 
-    if (include.length > 0) {
-      const jobsWithRelations = await Promise.all(jobs.map(async (job) => {
-        const result: Record<string, unknown> = { ...job };
+    if (include.length > 0 && jobs.length > 0) {
+      const jobIds = jobs.map((j) => j.id);
 
-        if (include.includes("stages")) {
-          const stages = await queryAll(`
-            SELECT * FROM interview_stages
-            WHERE job_id = $1
-            ORDER BY stage_number ASC
-          `, [job.id]);
-          result.interview_stages = stages;
+      // Batch-fetch related data instead of N+1 queries
+      let stagesMap: Map<number, Record<string, unknown>[]> | null = null;
+      let emailsMap: Map<number, Record<string, unknown>[]> | null = null;
+
+      if (include.includes("stages")) {
+        const placeholders = jobIds.map((_, i) => `$${i + 1}`).join(",");
+        const allStages = await queryAll<Record<string, unknown>>(`
+          SELECT * FROM interview_stages
+          WHERE job_id IN (${placeholders})
+          ORDER BY stage_number ASC
+        `, jobIds);
+        stagesMap = new Map();
+        for (const stage of allStages) {
+          const jid = stage.job_id as number;
+          if (!stagesMap.has(jid)) stagesMap.set(jid, []);
+          stagesMap.get(jid)!.push(stage);
         }
+      }
 
-        if (include.includes("emails")) {
-          const emails = await queryAll(`
-            SELECT * FROM email_actions
-            WHERE job_id = $1
-            ORDER BY created_at DESC
-          `, [job.id]);
-          result.email_actions = emails;
+      if (include.includes("emails")) {
+        const placeholders = jobIds.map((_, i) => `$${i + 1}`).join(",");
+        const allEmails = await queryAll<Record<string, unknown>>(`
+          SELECT * FROM email_actions
+          WHERE job_id IN (${placeholders})
+          ORDER BY created_at DESC
+        `, jobIds);
+        emailsMap = new Map();
+        for (const email of allEmails) {
+          const jid = email.job_id as number;
+          if (!emailsMap.has(jid)) emailsMap.set(jid, []);
+          emailsMap.get(jid)!.push(email);
         }
+      }
 
-        return result;
-      }));
+      const jobsWithRelations = jobs.map((job) => {
+        const jid = job.id as number;
+        if (stagesMap) job.interview_stages = stagesMap.get(jid) || [];
+        if (emailsMap) job.email_actions = emailsMap.get(jid) || [];
+        return job;
+      });
 
       return NextResponse.json(jobsWithRelations);
     }

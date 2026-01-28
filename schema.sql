@@ -94,7 +94,7 @@ CREATE TABLE IF NOT EXISTS interview_stages (
 CREATE TABLE IF NOT EXISTS email_actions (
   id SERIAL PRIMARY KEY,
   job_id INTEGER NOT NULL REFERENCES job_applications(id) ON DELETE CASCADE,
-  stage_id INTEGER REFERENCES interview_stages(id),
+  stage_id INTEGER REFERENCES interview_stages(id) ON DELETE SET NULL,
   email_type TEXT NOT NULL,
   direction TEXT NOT NULL,
   subject TEXT,
@@ -111,7 +111,7 @@ CREATE TABLE IF NOT EXISTS email_actions (
 CREATE TABLE IF NOT EXISTS calendar_events (
   id SERIAL PRIMARY KEY,
   job_id INTEGER NOT NULL REFERENCES job_applications(id) ON DELETE CASCADE,
-  stage_id INTEGER REFERENCES interview_stages(id),
+  stage_id INTEGER REFERENCES interview_stages(id) ON DELETE SET NULL,
   google_event_id TEXT,
   title TEXT NOT NULL,
   description TEXT,
@@ -127,7 +127,20 @@ CREATE TABLE IF NOT EXISTS calendar_events (
 CREATE TABLE IF NOT EXISTS extension_tokens (
   id SERIAL PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id),
-  token TEXT NOT NULL,
+  token TEXT UNIQUE NOT NULL,
   expires_at TIMESTAMP,
   created_at TIMESTAMP DEFAULT NOW()
 );
+
+-- Indexes for performance (foreign keys and frequently filtered columns)
+CREATE INDEX IF NOT EXISTS idx_resumes_user_id ON resumes(user_id);
+CREATE INDEX IF NOT EXISTS idx_job_applications_user_id ON job_applications(user_id);
+CREATE INDEX IF NOT EXISTS idx_job_applications_status ON job_applications(user_id, status);
+CREATE INDEX IF NOT EXISTS idx_job_applications_created_at ON job_applications(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_job_notes_job_id ON job_notes(job_id);
+CREATE INDEX IF NOT EXISTS idx_bullet_feedback_user_id ON bullet_feedback(user_id);
+CREATE INDEX IF NOT EXISTS idx_interview_stages_job_id ON interview_stages(job_id);
+CREATE INDEX IF NOT EXISTS idx_email_actions_job_id ON email_actions(job_id);
+CREATE INDEX IF NOT EXISTS idx_calendar_events_job_id ON calendar_events(job_id);
+CREATE INDEX IF NOT EXISTS idx_extension_tokens_user_id ON extension_tokens(user_id);
+CREATE INDEX IF NOT EXISTS idx_extension_tokens_token ON extension_tokens(token);

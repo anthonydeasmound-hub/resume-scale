@@ -29,8 +29,9 @@ export default function ContactInfoStep({
 
       <div className="space-y-4 mb-6">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+          <label htmlFor="contact-name" className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
           <input
+            id="contact-name"
             type="text"
             value={editableData.contact_info.name}
             onChange={(e) => {
@@ -44,8 +45,9 @@ export default function ContactInfoStep({
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <label htmlFor="contact-email" className="block text-sm font-medium text-gray-700 mb-1">Email</label>
             <input
+              id="contact-email"
               type="email"
               value={editableData.contact_info.email}
               onChange={(e) => {
@@ -58,8 +60,9 @@ export default function ContactInfoStep({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+            <label htmlFor="contact-phone" className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
             <input
+              id="contact-phone"
               type="tel"
               value={editableData.contact_info.phone}
               onChange={(e) => {
@@ -73,8 +76,9 @@ export default function ContactInfoStep({
           </div>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+          <label htmlFor="contact-location" className="block text-sm font-medium text-gray-700 mb-1">Location</label>
           <input
+            id="contact-location"
             type="text"
             value={editableData.contact_info.location}
             onChange={(e) => {
@@ -87,8 +91,9 @@ export default function ContactInfoStep({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">LinkedIn (optional)</label>
+          <label htmlFor="contact-linkedin" className="block text-sm font-medium text-gray-700 mb-1">LinkedIn (optional)</label>
           <input
+            id="contact-linkedin"
             type="url"
             value={editableData.contact_info.linkedin}
             onChange={(e) => {

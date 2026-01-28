@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { queryOne, execute } from "@/lib/db";
 import { tailorResume, generateCoverLetter, ParsedResume } from "@/lib/gemini";
+import { parseIdParam } from "@/lib/params";
 
 export async function POST(
   request: NextRequest,
@@ -20,7 +21,9 @@ export async function POST(
 
   try {
     const { id } = await params;
-    const jobId = parseInt(id);
+    const jobIdOrError = parseIdParam(id);
+    if (jobIdOrError instanceof NextResponse) return jobIdOrError;
+    const jobId = jobIdOrError;
 
     const user = await queryOne<{ id: number }>("SELECT id FROM users WHERE email = $1", [session.user.email]);
 

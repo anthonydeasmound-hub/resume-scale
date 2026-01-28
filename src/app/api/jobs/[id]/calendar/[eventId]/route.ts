@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { queryOne, execute, CalendarEvent } from "@/lib/db";
+import { parseIdParam } from "@/lib/params";
 
 // GET /api/jobs/[id]/calendar/[eventId] - Get a specific calendar event
 export async function GET(

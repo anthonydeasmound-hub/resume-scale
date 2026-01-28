@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { queryOne, queryAll, execute, InterviewStage, StageStatus } from "@/lib/db";
+import { parseIdParam } from "@/lib/params";
 
 // GET /api/jobs/[id]/stages/[stageId] - Get a specific stage
 export async function GET(

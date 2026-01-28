@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { queryOne, execute, JobApplication, InterviewGuide } from "@/lib/db";
 import { generateInterviewGuide, extractRecruiterFromDescription, ParsedResume, JobDetailsParsed } from "@/lib/gemini";
+import { parseIdParam } from "@/lib/params";
 
 // GET - Retrieve cached interview guide
 export async function GET(
@@ -21,7 +22,9 @@ export async function GET(
 
   try {
     const { id } = await params;
-    const jobId = parseInt(id);
+    const jobIdOrError = parseIdParam(id);
+    if (jobIdOrError instanceof NextResponse) return jobIdOrError;
+    const jobId = jobIdOrError;
 
     const user = await queryOne<{ id: number }>("SELECT id FROM users WHERE email = $1", [session.user.email]);
 
@@ -68,7 +71,9 @@ export async function POST(
 
   try {
     const { id } = await params;
-    const jobId = parseInt(id);
+    const jobIdOrError = parseIdParam(id);
+    if (jobIdOrError instanceof NextResponse) return jobIdOrError;
+    const jobId = jobIdOrError;
 
     const user = await queryOne<{ id: number }>("SELECT id FROM users WHERE email = $1", [session.user.email]);
 

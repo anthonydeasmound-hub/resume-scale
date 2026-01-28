@@ -725,6 +725,8 @@ export default function LandingPage() {
                 <button
                   onClick={() => setOpenFaq(openFaq === i ? null : i)}
                   className="w-full flex items-center justify-between p-5 text-left"
+                  aria-expanded={openFaq === i}
+                  aria-controls={`faq-answer-${i}`}
                 >
                   <span className="font-medium text-gray-900 pr-4">{faq.q}</span>
                   <svg
@@ -737,7 +739,7 @@ export default function LandingPage() {
                   </svg>
                 </button>
                 {openFaq === i && (
-                  <div className="px-5 pb-5 text-gray-600 leading-relaxed">
+                  <div id={`faq-answer-${i}`} role="region" className="px-5 pb-5 text-gray-600 leading-relaxed">
                     {faq.a}
                   </div>
                 )}

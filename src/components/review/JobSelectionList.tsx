@@ -21,10 +21,11 @@ export default function JobSelectionList({ jobs, onSelectJob }: JobSelectionList
       ) : (
         <div className="grid gap-4">
           {jobs.map((job) => (
-            <div
+            <button
               key={job.id}
               onClick={() => onSelectJob(job.id)}
-              className="bg-white rounded-xl shadow p-4 cursor-pointer hover:shadow-lg transition-shadow"
+              className="bg-white rounded-xl shadow p-4 cursor-pointer hover:shadow-lg transition-shadow w-full text-left"
+              aria-label={`Review ${job.job_title} at ${job.company_name}`}
             >
               <div className="flex justify-between items-center">
                 <div>
@@ -35,7 +36,7 @@ export default function JobSelectionList({ jobs, onSelectJob }: JobSelectionList
                   {new Date(job.created_at).toLocaleDateString()}
                 </div>
               </div>
-            </div>
+            </button>
           ))}
         </div>
       )}

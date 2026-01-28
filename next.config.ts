@@ -5,6 +5,24 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        // CORS for Chrome extension API routes
+        source: "/api/extension/:path*",
+        headers: [
+          {
+            key: "Access-Control-Allow-Origin",
+            value: "*",
+          },
+          {
+            key: "Access-Control-Allow-Methods",
+            value: "GET, POST, DELETE, OPTIONS",
+          },
+          {
+            key: "Access-Control-Allow-Headers",
+            value: "Content-Type, Authorization",
+          },
+        ],
+      },
+      {
         source: "/(.*)",
         headers: [
           {

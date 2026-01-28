@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { queryOne, queryAll, execute, JobNote } from "@/lib/db";
+import { parseIdParam } from "@/lib/params";
 
 // GET /api/jobs/[id]/notes - Get all notes for a job
 export async function GET(
@@ -14,7 +15,9 @@ export async function GET(
   }
 
   const { id } = await params;
-  const jobId = parseInt(id);
+  const jobIdOrError = parseIdParam(id);
+  if (jobIdOrError instanceof NextResponse) return jobIdOrError;
+  const jobId = jobIdOrError;
 
   // Verify job belongs to user
   const user = await queryOne<{ id: number }>("SELECT id FROM users WHERE email = $1", [session.user.email]);
@@ -47,7 +50,9 @@ export async function POST(
   }
 
   const { id } = await params;
-  const jobId = parseInt(id);
+  const jobIdOrError = parseIdParam(id);
+  if (jobIdOrError instanceof NextResponse) return jobIdOrError;
+  const jobId = jobIdOrError;
 
   // Verify job belongs to user
   const user = await queryOne<{ id: number }>("SELECT id FROM users WHERE email = $1", [session.user.email]);

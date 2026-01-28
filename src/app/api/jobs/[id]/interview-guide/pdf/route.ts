@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { queryOne, InterviewGuide } from "@/lib/db";
 import { generateInterviewGuidePDF } from "@/lib/pdf-generator-puppeteer";
+import { parseIdParam } from "@/lib/params";
 
 // GET - Download interview guide as PDF
 export async function GET(
@@ -17,7 +18,9 @@ export async function GET(
 
   try {
     const { id } = await params;
-    const jobId = parseInt(id);
+    const jobIdOrError = parseIdParam(id);
+    if (jobIdOrError instanceof NextResponse) return jobIdOrError;
+    const jobId = jobIdOrError;
 
     const user = await queryOne<{ id: number }>("SELECT id FROM users WHERE email = $1", [session.user.email]);
 

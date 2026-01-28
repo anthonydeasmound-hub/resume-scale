@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { queryOne, execute, JobApplication, Resume, JobAnalysis } from "@/lib/db";
 import { analyzeJobDescription, ParsedResume, JobDetailsParsed } from "@/lib/gemini";
+import { parseIdParam } from "@/lib/params";
 
 // GET /api/jobs/[id]/analyze - Get cached analysis or generate new one
 export async function GET(
@@ -19,7 +20,9 @@ export async function GET(
   if (rateLimited) return rateLimited;
 
   const { id } = await params;
-  const jobId = parseInt(id);
+  const jobIdOrError = parseIdParam(id);
+  if (jobIdOrError instanceof NextResponse) return jobIdOrError;
+  const jobId = jobIdOrError;
 
   // Get user
   const user = await queryOne<{ id: number }>("SELECT id FROM users WHERE email = $1", [session.user.email]);
@@ -126,7 +129,9 @@ export async function POST(
   if (rateLimited) return rateLimited;
 
   const { id } = await params;
-  const jobId = parseInt(id);
+  const jobIdOrError = parseIdParam(id);
+  if (jobIdOrError instanceof NextResponse) return jobIdOrError;
+  const jobId = jobIdOrError;
 
   // Get user
   const user = await queryOne<{ id: number }>("SELECT id FROM users WHERE email = $1", [session.user.email]);
