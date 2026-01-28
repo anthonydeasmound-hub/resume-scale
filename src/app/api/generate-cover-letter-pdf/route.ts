@@ -3,6 +3,13 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { generateCoverLetterPDF } from '@/lib/pdf-generator-puppeteer';
 import { CoverLetterData, TemplateName } from '@/types/resume';
+import { z } from 'zod';
+
+const inputSchema = z.object({
+  data: z.record(z.string(), z.any()),
+  template: z.string().optional(),
+  accentColor: z.string().max(50).optional(),
+});
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -12,18 +19,16 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { data, template, accentColor } = await request.json() as {
+    const body = await request.json();
+    const parsed = inputSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten().fieldErrors }, { status: 400 });
+    }
+    const { data, template, accentColor } = parsed.data as {
       data: CoverLetterData;
       template: TemplateName;
       accentColor?: string;
     };
-
-    if (!data) {
-      return NextResponse.json(
-        { error: 'Missing required field: data' },
-        { status: 400 }
-      );
-    }
 
     // Default to professional template
     const templateName = template || 'professional';

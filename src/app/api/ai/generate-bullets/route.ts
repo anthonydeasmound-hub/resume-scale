@@ -1,8 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/rate-limit";
 import db from "@/lib/db";
 import { generateBulletOptions } from "@/lib/gemini";
+import { z } from "zod";
+
+const inputSchema = z.object({
+  jobId: z.number(),
+  role: z.object({
+    company: z.string().min(1),
+    title: z.string().min(1),
+    description: z.array(z.string()).min(1),
+  }),
+});
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -11,12 +22,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  try {
-    const { jobId, role } = await request.json();
+  const rateLimited = await checkRateLimit(session.user.email);
+  if (rateLimited) return rateLimited;
 
-    if (!role || !role.company || !role.title || !role.description) {
-      return NextResponse.json({ error: "Role information is required" }, { status: 400 });
+  try {
+    const body = await request.json();
+    const parsed = inputSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten().fieldErrors }, { status: 400 });
     }
+    const { jobId, role } = parsed.data;
 
     const user = db.prepare("SELECT id FROM users WHERE email = ?").get(session.user.email) as { id: number } | undefined;
 

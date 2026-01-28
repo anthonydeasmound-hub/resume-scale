@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/rate-limit";
 import db, { JobApplication, Resume, JobAnalysis } from "@/lib/db";
 import { analyzeJobDescription, ParsedResume, JobDetailsParsed } from "@/lib/gemini";
 
@@ -13,6 +14,9 @@ export async function GET(
   if (!session?.user?.email) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const rateLimited = await checkRateLimit(session.user.email);
+  if (rateLimited) return rateLimited;
 
   const { id } = await params;
   const jobId = parseInt(id);
@@ -117,6 +121,9 @@ export async function POST(
   if (!session?.user?.email) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const rateLimited = await checkRateLimit(session.user.email);
+  if (rateLimited) return rateLimited;
 
   const { id } = await params;
   const jobId = parseInt(id);

@@ -4,6 +4,15 @@ import { authOptions } from '@/lib/auth';
 import { generateResumePDF, generatePDFFromTemplateHTML } from '@/lib/pdf-generator-puppeteer';
 import { DEFAULT_TEMPLATE_OPTIONS, TemplateOptions } from '@/lib/templates';
 import { ResumeData, TemplateName } from '@/types/resume';
+import { z } from 'zod';
+
+const inputSchema = z.object({
+  data: z.record(z.string(), z.any()),
+  template: z.string().optional(),
+  accentColor: z.string().max(50).optional(),
+  templateId: z.string().max(200).optional(),
+  templateOptions: z.record(z.string(), z.any()).optional(),
+});
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -13,20 +22,18 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { data, template, accentColor, templateId, templateOptions } = await request.json() as {
+    const body = await request.json();
+    const parsed = inputSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten().fieldErrors }, { status: 400 });
+    }
+    const { data, template, accentColor, templateId, templateOptions } = parsed.data as {
       data: ResumeData;
       template?: TemplateName;
       accentColor?: string;
       templateId?: string;
       templateOptions?: Partial<TemplateOptions>;
     };
-
-    if (!data) {
-      return NextResponse.json(
-        { error: 'Missing required field: data' },
-        { status: 400 }
-      );
-    }
 
     const color = accentColor || '#2563eb';
     let pdfBuffer: Buffer;

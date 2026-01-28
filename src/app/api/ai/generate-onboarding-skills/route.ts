@@ -1,7 +1,17 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { generateEnhancedSkillSuggestions } from "@/lib/gemini-enhanced";
+import { z } from "zod";
+
+const inputSchema = z.object({
+  roles: z.array(z.object({
+    company: z.string(),
+    title: z.string(),
+  })).min(1),
+  existingSkills: z.array(z.string()).optional(),
+});
 
 export async function POST(request: Request) {
   try {
@@ -10,17 +20,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const rateLimited = await checkRateLimit(session.user.email!);
+    if (rateLimited) return rateLimited;
+
     const body = await request.json();
     console.log("Received skill suggestions request:", JSON.stringify(body));
 
-    const { roles, existingSkills } = body;
-
-    if (!roles || !Array.isArray(roles) || roles.length === 0) {
-      return NextResponse.json(
-        { error: "Missing roles information" },
-        { status: 400 }
-      );
+    const parsed = inputSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten().fieldErrors }, { status: 400 });
     }
+    const { roles, existingSkills } = parsed.data;
 
     const suggestions = await generateEnhancedSkillSuggestions(
       roles,

@@ -1,7 +1,14 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { z } from "zod";
+
+const inputSchema = z.object({
+  jobTitle: z.string().min(1).max(500),
+  company: z.string().max(500).optional(),
+});
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
@@ -12,14 +19,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { jobTitle, company } = await request.json();
+    const rateLimited = await checkRateLimit(session.user.email!);
+    if (rateLimited) return rateLimited;
 
-    if (!jobTitle) {
-      return NextResponse.json(
-        { error: "Job title is required" },
-        { status: 400 }
-      );
+    const body = await request.json();
+    const parsed = inputSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten().fieldErrors }, { status: 400 });
     }
+    const { jobTitle, company } = parsed.data;
 
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 

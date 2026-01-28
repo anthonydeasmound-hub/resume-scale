@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/rate-limit";
 import db from "@/lib/db";
 import { tailorResume, generateCoverLetter, ParsedResume } from "@/lib/gemini";
 
@@ -13,6 +14,9 @@ export async function POST(
   if (!session?.user?.email) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const rateLimited = await checkRateLimit(session.user.email);
+  if (rateLimited) return rateLimited;
 
   try {
     const { id } = await params;

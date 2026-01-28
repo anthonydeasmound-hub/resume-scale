@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/rate-limit";
 import db from "@/lib/db";
 import { extractJobInfo, extractJobDetails } from "@/lib/gemini";
+import { z } from "zod";
+
+const inputSchema = z.object({
+  job_description: z.string().min(1).max(100000),
+});
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -11,15 +17,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  try {
-    const { job_description } = await request.json();
+  const rateLimited = await checkRateLimit(session.user.email);
+  if (rateLimited) return rateLimited;
 
-    if (!job_description) {
-      return NextResponse.json(
-        { error: "Job description is required" },
-        { status: 400 }
-      );
+  try {
+    const body = await request.json();
+    const parsed = inputSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten().fieldErrors }, { status: 400 });
     }
+    const { job_description } = parsed.data;
 
     const user = db.prepare("SELECT id FROM users WHERE email = ?").get(session.user.email) as { id: number } | undefined;
 

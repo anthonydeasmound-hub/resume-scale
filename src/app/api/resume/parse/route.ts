@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { parseResume } from "@/lib/gemini";
+import { z } from "zod";
+
+const inputSchema = z.object({
+  resumeText: z.string().min(1).max(100000),
+});
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -10,18 +16,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const rateLimited = await checkRateLimit(session.user.email);
+  if (rateLimited) return rateLimited;
+
   try {
-    const { resumeText } = await request.json();
-
-    if (!resumeText || typeof resumeText !== "string") {
-      return NextResponse.json(
-        { error: "Resume text is required" },
-        { status: 400 }
-      );
+    const body = await request.json();
+    const parsed = inputSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten().fieldErrors }, { status: 400 });
     }
+    const { resumeText } = parsed.data;
 
-    const parsed = await parseResume(resumeText);
-    return NextResponse.json(parsed);
+    const parsedResume = await parseResume(resumeText);
+    return NextResponse.json(parsedResume);
   } catch (error) {
     console.error("Resume parsing error:", error);
 

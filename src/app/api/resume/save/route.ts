@@ -2,6 +2,22 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import db from "@/lib/db";
+import { z } from "zod";
+
+const inputSchema = z.object({
+  contact_info: z.any(),
+  work_experience: z.any(),
+  skills: z.any(),
+  education: z.any(),
+  certifications: z.any().optional(),
+  languages: z.any().optional(),
+  honors: z.any().optional(),
+  profile_photo_path: z.string().max(1000).optional().nullable(),
+  raw_text: z.string().max(100000).optional(),
+  summary: z.string().max(50000).optional().nullable(),
+  resume_style: z.string().max(100).optional(),
+  accent_color: z.string().max(50).optional(),
+});
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -11,7 +27,12 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { contact_info, work_experience, skills, education, certifications, languages, honors, profile_photo_path, raw_text, summary, resume_style, accent_color } = await request.json();
+    const body = await request.json();
+    const parsed = inputSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten().fieldErrors }, { status: 400 });
+    }
+    const { contact_info, work_experience, skills, education, certifications, languages, honors, profile_photo_path, raw_text, summary, resume_style, accent_color } = parsed.data;
 
     // Get or create user
     let user = db.prepare("SELECT id FROM users WHERE email = ?").get(session.user.email) as { id: number } | undefined;

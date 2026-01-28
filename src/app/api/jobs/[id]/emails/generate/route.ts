@@ -1,8 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/rate-limit";
 import db from "@/lib/db";
 import { generateThankYouEmail, generateFollowUpEmail } from "@/lib/gemini";
+import { z } from "zod";
+
+const inputSchema = z.object({
+  email_type: z.enum(["thank_you", "follow_up"]),
+  stage_id: z.number().optional(),
+  interviewer_names: z.array(z.string()).optional(),
+  interview_type: z.string().max(500).optional(),
+  notes: z.string().max(50000).optional(),
+});
 
 // POST /api/jobs/[id]/emails/generate - Generate email draft
 export async function POST(
@@ -13,6 +23,9 @@ export async function POST(
   if (!session?.user?.email) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const rateLimited = await checkRateLimit(session.user.email);
+  if (rateLimited) return rateLimited;
 
   const { id } = await params;
   const jobId = parseInt(id);
@@ -41,17 +54,11 @@ export async function POST(
   }
 
   const body = await request.json();
-  const { email_type, stage_id, interviewer_names, interview_type, notes } = body as {
-    email_type: 'thank_you' | 'follow_up';
-    stage_id?: number;
-    interviewer_names?: string[];
-    interview_type?: string;
-    notes?: string;
-  };
-
-  if (!email_type) {
-    return NextResponse.json({ error: "email_type is required (thank_you or follow_up)" }, { status: 400 });
+  const parsed = inputSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten().fieldErrors }, { status: 400 });
   }
+  const { email_type, stage_id, interviewer_names, interview_type, notes } = parsed.data;
 
   const candidateName = user.name || session.user.email.split('@')[0];
 

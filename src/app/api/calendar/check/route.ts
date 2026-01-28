@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { fetchUpcomingEvents } from "@/lib/calendar";
 import { classifyCalendarEvent } from "@/lib/gemini";
 import db from "@/lib/db";
@@ -20,6 +21,9 @@ export async function POST() {
       { status: 401 }
     );
   }
+
+  const rateLimited = await checkRateLimit(session.user.email);
+  if (rateLimited) return rateLimited;
 
   try {
     const user = db

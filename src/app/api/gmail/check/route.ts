@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { fetchRecentEmails } from "@/lib/gmail";
 import { classifyEmailEnhanced } from "@/lib/gemini";
 import db, { StageType } from "@/lib/db";
@@ -19,6 +20,9 @@ export async function POST() {
   if (!session?.user?.email || !session.accessToken) {
     return NextResponse.json({ error: "Unauthorized or missing Gmail access" }, { status: 401 });
   }
+
+  const rateLimited = await checkRateLimit(session.user.email);
+  if (rateLimited) return rateLimited;
 
   try {
     const user = db.prepare("SELECT id FROM users WHERE email = ?").get(session.user.email) as { id: number } | undefined;

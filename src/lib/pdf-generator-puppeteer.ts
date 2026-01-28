@@ -1,10 +1,48 @@
-import puppeteer from 'puppeteer';
+import puppeteer from 'puppeteer-core';
+import chromium from '@sparticuz/chromium';
 import { ResumeData, CoverLetterData, TemplateName } from '@/types/resume';
 import { generateProfessionalHTML } from './templates/professional-resume';
 import { generateBasicHTML } from './templates/basic-resume';
 import { generateInterviewGuideHTML } from './templates/interview-guide';
 import { InterviewGuide } from './db';
 import { generateTemplateHTML, TemplateOptions } from './templates';
+
+async function launchBrowser() {
+  const isLocal = !process.env.AWS_LAMBDA_FUNCTION_NAME && !process.env.VERCEL;
+
+  if (isLocal) {
+    // Local development: use system Chrome
+    const possiblePaths = [
+      '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+      '/usr/bin/google-chrome',
+      '/usr/bin/chromium-browser',
+      'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    ];
+    let executablePath: string | undefined;
+    for (const p of possiblePaths) {
+      try {
+        const { accessSync } = require('fs');
+        accessSync(p);
+        executablePath = p;
+        break;
+      } catch {
+        // not found, try next
+      }
+    }
+    return puppeteer.launch({
+      headless: true,
+      executablePath,
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    });
+  }
+
+  // Production (Vercel / AWS Lambda): use @sparticuz/chromium
+  return puppeteer.launch({
+    headless: true,
+    executablePath: await chromium.executablePath(),
+    args: chromium.args,
+  });
+}
 
 export async function generateResumePDF(
   data: ResumeData,
@@ -17,10 +55,7 @@ export async function generateResumePDF(
     : generateBasicHTML(data);
 
   // Launch Puppeteer
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
-  });
+  const browser = await launchBrowser();
 
   try {
     const page = await browser.newPage();
@@ -51,10 +86,7 @@ export async function generateCoverLetterPDF(
   // Generate cover letter HTML
   const html = generateCoverLetterHTML(data, template, accentColor);
 
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
-  });
+  const browser = await launchBrowser();
 
   try {
     const page = await browser.newPage();
@@ -80,10 +112,7 @@ export async function generateInterviewGuidePDF(
 ): Promise<Buffer> {
   const html = generateInterviewGuideHTML(guide, jobTitle, companyName, accentColor);
 
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
-  });
+  const browser = await launchBrowser();
 
   try {
     const page = await browser.newPage();
@@ -108,10 +137,7 @@ export async function generatePDFFromTemplateHTML(
 ): Promise<Buffer> {
   const html = generateTemplateHTML(templateId, data, options);
 
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
-  });
+  const browser = await launchBrowser();
 
   try {
     const page = await browser.newPage();

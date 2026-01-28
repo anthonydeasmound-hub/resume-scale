@@ -1,7 +1,29 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/rate-limit";
 import Groq from "groq-sdk";
+import { z } from "zod";
+
+const workExperienceSchema = z.object({
+  company: z.string(),
+  title: z.string(),
+  start_date: z.string(),
+  end_date: z.string(),
+  description: z.array(z.string()).optional().default([]),
+});
+
+const inputSchema = z.object({
+  resume: z.object({
+    work_experience: z.array(workExperienceSchema).min(1),
+    skills: z.array(z.string()),
+    education: z.array(z.object({
+      institution: z.string(),
+      degree: z.string(),
+      field: z.string(),
+    })).optional(),
+  }),
+});
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || "" });
 
@@ -93,12 +115,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { resume } = body as { resume: ResumeData };
+    const rateLimited = await checkRateLimit(session.user.email);
+    if (rateLimited) return rateLimited;
 
-    if (!resume || !resume.work_experience || resume.work_experience.length === 0) {
-      return NextResponse.json({ error: "Missing resume data" }, { status: 400 });
+    const body = await request.json();
+    const parsed = inputSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten().fieldErrors }, { status: 400 });
     }
+    const { resume } = parsed.data as { resume: ResumeData };
 
     // Calculate years of experience
     const totalYears = calculateYearsOfExperience(resume.work_experience);

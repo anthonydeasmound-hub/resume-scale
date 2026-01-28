@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/rate-limit";
 import db from "@/lib/db";
 import Groq from "groq-sdk";
+import { z } from "zod";
+
+const inputSchema = z.object({
+  html: z.string().min(1).max(500000),
+  profile_url: z.string().max(2000).optional(),
+});
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || "" });
 
@@ -47,6 +54,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const rateLimited = await checkRateLimit(userEmail);
+  if (rateLimited) return rateLimited;
+
   if (!process.env.GROQ_API_KEY) {
     return NextResponse.json(
       { error: "Groq API key not configured" },
@@ -56,14 +66,11 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { html, profile_url } = body;
-
-    if (!html) {
-      return NextResponse.json(
-        { error: "HTML content is required" },
-        { status: 400, headers: corsHeaders }
-      );
+    const parsed = inputSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten().fieldErrors }, { status: 400, headers: corsHeaders });
     }
+    const { html, profile_url } = parsed.data;
 
     console.log("[parse-html] Received HTML length:", html.length);
 

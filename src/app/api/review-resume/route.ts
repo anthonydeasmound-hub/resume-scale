@@ -1,7 +1,18 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { reviewResume } from "@/lib/gemini-enhanced";
+import { z } from "zod";
+
+const inputSchema = z.object({
+  bullets: z.array(z.string()).min(1),
+  role: z.object({
+    title: z.string().min(1),
+    company: z.string().min(1),
+  }),
+  seniority: z.string().max(500).optional(),
+});
 
 export async function POST(request: Request) {
   try {
@@ -10,22 +21,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const rateLimited = await checkRateLimit(session.user.email!);
+    if (rateLimited) return rateLimited;
+
     const body = await request.json();
-    const { bullets, role, seniority } = body;
-
-    if (!bullets || !Array.isArray(bullets) || bullets.length === 0) {
-      return NextResponse.json(
-        { error: "Missing or empty bullets array" },
-        { status: 400 }
-      );
+    const parsed = inputSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten().fieldErrors }, { status: 400 });
     }
-
-    if (!role?.title || !role?.company) {
-      return NextResponse.json(
-        { error: "Missing role information (title and company required)" },
-        { status: 400 }
-      );
-    }
+    const { bullets, role, seniority } = parsed.data;
 
     console.log(`Reviewing ${bullets.length} bullets for ${role.title} at ${role.company}`);
 

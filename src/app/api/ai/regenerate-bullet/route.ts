@@ -1,9 +1,21 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/rate-limit";
 import db from "@/lib/db";
 import Groq from "groq-sdk";
 import { buildEnhancementContext, formatBulletsForPrompt } from "@/lib/resume-examples";
+import { z } from "zod";
+
+const inputSchema = z.object({
+  role: z.object({
+    company: z.string().min(1),
+    title: z.string().min(1),
+  }),
+  rejectedBullet: z.string().min(1),
+  existingBullets: z.array(z.string()).optional().default([]),
+  feedback: z.enum(["up", "down"]),
+});
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || "" });
 
@@ -23,21 +35,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const rateLimited = await checkRateLimit(session.user.email);
+    if (rateLimited) return rateLimited;
+
     const body = await request.json();
-    const { role, rejectedBullet, existingBullets, feedback } = body as {
-      role: { company: string; title: string };
-      rejectedBullet: string;
-      existingBullets: string[];
-      feedback: 'up' | 'down';
-    };
-
-    if (!role?.company || !role?.title) {
-      return NextResponse.json({ error: "Missing role information" }, { status: 400 });
+    const parsed = inputSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten().fieldErrors }, { status: 400 });
     }
-
-    if (!rejectedBullet) {
-      return NextResponse.json({ error: "Missing rejected bullet" }, { status: 400 });
-    }
+    const { role, rejectedBullet, existingBullets, feedback } = parsed.data;
 
     // Store feedback for future learning
     const user = db.prepare("SELECT id FROM users WHERE email = ?").get(session.user.email) as { id: number } | undefined;
