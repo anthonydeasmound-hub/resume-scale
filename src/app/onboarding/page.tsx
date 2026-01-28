@@ -212,10 +212,8 @@ function OnboardingContent() {
   const INITIAL_SKILLS_SHOWN = 4;
 
   useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/");
-    }
-  }, [status, router]);
+    document.title = "ResumeGenie - Onboarding";
+  }, []);
 
   // Check for LinkedIn extension import result
   useEffect(() => {

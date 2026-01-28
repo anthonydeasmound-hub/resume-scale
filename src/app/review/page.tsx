@@ -176,10 +176,8 @@ function ReviewContent() {
   const [loadingAts, setLoadingAts] = useState(false);
 
   useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/");
-    }
-  }, [status, router]);
+    document.title = "ResumeGenie - Review";
+  }, []);
 
   useEffect(() => {
     if (session) {

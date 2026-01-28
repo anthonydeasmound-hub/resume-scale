@@ -1,7 +1,6 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef, useCallback } from "react";
 import TabsNav from "@/components/TabsNav";
 
@@ -87,7 +86,6 @@ const emptyResume: ResumeData = {
 
 export default function MasterResumePage() {
   const { data: session, status } = useSession();
-  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [resumeData, setResumeData] = useState<ResumeData>(emptyResume);
@@ -113,10 +111,8 @@ export default function MasterResumePage() {
   const previewDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/");
-    }
-  }, [status, router]);
+    document.title = "ResumeGenie - Master Resume";
+  }, []);
 
   useEffect(() => {
     if (session) {

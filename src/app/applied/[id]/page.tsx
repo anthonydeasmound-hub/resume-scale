@@ -72,10 +72,8 @@ export default function JobDetailPage() {
   const [addingNote, setAddingNote] = useState(false);
 
   useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/");
-    }
-  }, [status, router]);
+    document.title = "ResumeGenie - Job Details";
+  }, []);
 
   useEffect(() => {
     if (session && jobId) {

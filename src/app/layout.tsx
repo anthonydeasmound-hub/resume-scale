@@ -53,6 +53,31 @@ const openSans = Open_Sans({
 export const metadata: Metadata = {
   title: "ResumeGenie - AI-Powered Job Applications",
   description: "Scale your job applications with AI-optimized resumes and cover letters",
+  metadataBase: new URL("https://resumegenie.careers"),
+  openGraph: {
+    title: "ResumeGenie - AI-Powered Job Applications",
+    description:
+      "Scale your job applications with AI-optimized resumes and cover letters. Tailor your resume to every job in seconds.",
+    url: "https://resumegenie.careers",
+    siteName: "ResumeGenie",
+    images: [
+      {
+        url: "/logo.png",
+        width: 800,
+        height: 600,
+        alt: "ResumeGenie",
+      },
+    ],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "ResumeGenie - AI-Powered Job Applications",
+    description:
+      "Scale your job applications with AI-optimized resumes and cover letters. Tailor your resume to every job in seconds.",
+    images: ["/logo.png"],
+  },
 };
 
 export default function RootLayout({

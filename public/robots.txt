@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /master-resume
+Disallow: /review
+Disallow: /applied
+Disallow: /onboarding
+Disallow: /extension
+Disallow: /tools
+Disallow: /api/
+
+Sitemap: https://resumegenie.careers/sitemap.xml

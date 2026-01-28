@@ -67,6 +67,24 @@ export default function TabsNav({ reviewCount = 0 }: { reviewCount?: number }) {
         </svg>
       ),
     },
+    {
+      name: "Extension",
+      href: "/extension",
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+        </svg>
+      ),
+    },
+    {
+      name: "All Tools",
+      href: "/tools",
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+        </svg>
+      ),
+    },
   ];
 
   return (
@@ -100,7 +118,7 @@ export default function TabsNav({ reviewCount = 0 }: { reviewCount?: number }) {
                   </span>
                 )}
               </Link>
-              {index === 0 && (
+              {(index === 0 || index === 3) && (
                 <div className="border-t border-gray-200 my-2" />
               )}
             </div>

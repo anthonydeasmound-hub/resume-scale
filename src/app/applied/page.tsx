@@ -52,10 +52,8 @@ export default function AppliedPage() {
   const [showArchived, setShowArchived] = useState(false);
 
   useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/");
-    }
-  }, [status, router]);
+    document.title = "ResumeGenie - Applied";
+  }, []);
 
   useEffect(() => {
     if (session) {

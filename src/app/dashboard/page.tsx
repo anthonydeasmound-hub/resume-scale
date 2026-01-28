@@ -101,10 +101,8 @@ export default function DashboardPage() {
   const previewScale = 0.48;
 
   useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/");
-    }
-  }, [status, router]);
+    document.title = "ResumeGenie - Dashboard";
+  }, []);
 
   const fetchSetupStatus = useCallback(async () => {
     try {

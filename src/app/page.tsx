@@ -826,8 +826,12 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="border-t border-gray-100 mt-8 pt-8 text-center">
+          <div className="border-t border-gray-100 mt-8 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
             <p className="text-sm text-gray-400">&copy; {new Date().getFullYear()} Resume Genie. All rights reserved.</p>
+            <div className="flex items-center gap-6">
+              <a href="/privacy" className="text-sm text-gray-400 hover:text-gray-600">Privacy Policy</a>
+              <a href="/terms" className="text-sm text-gray-400 hover:text-gray-600">Terms of Service</a>
+            </div>
           </div>
         </div>
       </footer>
