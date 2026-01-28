@@ -55,7 +55,7 @@ export default function ProfilePhotoSection({ profilePhotoPath, uploadingPhoto, 
               className="hidden"
             />
           </label>
-          <p className="text-xs text-gray-400 mt-2">JPEG, PNG, or WebP. Max 5MB.</p>
+          <p className="text-xs text-gray-400 mt-2">JPEG, PNG, or WebP. Max 4MB.</p>
         </div>
       </div>
     </div>

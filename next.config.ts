@@ -4,6 +4,12 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["@sparticuz/chromium", "puppeteer-core"],
   images: {
     formats: ["image/avif", "image/webp"],
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "*.public.blob.vercel-storage.com",
+      },
+    ],
   },
   async headers() {
     return [
@@ -61,7 +67,7 @@ const nextConfig: NextConfig = {
               "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net",
-              "img-src 'self' data: blob: https://lh3.googleusercontent.com",
+              "img-src 'self' data: blob: https://lh3.googleusercontent.com https://*.public.blob.vercel-storage.com",
               "connect-src 'self' https://accounts.google.com https://www.googleapis.com https://gmail.googleapis.com https://api.scrapingdog.com",
               "frame-src 'self' blob:",
               "frame-ancestors 'self'",

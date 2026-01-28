@@ -2,14 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { queryOne, execute } from "@/lib/db";
-import fs from "fs";
-import path from "path";
-
-// Ensure uploads directory exists
-const uploadsDir = path.join(process.cwd(), "public", "uploads", "photos");
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
+import { put, del } from "@vercel/blob";
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -32,9 +25,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid file type. Use JPEG, PNG, or WebP" }, { status: 400 });
     }
 
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      return NextResponse.json({ error: "File too large. Max 5MB" }, { status: 400 });
+    // Validate file size (max 4MB — Vercel serverless body limit is 4.5MB)
+    if (file.size > 4 * 1024 * 1024) {
+      return NextResponse.json({ error: "File too large. Max 4MB" }, { status: 400 });
     }
 
     // Get user
@@ -44,35 +37,38 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
+    // Get old photo URL before updating
+    const oldResume = await queryOne<{ profile_photo_path: string | null }>("SELECT profile_photo_path FROM resumes WHERE user_id = $1", [user.id]);
+
     // Generate unique filename using validated MIME type
     const extMap: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
     const ext = extMap[file.type] || "jpg";
-    const filename = `${user.id}_${Date.now()}.${ext}`;
-    const filepath = path.join(uploadsDir, filename);
 
-    // Convert file to buffer and save
+    // Upload to Vercel Blob
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
-    fs.writeFileSync(filepath, buffer);
+    const blob = await put(`photos/${user.id}_${Date.now()}.${ext}`, buffer, {
+      access: "public",
+      contentType: file.type,
+    });
 
-    // Update database with relative path
-    const relativePath = `/uploads/photos/${filename}`;
+    // Update database with full blob URL
     await execute(`
       UPDATE resumes
       SET profile_photo_path = $1, updated_at = NOW()
       WHERE user_id = $2
-    `, [relativePath, user.id]);
+    `, [blob.url, user.id]);
 
-    // Delete old photo if exists
-    const oldResume = await queryOne<{ profile_photo_path: string | null }>("SELECT profile_photo_path FROM resumes WHERE user_id = $1", [user.id]);
-    if (oldResume?.profile_photo_path && oldResume.profile_photo_path !== relativePath) {
-      const oldPath = path.join(process.cwd(), "public", oldResume.profile_photo_path);
-      if (fs.existsSync(oldPath)) {
-        fs.unlinkSync(oldPath);
+    // Delete old blob if it existed
+    if (oldResume?.profile_photo_path) {
+      try {
+        await del(oldResume.profile_photo_path);
+      } catch {
+        // Old photo may have been a local path or already deleted — ignore
       }
     }
 
-    return NextResponse.json({ success: true, path: relativePath });
+    return NextResponse.json({ success: true, path: blob.url });
   } catch (error) {
     console.error("Photo upload error:", error);
     return NextResponse.json({ error: "Failed to upload photo" }, { status: 500 });
@@ -93,15 +89,12 @@ export async function DELETE() {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Get current photo path
+    // Get current photo URL
     const resume = await queryOne<{ profile_photo_path: string | null }>("SELECT profile_photo_path FROM resumes WHERE user_id = $1", [user.id]);
 
     if (resume?.profile_photo_path) {
-      // Delete file
-      const filepath = path.join(process.cwd(), "public", resume.profile_photo_path);
-      if (fs.existsSync(filepath)) {
-        fs.unlinkSync(filepath);
-      }
+      // Delete from Vercel Blob
+      await del(resume.profile_photo_path);
 
       // Update database
       await execute(`
