@@ -34,7 +34,6 @@ export async function POST(request: NextRequest) {
     const templateName = template || 'professional';
     const color = accentColor || '#3D5A80';
 
-    console.log('Generating cover letter PDF with template:', templateName, 'color:', color);
 
     const pdfBuffer = await generateCoverLetterPDF(data, templateName, color);
 

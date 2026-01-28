@@ -45,12 +45,10 @@ export async function POST(request: NextRequest) {
         ...templateOptions,
         accentColor: color,
       };
-      console.log('Generating PDF with new template:', templateId, 'color:', color);
       pdfBuffer = await generatePDFFromTemplateHTML(data, templateId, options);
     } else {
       // Legacy path for backward compatibility
       const templateName = template || 'professional';
-      console.log('Generating PDF with legacy template:', templateName, 'color:', color);
       pdfBuffer = await generateResumePDF(data, templateName, color);
     }
 

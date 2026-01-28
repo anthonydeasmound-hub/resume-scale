@@ -73,7 +73,6 @@ export async function POST(request: NextRequest) {
     }
     const { html, profile_url } = parsed.data;
 
-    console.log("[parse-html] Received HTML length:", html.length);
 
     // Extract text content from HTML to reduce size
     // Remove script, style, and other non-content tags, but preserve text
@@ -109,11 +108,8 @@ export async function POST(request: NextRequest) {
       ? cleanedHtml.substring(0, maxLength)
       : cleanedHtml;
 
-    console.log("[parse-html] Cleaned text length:", textContent.length);
 
     // Log samples of the text to debug what we're sending to the AI
-    console.log("[parse-html] Text sample (first 1500 chars):", textContent.slice(0, 1500));
-    console.log("[parse-html] Text sample (middle):", textContent.slice(Math.floor(textContent.length / 2), Math.floor(textContent.length / 2) + 1500));
 
     const prompt = `You are parsing a LinkedIn profile page. Extract the following information from this text content and return it as valid JSON only (no markdown, no explanation, no code blocks).
 
@@ -181,7 +177,6 @@ ${textContent}`;
     // Clean up response - remove markdown code blocks if present
     responseText = responseText.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
 
-    console.log("[parse-html] AI response length:", responseText.length);
 
     let parsedData;
     try {
@@ -233,13 +228,6 @@ ${textContent}`;
       profile_picture_url: "",
       about: parsedData.about || "",
     };
-
-    console.log("[parse-html] Transformed data:", {
-      name: transformedData.contact_info.name,
-      experienceCount: transformedData.work_experience.length,
-      educationCount: transformedData.education.length,
-      skillsCount: transformedData.skills.length,
-    });
 
     // Get or create user
     let user = await queryOne<{ id: number }>("SELECT * FROM users WHERE email = $1", [userEmail]);

@@ -31,7 +31,6 @@ export async function POST(request: Request) {
     }
     const { bullet, role, seniority } = parsed.data;
 
-    console.log(`Enhancing bullet for ${role.title} at ${role.company}`);
 
     const enhanced = await enhanceBulletWithExamples(bullet, role, seniority);
 

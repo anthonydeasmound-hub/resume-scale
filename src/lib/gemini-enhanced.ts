@@ -47,13 +47,11 @@ async function callAI(prompt: string): Promise<string> {
     throw new Error("GROQ_API_KEY is not configured");
   }
   try {
-    console.log("[callAI] Making Groq API call, prompt length:", prompt.length);
     const completion = await groq.chat.completions.create({
       messages: [{ role: "user", content: prompt }],
       model: "llama-3.3-70b-versatile",
       temperature: 0.3,
     });
-    console.log("[callAI] Groq API call successful");
     return completion.choices[0]?.message?.content || "";
   } catch (error) {
     console.error("[callAI] Groq API error:", error);
@@ -198,13 +196,11 @@ function getRoleTasks(title: string, company?: string): string[] {
   const roleConfig = findRoleConfig(title);
 
   if (!roleConfig) {
-    console.log(`[getRoleTasks] No template found for: ${title}`);
     return [];
   }
 
   // Detect seniority from title
   const seniority = detectSeniority(title);
-  console.log(`[getRoleTasks] Matched ${title} to ${roleConfig.config.displayName} (${seniority})`);
 
   // Get seniority-appropriate tasks
   const seniorityTasks = roleConfig.config.seniorityTasks[seniority] || roleConfig.config.seniorityTasks.mid;
@@ -215,7 +211,6 @@ function getRoleTasks(title: string, company?: string): string[] {
     const industry = detectIndustry(company);
     if (industry && roleConfig.config.industryVariants[industry]) {
       const industryTasks = roleConfig.config.industryVariants[industry];
-      console.log(`[getRoleTasks] Adding ${industryTasks.length} ${industry} industry tasks`);
       tasks = [...tasks, ...industryTasks];
     }
   }
@@ -228,7 +223,6 @@ function getRoleTasks(title: string, company?: string): string[] {
  * This is the fallback when template matching fails
  */
 async function generateDynamicRoleTasks(title: string, company: string): Promise<string[]> {
-  console.log(`[generateDynamicRoleTasks] Generating tasks for: ${title} at ${company}`);
 
   const prompt = `Generate 6 typical day-to-day tasks for a ${title} at ${company}.
 
@@ -257,7 +251,6 @@ RESPOND WITH ONLY A JSON ARRAY:
     const jsonMatch = cleanedResponse.match(/\[[\s\S]*\]/);
     if (jsonMatch) {
       const tasks = JSON.parse(jsonMatch[0]);
-      console.log(`[generateDynamicRoleTasks] Generated ${tasks.length} tasks`);
       return tasks;
     }
     return JSON.parse(cleanedResponse);
@@ -281,7 +274,6 @@ async function getRoleTasksWithFallback(title: string, company: string): Promise
   }
 
   // Fallback to dynamic AI generation
-  console.log(`[getRoleTasksWithFallback] No template found, using AI generation for: ${title}`);
   return await generateDynamicRoleTasks(title, company);
 }
 
@@ -538,9 +530,6 @@ export async function generateEnhancedOnboardingBullets(
   }
 
   // Debug logging
-  console.log(`[generateEnhancedOnboardingBullets] Role: ${role.title} at ${role.company}`);
-  console.log(`[generateEnhancedOnboardingBullets] Company context: ${companyContext.slice(0, 100)}...`);
-  console.log(`[generateEnhancedOnboardingBullets] Role tasks: ${roleTaskList.length} found`);
 
   // Use the improved seniority detection
   const seniority = detectSeniority(role.title);
@@ -548,7 +537,6 @@ export async function generateEnhancedOnboardingBullets(
                           seniority === 'executive' ? 'executive' :
                           seniority === 'senior' ? 'senior' : 'mid-level';
 
-  console.log(`[generateEnhancedOnboardingBullets] Detected seniority: ${seniorityLevel}`);
 
   const prompt = `You are a ${role.title} at ${role.company}. Write 8 resume bullet points describing your SPECIFIC work at this company.
 
@@ -585,7 +573,6 @@ RESPOND WITH ONLY A JSON ARRAY:
 ["Bullet 1", "Bullet 2", "Bullet 3", "Bullet 4", "Bullet 5", "Bullet 6", "Bullet 7", "Bullet 8"]`;
 
   const response = await callAI(prompt);
-  console.log("[generateEnhancedOnboardingBullets] Raw AI response:", response.slice(0, 200));
 
   const cleanedResponse = response
     .replace(/```json\n?/g, "")
@@ -635,8 +622,6 @@ export async function generateEnhancedSkillSuggestions(
   }
 
   // Debug logging
-  console.log(`[generateEnhancedSkillSuggestions] Roles: ${roles.map(r => r.title).join(", ")}`);
-  console.log(`[generateEnhancedSkillSuggestions] Found ${allHardSkills.size} hard skills, ${allSoftSkills.size} soft skills, ${allTools.size} tools from sheet`);
 
   const primaryRole = roles[0]?.title || "Professional";
 

@@ -168,20 +168,15 @@ export async function POST(request: NextRequest) {
 
 // Get pending LinkedIn import data (supports both token and session auth)
 export async function GET(request: NextRequest) {
-  console.log("[LinkedIn API] GET request received");
 
   // Try token auth first (for extension)
   let user = await getUserFromToken(request);
-  console.log("[LinkedIn API] Token auth result:", user ? "found" : "not found");
 
   // Fall back to session auth (for web app)
   if (!user) {
-    console.log("[LinkedIn API] Trying session auth...");
     const session = await getServerSession(authOptions);
-    console.log("[LinkedIn API] Session:", session?.user?.email || "no session");
     if (session?.user?.email) {
       const dbUser = await queryOne<{ id: number; email: string }>("SELECT id, email FROM users WHERE email = $1", [session.user.email]);
-      console.log("[LinkedIn API] DB user:", dbUser ? "found" : "not found");
       if (dbUser) {
         user = { id: dbUser.id, email: dbUser.email };
       }
@@ -189,11 +184,9 @@ export async function GET(request: NextRequest) {
   }
 
   if (!user) {
-    console.log("[LinkedIn API] Unauthorized - no user found");
     return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: corsHeaders });
   }
 
-  console.log("[LinkedIn API] User authenticated:", user.email);
 
   const importData = await queryOne<{ profile_data: string }>(
     "SELECT profile_data FROM linkedin_imports WHERE user_id = $1 AND status = 'pending' ORDER BY created_at DESC LIMIT 1",
@@ -201,11 +194,9 @@ export async function GET(request: NextRequest) {
   );
 
   if (!importData) {
-    console.log("[LinkedIn API] No pending import found");
     return NextResponse.json({ error: "No pending import" }, { status: 404, headers: corsHeaders });
   }
 
-  console.log("[LinkedIn API] Returning import data");
   return NextResponse.json({
     data: JSON.parse(importData.profile_data),
   }, { headers: corsHeaders });

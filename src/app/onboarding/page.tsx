@@ -407,7 +407,6 @@ function OnboardingContent() {
   ) => {
     // Skip if company or title is empty
     if (!exp.company?.trim() || !exp.title?.trim()) {
-      console.log("Skipping AI recommendations - missing company or title for job", jobIdx);
       return;
     }
 
@@ -417,7 +416,6 @@ function OnboardingContent() {
       role: { company: exp.company.trim(), title: exp.title.trim() },
       existingBullets: exp.description.filter((b) => b.trim() !== ""),
     };
-    console.log("Fetching AI recommendations for:", requestBody);
 
     try {
       const response = await fetch("/api/ai/generate-onboarding-bullets", {
@@ -793,7 +791,6 @@ function OnboardingContent() {
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) {
-                      console.log("File selected:", file.name);
                       setError("File upload coming soon! Please paste your resume text below for now.");
                     }
                   }}

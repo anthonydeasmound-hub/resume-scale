@@ -31,7 +31,6 @@ export async function POST(request: Request) {
     }
     const { bullets, role, seniority } = parsed.data;
 
-    console.log(`Reviewing ${bullets.length} bullets for ${role.title} at ${role.company}`);
 
     const review = await reviewResume(bullets, role, seniority);
 

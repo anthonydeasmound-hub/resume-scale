@@ -24,7 +24,6 @@ export async function POST(request: Request) {
     if (rateLimited) return rateLimited;
 
     const body = await request.json();
-    console.log("Received skill suggestions request:", JSON.stringify(body));
 
     const parsed = inputSchema.safeParse(body);
     if (!parsed.success) {

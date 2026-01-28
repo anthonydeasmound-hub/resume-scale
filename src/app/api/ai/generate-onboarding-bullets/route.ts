@@ -25,7 +25,6 @@ export async function POST(request: Request) {
     if (rateLimited) return rateLimited;
 
     const body = await request.json();
-    console.log("Received request body:", JSON.stringify(body));
 
     const parsed = inputSchema.safeParse(body);
     if (!parsed.success) {
@@ -37,26 +36,15 @@ export async function POST(request: Request) {
     let context;
     try {
       context = buildEnhancementContext(role.title);
-      console.log("=== RESUME EXAMPLES DEBUG ===");
-      console.log(`Role: ${role.title}`);
-      console.log(`Example bullets found: ${context.exampleBullets.length}`);
-      console.log(`Suggested verbs: ${context.suggestedVerbs.length}`);
-      console.log(`Suggested metrics: ${context.suggestedMetrics.length}`);
-      console.log(`Role skills found: ${context.roleSkills ? 'yes' : 'no'}`);
       if (context.exampleBullets.length > 0) {
-        console.log("First example bullet:", context.exampleBullets[0].bullet);
       }
-      console.log("Formatted examples preview:", formatBulletsForPrompt(context.exampleBullets.slice(0, 2)));
-      console.log("=== END DEBUG ===");
     } catch (contextError) {
       console.error("Error building context:", contextError);
       throw contextError;
     }
 
     // Use enhanced version with curated resume examples
-    console.log("About to call generateEnhancedOnboardingBullets...");
     const bullets = await generateEnhancedOnboardingBullets(role, existingBullets || []);
-    console.log("Got bullets:", bullets?.length || 0);
 
     return NextResponse.json({ bullets });
   } catch (error) {

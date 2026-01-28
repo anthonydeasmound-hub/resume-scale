@@ -53,7 +53,6 @@ export async function POST(request: NextRequest) {
     }
 
     const rawData = await response.json();
-    console.log("LinkedIn API response:", JSON.stringify(rawData, null, 2));
 
     // Scrapingdog returns an array — use the first element
     const profileData = Array.isArray(rawData) ? rawData[0] : rawData;

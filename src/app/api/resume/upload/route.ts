@@ -45,7 +45,6 @@ export async function POST(request: NextRequest) {
     }
 
     const text = textParts.join("\n\n");
-    console.log("Extracted text length:", text.length, "chars from", pdf.numPages, "pages");
 
     return NextResponse.json({ text });
   } catch (error) {
