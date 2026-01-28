@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 interface ProfilePhotoSectionProps {
   profilePhotoPath: string | null;
   uploadingPhoto: boolean;
@@ -16,9 +18,11 @@ export default function ProfilePhotoSection({ profilePhotoPath, uploadingPhoto, 
       <div className="flex items-center gap-6">
         {profilePhotoPath ? (
           <div className="relative">
-            <img
+            <Image
               src={profilePhotoPath}
               alt="Profile"
+              width={96}
+              height={96}
               className="w-24 h-24 rounded-full object-cover border-2 border-gray-200"
             />
             <button

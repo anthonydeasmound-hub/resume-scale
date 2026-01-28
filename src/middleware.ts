@@ -11,12 +11,8 @@ const protectedPaths = [
   "/tools",
 ];
 
-const securityHeaders = {
-  "X-Content-Type-Options": "nosniff",
-  "X-Frame-Options": "DENY",
-  "Referrer-Policy": "strict-origin-when-cross-origin",
-  "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
-};
+// Security headers are set in next.config.ts via async headers().
+// This middleware handles auth-only redirects for protected routes.
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -26,11 +22,7 @@ export async function middleware(request: NextRequest) {
   );
 
   if (!isProtected) {
-    const response = NextResponse.next();
-    for (const [key, value] of Object.entries(securityHeaders)) {
-      response.headers.set(key, value);
-    }
-    return response;
+    return NextResponse.next();
   }
 
   const token = await getToken({ req: request });
@@ -40,11 +32,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(signInUrl);
   }
 
-  const response = NextResponse.next();
-  for (const [key, value] of Object.entries(securityHeaders)) {
-    response.headers.set(key, value);
-  }
-  return response;
+  return NextResponse.next();
 }
 
 export const config = {
