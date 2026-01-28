@@ -2,8 +2,21 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["@sparticuz/chromium", "puppeteer-core"],
+  images: {
+    formats: ["image/avif", "image/webp"],
+  },
   async headers() {
     return [
+      {
+        // Prevent caching of authenticated API responses
+        source: "/api/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "private, no-store, no-cache, must-revalidate",
+          },
+        ],
+      },
       {
         // CORS for Chrome extension API routes
         source: "/api/extension/:path*",
