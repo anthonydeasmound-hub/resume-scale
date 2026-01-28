@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+
 interface FullPreviewModalProps {
   previewHtml: string;
   downloadingPdf: boolean;
@@ -8,8 +10,16 @@ interface FullPreviewModalProps {
 }
 
 export default function FullPreviewModal({ previewHtml, downloadingPdf, onDownloadPdf, onClose }: FullPreviewModalProps) {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
   return (
-    <div className="fixed inset-0 z-50 bg-black bg-opacity-75 flex items-start justify-center overflow-auto py-8">
+    <div className="fixed inset-0 z-50 bg-black bg-opacity-75 flex items-start justify-center overflow-auto py-8" role="dialog" aria-modal="true" aria-label="Resume preview">
       {/* Close and Download bar */}
       <div className="fixed top-0 left-0 right-0 z-60 bg-gray-900 bg-opacity-90 px-6 py-3 flex items-center justify-between">
         <span className="text-white font-medium">Resume Preview</span>
@@ -35,7 +45,7 @@ export default function FullPreviewModal({ previewHtml, downloadingPdf, onDownlo
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
-            Close
+            Close <span className="text-gray-400 text-xs ml-1">(Esc)</span>
           </button>
         </div>
       </div>

@@ -48,13 +48,15 @@ export default function InterviewRoadmap({ jobId, interviews, onUpdateInterview 
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchStages();
+    const controller = new AbortController();
+    fetchStages(controller.signal);
+    return () => controller.abort();
   }, [jobId]);
 
-  const fetchStages = async () => {
+  const fetchStages = async (signal?: AbortSignal) => {
     try {
       setError(null);
-      const response = await fetch(`/api/jobs/${jobId}/stages`);
+      const response = await fetch(`/api/jobs/${jobId}/stages`, signal ? { signal } : undefined);
       if (response.ok) {
         const data = await response.json();
         setStages(data);
@@ -62,10 +64,14 @@ export default function InterviewRoadmap({ jobId, interviews, onUpdateInterview 
         setError("Failed to load interview stages.");
       }
     } catch (err) {
-      console.error("Failed to fetch stages:", err);
-      setError("Failed to load interview stages.");
+      if ((err as Error).name !== "AbortError") {
+        console.error("Failed to fetch stages:", err);
+        setError("Failed to load interview stages.");
+      }
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) {
+        setLoading(false);
+      }
     }
   };
 

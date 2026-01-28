@@ -38,21 +38,35 @@ export default function ExpandedJobCard({ job, onClose, onUpdate }: ExpandedJobC
   const [isLoadingGuide, setIsLoadingGuide] = useState(true);
 
   useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
+  useEffect(() => {
+    const controller = new AbortController();
     const fetchGuide = async () => {
       try {
-        const response = await fetch(`/api/jobs/${job.id}/interview-guide`);
+        const response = await fetch(`/api/jobs/${job.id}/interview-guide`, { signal: controller.signal });
         if (response.ok) {
           const data = await response.json();
           setInterviewGuide(data.guide);
           setGuideGeneratedAt(data.generated_at);
         }
       } catch (error) {
-        console.error("Failed to fetch interview guide:", error);
+        if ((error as Error).name !== "AbortError") {
+          console.error("Failed to fetch interview guide:", error);
+        }
       } finally {
-        setIsLoadingGuide(false);
+        if (!controller.signal.aborted) {
+          setIsLoadingGuide(false);
+        }
       }
     };
     fetchGuide();
+    return () => controller.abort();
   }, [job.id]);
 
   const handleGenerateGuide = async () => {

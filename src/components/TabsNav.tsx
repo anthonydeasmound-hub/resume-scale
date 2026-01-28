@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
 import { signOut } from "next-auth/react";
@@ -112,7 +113,7 @@ export default function TabsNav({ reviewCount = 0 }: { reviewCount?: number }) {
           )}
         </button>
         <Link href="/dashboard" className="ml-3">
-          <img src="/logo.png" alt="ResumeGenie" className="h-10 object-contain" />
+          <Image src="/logo.png" alt="ResumeGenie" width={120} height={40} className="h-10 w-auto object-contain" priority />
         </Link>
       </div>
 
@@ -133,7 +134,7 @@ export default function TabsNav({ reviewCount = 0 }: { reviewCount?: number }) {
         {/* Logo */}
         <div className="px-4 py-5 border-b border-gray-200 flex justify-center">
           <Link href="/dashboard">
-            <img src="/logo.png" alt="ResumeGenie" className="h-36 object-contain" />
+            <Image src="/logo.png" alt="ResumeGenie" width={240} height={144} className="h-36 w-auto object-contain" priority />
           </Link>
         </div>
 

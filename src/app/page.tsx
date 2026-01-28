@@ -318,6 +318,10 @@ export default function LandingPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
   useEffect(() => {
+    document.title = "ResumeGenie - AI-Powered Job Applications";
+  }, []);
+
+  useEffect(() => {
     if (session) {
       router.push("/dashboard");
     }
