@@ -72,19 +72,24 @@ export async function POST(
     return NextResponse.json({ error: "Note content is required" }, { status: 400 });
   }
 
-  const result = await execute(`
-    INSERT INTO job_notes (job_id, content)
-    VALUES ($1, $2) RETURNING id
-  `, [jobId, content.trim()]);
+  try {
+    const result = await execute(`
+      INSERT INTO job_notes (job_id, content)
+      VALUES ($1, $2) RETURNING id
+    `, [jobId, content.trim()]);
 
-  // Update last_activity_at for the job
-  await execute(`
-    UPDATE job_applications
-    SET last_activity_at = NOW(), updated_at = NOW()
-    WHERE id = $1
-  `, [jobId]);
+    // Update last_activity_at for the job
+    await execute(`
+      UPDATE job_applications
+      SET last_activity_at = NOW(), updated_at = NOW()
+      WHERE id = $1
+    `, [jobId]);
 
-  const newNote = await queryOne<JobNote>("SELECT * FROM job_notes WHERE id = $1", [result.rows[0].id]);
+    const newNote = await queryOne<JobNote>("SELECT * FROM job_notes WHERE id = $1", [result.rows[0].id]);
 
-  return NextResponse.json(newNote, { status: 201 });
+    return NextResponse.json(newNote, { status: 201 });
+  } catch (error) {
+    console.error("Create note error:", error);
+    return NextResponse.json({ error: "Failed to create note" }, { status: 500 });
+  }
 }

@@ -84,30 +84,35 @@ export async function PATCH(
     return NextResponse.json({ error: "No valid fields to update" }, { status: 400 });
   }
 
-  updates.push("updated_at = NOW()");
+  try {
+    updates.push("updated_at = NOW()");
 
-  await execute(`
-    UPDATE interview_stages
-    SET ${updates.join(", ")}
-    WHERE id = $${paramIndex++}
-  `, [...values, stageIdNum]);
+    await execute(`
+      UPDATE interview_stages
+      SET ${updates.join(", ")}
+      WHERE id = $${paramIndex++}
+    `, [...values, stageIdNum]);
 
-  const updatedStage = await queryOne<InterviewStage>("SELECT * FROM interview_stages WHERE id = $1", [stageIdNum]);
+    const updatedStage = await queryOne<InterviewStage>("SELECT * FROM interview_stages WHERE id = $1", [stageIdNum]);
 
-  // If status changed to 'rejected', check if all stages are rejected and update job status
-  if (body.status === 'rejected') {
-    const allStages = await queryAll<{ status: StageStatus }>("SELECT status FROM interview_stages WHERE job_id = $1", [jobId]);
-    const allRejected = allStages.every(s => s.status === 'rejected' || s.status === 'cancelled');
-    if (allRejected) {
-      await execute(`
-        UPDATE job_applications
-        SET status = 'rejected', updated_at = NOW()
-        WHERE id = $1
-      `, [jobId]);
+    // If status changed to 'rejected', check if all stages are rejected and update job status
+    if (body.status === 'rejected') {
+      const allStages = await queryAll<{ status: StageStatus }>("SELECT status FROM interview_stages WHERE job_id = $1", [jobId]);
+      const allRejected = allStages.every(s => s.status === 'rejected' || s.status === 'cancelled');
+      if (allRejected) {
+        await execute(`
+          UPDATE job_applications
+          SET status = 'rejected', updated_at = NOW()
+          WHERE id = $1
+        `, [jobId]);
+      }
     }
-  }
 
-  return NextResponse.json(updatedStage);
+    return NextResponse.json(updatedStage);
+  } catch (error) {
+    console.error("Update stage error:", error);
+    return NextResponse.json({ error: "Failed to update stage" }, { status: 500 });
+  }
 }
 
 // DELETE /api/jobs/[id]/stages/[stageId] - Delete a stage
@@ -140,16 +145,21 @@ export async function DELETE(
     return NextResponse.json({ error: "Stage not found" }, { status: 404 });
   }
 
-  await execute("DELETE FROM interview_stages WHERE id = $1", [stageIdNum]);
+  try {
+    await execute("DELETE FROM interview_stages WHERE id = $1", [stageIdNum]);
 
-  // Renumber remaining stages
-  const remainingStages = await queryAll<{ id: number }>(`
-    SELECT id FROM interview_stages WHERE job_id = $1 ORDER BY stage_number ASC
-  `, [jobId]);
+    // Renumber remaining stages
+    const remainingStages = await queryAll<{ id: number }>(`
+      SELECT id FROM interview_stages WHERE job_id = $1 ORDER BY stage_number ASC
+    `, [jobId]);
 
-  for (let index = 0; index < remainingStages.length; index++) {
-    await execute("UPDATE interview_stages SET stage_number = $1 WHERE id = $2", [index + 1, remainingStages[index].id]);
+    for (let index = 0; index < remainingStages.length; index++) {
+      await execute("UPDATE interview_stages SET stage_number = $1 WHERE id = $2", [index + 1, remainingStages[index].id]);
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Delete stage error:", error);
+    return NextResponse.json({ error: "Failed to delete stage" }, { status: 500 });
   }
-
-  return NextResponse.json({ success: true });
 }

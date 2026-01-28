@@ -88,35 +88,40 @@ export async function POST(
     return NextResponse.json({ error: "start_time and end_time are required" }, { status: 400 });
   }
 
-  // Generate default title if not provided
-  const eventTitle = title || `Interview - ${job.company_name} (${job.job_title})`;
+  try {
+    // Generate default title if not provided
+    const eventTitle = title || `Interview - ${job.company_name} (${job.job_title})`;
 
-  const result = await execute(`
-    INSERT INTO calendar_events (job_id, stage_id, google_event_id, title, description, start_time, end_time, location, meeting_link, sync_status)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id
-  `, [
-    jobId,
-    stage_id || null,
-    google_event_id || null,
-    eventTitle,
-    description || null,
-    start_time,
-    end_time,
-    location || null,
-    meeting_link || null,
-    sync_status
-  ]);
+    const result = await execute(`
+      INSERT INTO calendar_events (job_id, stage_id, google_event_id, title, description, start_time, end_time, location, meeting_link, sync_status)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id
+    `, [
+      jobId,
+      stage_id || null,
+      google_event_id || null,
+      eventTitle,
+      description || null,
+      start_time,
+      end_time,
+      location || null,
+      meeting_link || null,
+      sync_status
+    ]);
 
-  const newEvent = await queryOne<CalendarEvent>("SELECT * FROM calendar_events WHERE id = $1", [result.rows[0].id]);
+    const newEvent = await queryOne<CalendarEvent>("SELECT * FROM calendar_events WHERE id = $1", [result.rows[0].id]);
 
-  // If there's a linked stage, update its scheduled_at
-  if (stage_id) {
-    await execute(`
-      UPDATE interview_stages
-      SET scheduled_at = $1, status = 'scheduled', updated_at = NOW()
-      WHERE id = $2
-    `, [start_time, stage_id]);
+    // If there's a linked stage, update its scheduled_at
+    if (stage_id) {
+      await execute(`
+        UPDATE interview_stages
+        SET scheduled_at = $1, status = 'scheduled', updated_at = NOW()
+        WHERE id = $2
+      `, [start_time, stage_id]);
+    }
+
+    return NextResponse.json(newEvent, { status: 201 });
+  } catch (error) {
+    console.error("Create calendar event error:", error);
+    return NextResponse.json({ error: "Failed to create calendar event" }, { status: 500 });
   }
-
-  return NextResponse.json(newEvent, { status: 201 });
 }

@@ -194,21 +194,26 @@ export async function POST(
     }
   }
 
-  // Generate fresh analysis
-  const analysis = await analyzeJobDescription(
-    job.job_description,
-    job.job_title,
-    job.company_name,
-    parsedResume,
-    jobDetails
-  );
+  try {
+    // Generate fresh analysis
+    const analysis = await analyzeJobDescription(
+      job.job_description,
+      job.job_title,
+      job.company_name,
+      parsedResume,
+      jobDetails
+    );
 
-  // Cache the analysis
-  await execute(`
-    UPDATE job_applications
-    SET job_analysis = $1, updated_at = NOW()
-    WHERE id = $2
-  `, [JSON.stringify(analysis), jobId]);
+    // Cache the analysis
+    await execute(`
+      UPDATE job_applications
+      SET job_analysis = $1, updated_at = NOW()
+      WHERE id = $2
+    `, [JSON.stringify(analysis), jobId]);
 
-  return NextResponse.json({ analysis, cached: false });
+    return NextResponse.json({ analysis, cached: false });
+  } catch (error) {
+    console.error("Analyze job error:", error);
+    return NextResponse.json({ error: "Failed to analyze job" }, { status: 500 });
+  }
 }

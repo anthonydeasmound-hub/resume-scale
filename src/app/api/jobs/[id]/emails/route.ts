@@ -90,24 +90,29 @@ export async function POST(
     return NextResponse.json({ error: "email_type and direction are required" }, { status: 400 });
   }
 
-  const result = await execute(`
-    INSERT INTO email_actions (job_id, stage_id, email_type, direction, subject, body, recipient_email, gmail_message_id, gmail_thread_id, status, detected_at)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id
-  `, [
-    jobId,
-    stage_id || null,
-    email_type,
-    direction,
-    subject || null,
-    emailBody || null,
-    recipient_email || job.recruiter_email || null,
-    gmail_message_id || null,
-    gmail_thread_id || null,
-    status,
-    detected_at || null
-  ]);
+  try {
+    const result = await execute(`
+      INSERT INTO email_actions (job_id, stage_id, email_type, direction, subject, body, recipient_email, gmail_message_id, gmail_thread_id, status, detected_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id
+    `, [
+      jobId,
+      stage_id || null,
+      email_type,
+      direction,
+      subject || null,
+      emailBody || null,
+      recipient_email || job.recruiter_email || null,
+      gmail_message_id || null,
+      gmail_thread_id || null,
+      status,
+      detected_at || null
+    ]);
 
-  const newEmail = await queryOne<EmailAction>("SELECT * FROM email_actions WHERE id = $1", [result.rows[0].id]);
+    const newEmail = await queryOne<EmailAction>("SELECT * FROM email_actions WHERE id = $1", [result.rows[0].id]);
 
-  return NextResponse.json(newEmail, { status: 201 });
+    return NextResponse.json(newEmail, { status: 201 });
+  } catch (error) {
+    console.error("Create email error:", error);
+    return NextResponse.json({ error: "Failed to create email" }, { status: 500 });
+  }
 }

@@ -88,37 +88,42 @@ export async function POST(
     return NextResponse.json({ error: "stage_type is required" }, { status: 400 });
   }
 
-  // Get the next stage number
-  const maxStage = await queryOne<{ max_num: number | null }>(`
-    SELECT MAX(stage_number) as max_num FROM interview_stages WHERE job_id = $1
-  `, [jobId]);
-  const stageNumber = (maxStage?.max_num || 0) + 1;
+  try {
+    // Get the next stage number
+    const maxStage = await queryOne<{ max_num: number | null }>(`
+      SELECT MAX(stage_number) as max_num FROM interview_stages WHERE job_id = $1
+    `, [jobId]);
+    const stageNumber = (maxStage?.max_num || 0) + 1;
 
-  const result = await execute(`
-    INSERT INTO interview_stages (job_id, stage_number, stage_type, stage_name, status, scheduled_at, notes, source, source_email_id)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id
-  `, [
-    jobId,
-    stageNumber,
-    stage_type,
-    stage_name || getDefaultStageName(stage_type),
-    status,
-    scheduled_at || null,
-    notes || null,
-    source,
-    source_email_id || null
-  ]);
+    const result = await execute(`
+      INSERT INTO interview_stages (job_id, stage_number, stage_type, stage_name, status, scheduled_at, notes, source, source_email_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id
+    `, [
+      jobId,
+      stageNumber,
+      stage_type,
+      stage_name || getDefaultStageName(stage_type),
+      status,
+      scheduled_at || null,
+      notes || null,
+      source,
+      source_email_id || null
+    ]);
 
-  const newStage = await queryOne<InterviewStage>("SELECT * FROM interview_stages WHERE id = $1", [result.rows[0].id]);
+    const newStage = await queryOne<InterviewStage>("SELECT * FROM interview_stages WHERE id = $1", [result.rows[0].id]);
 
-  // Update job status to 'interview' if it's still 'applied'
-  await execute(`
-    UPDATE job_applications
-    SET status = 'interview', updated_at = NOW()
-    WHERE id = $1 AND status = 'applied'
-  `, [jobId]);
+    // Update job status to 'interview' if it's still 'applied'
+    await execute(`
+      UPDATE job_applications
+      SET status = 'interview', updated_at = NOW()
+      WHERE id = $1 AND status = 'applied'
+    `, [jobId]);
 
-  return NextResponse.json(newStage, { status: 201 });
+    return NextResponse.json(newStage, { status: 201 });
+  } catch (error) {
+    console.error("Create stage error:", error);
+    return NextResponse.json({ error: "Failed to create stage" }, { status: 500 });
+  }
 }
 
 function getDefaultStageName(stageType: StageType): string {

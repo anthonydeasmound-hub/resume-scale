@@ -84,15 +84,20 @@ export async function PATCH(
     return NextResponse.json({ error: "No valid fields to update" }, { status: 400 });
   }
 
-  await execute(`
-    UPDATE email_actions
-    SET ${updates.join(", ")}
-    WHERE id = $${paramIndex++}
-  `, [...values, emailIdNum]);
+  try {
+    await execute(`
+      UPDATE email_actions
+      SET ${updates.join(", ")}
+      WHERE id = $${paramIndex++}
+    `, [...values, emailIdNum]);
 
-  const updatedEmail = await queryOne<EmailAction>("SELECT * FROM email_actions WHERE id = $1", [emailIdNum]);
+    const updatedEmail = await queryOne<EmailAction>("SELECT * FROM email_actions WHERE id = $1", [emailIdNum]);
 
-  return NextResponse.json(updatedEmail);
+    return NextResponse.json(updatedEmail);
+  } catch (error) {
+    console.error("Update email error:", error);
+    return NextResponse.json({ error: "Failed to update email" }, { status: 500 });
+  }
 }
 
 // DELETE /api/jobs/[id]/emails/[emailId] - Delete an email action
@@ -125,7 +130,12 @@ export async function DELETE(
     return NextResponse.json({ error: "Email not found" }, { status: 404 });
   }
 
-  await execute("DELETE FROM email_actions WHERE id = $1", [emailIdNum]);
+  try {
+    await execute("DELETE FROM email_actions WHERE id = $1", [emailIdNum]);
 
-  return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Delete email error:", error);
+    return NextResponse.json({ error: "Failed to delete email" }, { status: 500 });
+  }
 }

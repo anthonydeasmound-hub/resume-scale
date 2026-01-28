@@ -61,49 +61,54 @@ export async function POST(
   }
   const { email_type, stage_id, interviewer_names, interview_type, notes } = parsed.data;
 
-  const candidateName = user.name || session.user.email.split('@')[0];
+  try {
+    const candidateName = user.name || session.user.email.split('@')[0];
 
-  let generatedEmail;
+    let generatedEmail;
 
-  if (email_type === 'thank_you') {
-    generatedEmail = await generateThankYouEmail(
-      job.company_name,
-      job.job_title,
-      interviewer_names || [],
-      interview_type || 'interview',
-      candidateName,
-      notes
-    );
-  } else {
-    // follow_up
-    const lastContact = job.date_applied || new Date().toISOString();
-    generatedEmail = await generateFollowUpEmail(
-      job.company_name,
-      job.job_title,
-      lastContact,
-      candidateName,
-      job.recruiter_name || undefined,
-      notes
-    );
+    if (email_type === 'thank_you') {
+      generatedEmail = await generateThankYouEmail(
+        job.company_name,
+        job.job_title,
+        interviewer_names || [],
+        interview_type || 'interview',
+        candidateName,
+        notes
+      );
+    } else {
+      // follow_up
+      const lastContact = job.date_applied || new Date().toISOString();
+      generatedEmail = await generateFollowUpEmail(
+        job.company_name,
+        job.job_title,
+        lastContact,
+        candidateName,
+        job.recruiter_name || undefined,
+        notes
+      );
+    }
+
+    // Create a draft email action
+    const result = await execute(`
+      INSERT INTO email_actions (job_id, stage_id, email_type, direction, subject, body, recipient_email, status)
+      VALUES ($1, $2, $3, 'outbound', $4, $5, $6, 'draft') RETURNING id
+    `, [
+      jobId,
+      stage_id || null,
+      email_type,
+      generatedEmail.subject,
+      generatedEmail.body,
+      job.recruiter_email || null
+    ]);
+
+    const newEmail = await queryOne("SELECT * FROM email_actions WHERE id = $1", [result.rows[0].id]);
+
+    return NextResponse.json({
+      email: newEmail,
+      generated: generatedEmail,
+    }, { status: 201 });
+  } catch (error) {
+    console.error("Generate email error:", error);
+    return NextResponse.json({ error: "Failed to generate email" }, { status: 500 });
   }
-
-  // Create a draft email action
-  const result = await execute(`
-    INSERT INTO email_actions (job_id, stage_id, email_type, direction, subject, body, recipient_email, status)
-    VALUES ($1, $2, $3, 'outbound', $4, $5, $6, 'draft') RETURNING id
-  `, [
-    jobId,
-    stage_id || null,
-    email_type,
-    generatedEmail.subject,
-    generatedEmail.body,
-    job.recruiter_email || null
-  ]);
-
-  const newEmail = await queryOne("SELECT * FROM email_actions WHERE id = $1", [result.rows[0].id]);
-
-  return NextResponse.json({
-    email: newEmail,
-    generated: generatedEmail,
-  }, { status: 201 });
 }

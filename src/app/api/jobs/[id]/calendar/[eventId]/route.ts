@@ -84,26 +84,31 @@ export async function PATCH(
     return NextResponse.json({ error: "No valid fields to update" }, { status: 400 });
   }
 
-  updates.push("updated_at = NOW()");
+  try {
+    updates.push("updated_at = NOW()");
 
-  await execute(`
-    UPDATE calendar_events
-    SET ${updates.join(", ")}
-    WHERE id = $${paramIndex++}
-  `, [...values, eventIdNum]);
-
-  const updatedEvent = await queryOne<CalendarEvent>("SELECT * FROM calendar_events WHERE id = $1", [eventIdNum]);
-
-  // If start_time changed and there's a linked stage, update the stage's scheduled_at
-  if (body.start_time && updatedEvent?.stage_id) {
     await execute(`
-      UPDATE interview_stages
-      SET scheduled_at = $1, updated_at = NOW()
-      WHERE id = $2
-    `, [body.start_time, updatedEvent.stage_id]);
-  }
+      UPDATE calendar_events
+      SET ${updates.join(", ")}
+      WHERE id = $${paramIndex++}
+    `, [...values, eventIdNum]);
 
-  return NextResponse.json(updatedEvent);
+    const updatedEvent = await queryOne<CalendarEvent>("SELECT * FROM calendar_events WHERE id = $1", [eventIdNum]);
+
+    // If start_time changed and there's a linked stage, update the stage's scheduled_at
+    if (body.start_time && updatedEvent?.stage_id) {
+      await execute(`
+        UPDATE interview_stages
+        SET scheduled_at = $1, updated_at = NOW()
+        WHERE id = $2
+      `, [body.start_time, updatedEvent.stage_id]);
+    }
+
+    return NextResponse.json(updatedEvent);
+  } catch (error) {
+    console.error("Update calendar event error:", error);
+    return NextResponse.json({ error: "Failed to update calendar event" }, { status: 500 });
+  }
 }
 
 // DELETE /api/jobs/[id]/calendar/[eventId] - Delete a calendar event
@@ -136,16 +141,21 @@ export async function DELETE(
     return NextResponse.json({ error: "Event not found" }, { status: 404 });
   }
 
-  await execute("DELETE FROM calendar_events WHERE id = $1", [eventIdNum]);
+  try {
+    await execute("DELETE FROM calendar_events WHERE id = $1", [eventIdNum]);
 
-  // If there was a linked stage, clear its scheduled_at
-  if (existingEvent.stage_id) {
-    await execute(`
-      UPDATE interview_stages
-      SET scheduled_at = NULL, status = 'pending', updated_at = NOW()
-      WHERE id = $1 AND status = 'scheduled'
-    `, [existingEvent.stage_id]);
+    // If there was a linked stage, clear its scheduled_at
+    if (existingEvent.stage_id) {
+      await execute(`
+        UPDATE interview_stages
+        SET scheduled_at = NULL, status = 'pending', updated_at = NOW()
+        WHERE id = $1 AND status = 'scheduled'
+      `, [existingEvent.stage_id]);
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Delete calendar event error:", error);
+    return NextResponse.json({ error: "Failed to delete calendar event" }, { status: 500 });
   }
-
-  return NextResponse.json({ success: true });
 }
