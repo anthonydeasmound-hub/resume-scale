@@ -190,6 +190,11 @@ ${textContent}`;
     }
 
     // Transform to our standard format
+    interface ParsedExperience { company?: string; title?: string; start_date?: string; end_date?: string; description?: string | string[]; }
+    interface ParsedEducation { institution?: string; degree?: string; field?: string; graduation_date?: string; }
+    interface ParsedCertification { name?: string; issuer?: string; date?: string; }
+    interface ParsedHonor { title?: string; issuer?: string; date?: string; }
+
     const transformedData = {
       contact_info: {
         name: parsedData.name || "",
@@ -198,7 +203,7 @@ ${textContent}`;
         location: parsedData.location || "",
         linkedin: profile_url || "",
       },
-      work_experience: (parsedData.experience || []).map((exp: any) => ({
+      work_experience: (parsedData.experience || []).map((exp: ParsedExperience) => ({
         company: exp.company || "",
         title: exp.title || "",
         start_date: exp.start_date || "",
@@ -207,20 +212,20 @@ ${textContent}`;
           ? (Array.isArray(exp.description) ? exp.description : [exp.description])
           : [],
       })),
-      education: (parsedData.education || []).map((edu: any) => ({
+      education: (parsedData.education || []).map((edu: ParsedEducation) => ({
         institution: edu.institution || "",
         degree: edu.degree || "",
         field: edu.field || "",
         graduation_date: edu.graduation_date || "",
       })),
       skills: parsedData.skills || [],
-      certifications: (parsedData.certifications || []).map((cert: any) => ({
+      certifications: (parsedData.certifications || []).map((cert: ParsedCertification) => ({
         name: cert.name || "",
         issuer: cert.issuer || "",
         date: cert.date || "",
       })),
       languages: parsedData.languages || [],
-      honors: (parsedData.honors || []).map((honor: any) => ({
+      honors: (parsedData.honors || []).map((honor: ParsedHonor) => ({
         title: honor.title || "",
         issuer: honor.issuer || "",
         date: honor.date || "",

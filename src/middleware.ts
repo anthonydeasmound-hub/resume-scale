@@ -11,6 +11,13 @@ const protectedPaths = [
   "/tools",
 ];
 
+const securityHeaders = {
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "DENY",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+  "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+};
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -19,7 +26,11 @@ export async function middleware(request: NextRequest) {
   );
 
   if (!isProtected) {
-    return NextResponse.next();
+    const response = NextResponse.next();
+    for (const [key, value] of Object.entries(securityHeaders)) {
+      response.headers.set(key, value);
+    }
+    return response;
   }
 
   const token = await getToken({ req: request });
@@ -29,7 +40,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(signInUrl);
   }
 
-  return NextResponse.next();
+  const response = NextResponse.next();
+  for (const [key, value] of Object.entries(securityHeaders)) {
+    response.headers.set(key, value);
+  }
+  return response;
 }
 
 export const config = {
