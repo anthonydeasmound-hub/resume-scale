@@ -13,7 +13,7 @@ export const cornerstoneMetadata: TemplateMetadata = {
 };
 
 export function generateCornerstoneHTML(data: ResumeData, options: TemplateOptions): string {
-  const { accentColor, showPhoto, showSkillBars } = options;
+  const { accentColor, showPhoto, showSkillBars, showLanguages } = options;
 
   const experienceHTML = data.experience.map(exp => {
     const bullets = Array.isArray(exp.description) ? exp.description : [exp.description];
@@ -338,7 +338,30 @@ export function generateCornerstoneHTML(data: ResumeData, options: TemplateOptio
       <div class="sidebar-section">
         <div class="sidebar-section-title">Education</div>
         ${educationHTML}
+        ${data.honors && data.honors.length > 0 ? `
+        ${data.honors.map(honor => `
+          <div class="edu-item">
+            <div class="edu-degree">${honor.title}</div>
+            ${honor.issuer || honor.date ? `<div class="edu-school">${[honor.issuer, honor.date].filter(Boolean).join(', ')}</div>` : ''}
+          </div>
+        `).join('')}
+        ` : ''}
+        ${data.certifications && data.certifications.length > 0 ? `
+        ${data.certifications.map(cert => `
+          <div class="edu-item">
+            <div class="edu-degree">${cert.name}</div>
+            ${cert.issuer || cert.date ? `<div class="edu-school">${[cert.issuer, cert.date].filter(Boolean).join(', ')}</div>` : ''}
+          </div>
+        `).join('')}
+        ` : ''}
       </div>
+
+      ${showLanguages && data.languages && data.languages.length > 0 ? `
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Languages</div>
+        <div style="font-size: 8.5pt;">${data.languages.join(' • ')}</div>
+      </div>
+      ` : ''}
     </div>
 
     <div class="main">

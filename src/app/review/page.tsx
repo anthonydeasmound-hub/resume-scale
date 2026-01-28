@@ -963,17 +963,17 @@ function ReviewContent() {
 
   if (status === "loading" || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-brand-gray">
         <div className="text-lg text-gray-600">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-brand-gray">
       <TabsNav reviewCount={jobs.filter((j) => !j.reviewed).length} />
 
-      <div className="ml-16 p-8">
+      <div className="ml-64 p-8">
         {!selectedJob ? (
           <>
             <h1 className="text-2xl font-bold text-gray-900 mb-6">
@@ -1021,7 +1021,7 @@ function ReviewContent() {
                     setHasChanges(false);
                     router.push("/review");
                   }}
-                  className="text-blue-600 hover:text-blue-700 text-sm mb-2"
+                  className="text-brand-blue hover:text-brand-blue-dark text-sm mb-2"
                 >
                   &#8592; Back to list
                 </button>
@@ -1056,7 +1056,7 @@ function ReviewContent() {
                   <button
                     onClick={() => setActiveTab("resume")}
                     className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      activeTab === "resume" ? "bg-blue-100 text-blue-700" : "text-gray-600"
+                      activeTab === "resume" ? "bg-blue-100 text-brand-blue" : "text-gray-600"
                     }`}
                   >
                     Resume Builder
@@ -1064,7 +1064,7 @@ function ReviewContent() {
                   <button
                     onClick={() => setActiveTab("cover")}
                     className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      activeTab === "cover" ? "bg-blue-100 text-blue-700" : "text-gray-600"
+                      activeTab === "cover" ? "bg-blue-100 text-brand-blue" : "text-gray-600"
                     }`}
                   >
                     Cover Letter
@@ -1072,7 +1072,7 @@ function ReviewContent() {
                   <button
                     onClick={() => setActiveTab("job-details")}
                     className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      activeTab === "job-details" ? "bg-blue-100 text-blue-700" : "text-gray-600"
+                      activeTab === "job-details" ? "bg-blue-100 text-brand-blue" : "text-gray-600"
                     }`}
                   >
                     Job Details
@@ -1125,7 +1125,7 @@ function ReviewContent() {
                                           setEditingSummary(true);
                                           setEditedSummaryText(summaryOptions[selectedSummaryIndex]);
                                         }}
-                                        className="text-xs text-blue-600 hover:text-blue-800"
+                                        className="text-xs text-brand-blue hover:text-blue-800"
                                       >
                                         Edit
                                       </button>
@@ -1158,7 +1158,7 @@ function ReviewContent() {
                                             setEditingSummary(false);
                                             setEditedSummaryText("");
                                           }}
-                                          className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
+                                          className="px-3 py-1 text-xs bg-brand-gold text-gray-900 rounded hover:bg-brand-gold-dark"
                                         >
                                           Save
                                         </button>
@@ -1170,7 +1170,7 @@ function ReviewContent() {
                                         setEditingSummary(true);
                                         setEditedSummaryText(summaryOptions[selectedSummaryIndex]);
                                       }}
-                                      className="p-3 rounded-lg border-2 border-blue-500 bg-blue-50 cursor-pointer hover:bg-blue-100 transition-colors"
+                                      className="p-3 rounded-lg border-2 border-blue-500 bg-brand-blue-light cursor-pointer hover:bg-blue-100 transition-colors"
                                     >
                                       <p className="text-sm text-gray-700">{summaryOptions[selectedSummaryIndex]}</p>
                                     </div>
@@ -1257,7 +1257,7 @@ function ReviewContent() {
 
                                 return (
                                   <div key={selectedRole.roleIndex} className="rounded-lg border border-blue-500">
-                                    <div className="px-3 py-2 bg-blue-50 border-b border-blue-200">
+                                    <div className="px-3 py-2 bg-brand-blue-light border-b border-brand-blue">
                                       <div className="font-medium text-gray-900">{role.title}</div>
                                       <div className="text-sm text-gray-500">{role.company} | {role.start_date} - {role.end_date}</div>
                                     </div>
@@ -1298,7 +1298,7 @@ function ReviewContent() {
                                                       onDrop={(e) => handleDrop(e, selectedRole.roleIndex, selectedIndex)}
                                                       onDragEnd={handleDragEnd}
                                                       className={`p-2 rounded border-2 text-sm transition-all ${
-                                                        isFromMaster ? "border-blue-400 bg-blue-50" : "border-purple-400 bg-purple-50"
+                                                        isFromMaster ? "border-blue-400 bg-brand-blue-light" : "border-purple-400 bg-purple-50"
                                                       } ${isEdited ? "ring-2 ring-green-300" : ""} ${
                                                         isDragging ? "opacity-50 scale-95" : ""
                                                       } ${isDragOver ? "border-dashed border-gray-500 bg-gray-100" : ""}`}
@@ -1322,7 +1322,7 @@ function ReviewContent() {
                                                             </button>
                                                             <button
                                                               onClick={saveEditedBullet}
-                                                              className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
+                                                              className="px-2 py-1 text-xs bg-brand-gold text-gray-900 rounded hover:bg-brand-gold-dark"
                                                             >
                                                               Save
                                                             </button>
@@ -1344,7 +1344,7 @@ function ReviewContent() {
                                                           <div
                                                             onClick={() => toggleBullet(selectedRole.roleIndex, bulletIdx)}
                                                             className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 mt-0.5 cursor-pointer ${
-                                                              isFromMaster ? "bg-blue-500" : "bg-purple-500"
+                                                              isFromMaster ? "bg-brand-blue-light0" : "bg-purple-500"
                                                             }`}
                                                             title="Click to remove"
                                                           >
@@ -1361,12 +1361,12 @@ function ReviewContent() {
                                                                 Edited
                                                               </span>
                                                             )}
-                                                            <span className={`text-xs px-1.5 py-0.5 rounded ${isFromMaster ? "bg-blue-100 text-blue-600" : "bg-purple-100 text-purple-600"}`}>
+                                                            <span className={`text-xs px-1.5 py-0.5 rounded ${isFromMaster ? "bg-blue-100 text-brand-blue" : "bg-purple-100 text-purple-600"}`}>
                                                               {isFromMaster ? "Resume" : "AI"}
                                                             </span>
                                                             <button
                                                               onClick={(e) => { e.stopPropagation(); startEditingBullet(selectedRole.roleIndex, bulletIdx, bulletText); }}
-                                                              className="p-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded"
+                                                              className="p-1 text-gray-500 hover:text-brand-blue hover:bg-brand-blue-light rounded"
                                                               title="Edit bullet"
                                                             >
                                                               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1520,7 +1520,7 @@ function ReviewContent() {
                                           onClick={() => toggleSkill(skill)}
                                           className={`px-3 py-1 rounded-full text-sm transition-colors ${
                                             isFromResume
-                                              ? "bg-blue-100 text-blue-700 border-2 border-blue-400"
+                                              ? "bg-blue-100 text-brand-blue border-2 border-blue-400"
                                               : "bg-purple-100 text-purple-700 border-2 border-purple-400"
                                           }`}
                                         >
@@ -1568,7 +1568,7 @@ function ReviewContent() {
                                         <button
                                           key={skill}
                                           onClick={() => toggleSkill(skill)}
-                                          className="px-3 py-1 rounded-full text-sm transition-colors bg-gray-100 text-gray-600 border border-gray-200 hover:border-blue-300 hover:bg-blue-50"
+                                          className="px-3 py-1 rounded-full text-sm transition-colors bg-gray-100 text-gray-600 border border-gray-200 hover:border-blue-300 hover:bg-brand-blue-light"
                                         >
                                           + {skill}
                                         </button>
@@ -1780,7 +1780,7 @@ function ReviewContent() {
                       <button
                         onClick={downloadResumePDF}
                         disabled={selectedSummaryIndex === null || selectedRoles.length === 0}
-                        className="w-full bg-blue-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="w-full bg-brand-gold text-gray-900 py-2 rounded-lg text-sm font-medium hover:bg-brand-gold-dark disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                       >
                         Download Resume PDF
                       </button>
@@ -1814,7 +1814,7 @@ function ReviewContent() {
                           setCoverLetter(e.target.value);
                           setHasChanges(true);
                         }}
-                        className="w-full border border-gray-200 rounded-lg p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full border border-gray-200 rounded-lg p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-brand-blue"
                         rows={16}
                         placeholder="Write or generate your cover letter..."
                       />
@@ -1977,7 +1977,7 @@ function ReviewContent() {
                                 </span>
                               )}
                               {details.work_type && (
-                                <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 rounded text-xs text-blue-600">
+                                <span className="inline-flex items-center gap-1 px-2 py-1 bg-brand-blue-light rounded text-xs text-brand-blue">
                                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                                   </svg>
@@ -2137,7 +2137,7 @@ export default function ReviewPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="min-h-screen flex items-center justify-center bg-brand-gray">
           <div className="text-lg text-gray-600">Loading...</div>
         </div>
       }

@@ -33,7 +33,7 @@ export default function RecruiterInfo({
   const getSourceBadge = () => {
     if (!recruiterSource) return null;
     const labels = { email: "From Email", job_description: "From Job Description", manual: "Manually Added" };
-    const colors = { email: "bg-blue-100 text-blue-700", job_description: "bg-purple-100 text-purple-700", manual: "bg-gray-100 text-gray-700" };
+    const colors = { email: "bg-blue-100 text-brand-blue", job_description: "bg-purple-100 text-purple-700", manual: "bg-gray-100 text-gray-700" };
     return <span className={`text-xs px-2 py-0.5 rounded ${colors[recruiterSource]}`}>{labels[recruiterSource]}</span>;
   };
 
@@ -56,19 +56,19 @@ export default function RecruiterInfo({
         <div className="space-y-3">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., John Smith" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., John Smith" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-blue" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="e.g., john.smith@company.com" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="e.g., john.smith@company.com" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-blue" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-            <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g., Senior Recruiter" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g., Senior Recruiter" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-blue" />
           </div>
         </div>
         <div className="flex gap-2">
-          <button onClick={handleSave} disabled={isSaving} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">{isSaving ? "Saving..." : "Save"}</button>
+          <button onClick={handleSave} disabled={isSaving} className="px-4 py-2 bg-brand-gold text-gray-900 rounded-lg hover:bg-brand-gold-dark disabled:opacity-50">{isSaving ? "Saving..." : "Save"}</button>
           <button onClick={() => { setName(recruiterName || ""); setEmail(recruiterEmail || ""); setTitle(recruiterTitle || ""); setIsEditing(false); }} disabled={isSaving} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">Cancel</button>
         </div>
       </div>
@@ -83,7 +83,7 @@ export default function RecruiterInfo({
         </div>
         <h3 className="font-medium text-gray-900 mb-2">No Recruiter Info</h3>
         <p className="text-sm text-gray-500 mb-4">Add recruiter or hiring manager contact information</p>
-        <button onClick={() => setIsEditing(true)} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Add Recruiter</button>
+        <button onClick={() => setIsEditing(true)} className="px-4 py-2 bg-brand-gold text-gray-900 rounded-lg hover:bg-brand-gold-dark">Add Recruiter</button>
       </div>
     );
   }
@@ -98,7 +98,7 @@ export default function RecruiterInfo({
         {recruiterName && (
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-              <span className="text-blue-600 font-semibold">{recruiterName.charAt(0).toUpperCase()}</span>
+              <span className="text-brand-blue font-semibold">{recruiterName.charAt(0).toUpperCase()}</span>
             </div>
             <div>
               <div className="font-medium text-gray-900">{recruiterName}</div>
@@ -107,13 +107,13 @@ export default function RecruiterInfo({
           </div>
         )}
         {recruiterEmail && (
-          <a href={`mailto:${recruiterEmail}`} className="flex items-center gap-2 text-blue-600 hover:text-blue-800">
+          <a href={`mailto:${recruiterEmail}`} className="flex items-center gap-2 text-brand-blue hover:text-blue-800">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
             {recruiterEmail}
           </a>
         )}
       </div>
-      <button onClick={() => setIsEditing(true)} className="text-sm text-blue-600 hover:text-blue-800">Edit Contact Info</button>
+      <button onClick={() => setIsEditing(true)} className="text-sm text-brand-blue hover:text-blue-800">Edit Contact Info</button>
     </div>
   );
 }

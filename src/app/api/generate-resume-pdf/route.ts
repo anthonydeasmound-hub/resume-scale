@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { generateResumePDF, generatePDFFromTemplateHTML } from '@/lib/pdf-generator-puppeteer';
-import { DEFAULT_TEMPLATE_OPTIONS } from '@/lib/templates';
+import { DEFAULT_TEMPLATE_OPTIONS, TemplateOptions } from '@/lib/templates';
 import { ResumeData, TemplateName } from '@/types/resume';
 
 export async function POST(request: NextRequest) {
@@ -13,11 +13,12 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { data, template, accentColor, templateId } = await request.json() as {
+    const { data, template, accentColor, templateId, templateOptions } = await request.json() as {
       data: ResumeData;
       template?: TemplateName;
       accentColor?: string;
       templateId?: string;
+      templateOptions?: Partial<TemplateOptions>;
     };
 
     if (!data) {
@@ -34,6 +35,7 @@ export async function POST(request: NextRequest) {
       // New template system
       const options = {
         ...DEFAULT_TEMPLATE_OPTIONS,
+        ...templateOptions,
         accentColor: color,
       };
       console.log('Generating PDF with new template:', templateId, 'color:', color);

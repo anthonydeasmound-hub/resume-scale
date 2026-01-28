@@ -13,7 +13,7 @@ export const executiveMetadata: TemplateMetadata = {
 };
 
 export function generateExecutiveHTML(data: ResumeData, options: TemplateOptions): string {
-  const { accentColor, showPhoto } = options;
+  const { accentColor, showPhoto, showLanguages } = options;
 
   const experienceHTML = data.experience.map(exp => {
     const bullets = Array.isArray(exp.description) ? exp.description : [exp.description];
@@ -259,7 +259,28 @@ export function generateExecutiveHTML(data: ResumeData, options: TemplateOptions
     <div class="section">
       <div class="section-title">Education</div>
       ${educationHTML}
+      ${data.honors && data.honors.length > 0 ? `
+      ${data.honors.map(honor => `
+        <div class="education-item" style="margin-bottom: 6px;">
+          <span style="font-weight: 600; color: #1a1a1a;">${honor.title}</span>${honor.issuer || honor.date ? ` — ${[honor.issuer, honor.date].filter(Boolean).join(', ')}` : ''}
+        </div>
+      `).join('')}
+      ` : ''}
+      ${data.certifications && data.certifications.length > 0 ? `
+      ${data.certifications.map(cert => `
+        <div class="education-item" style="margin-bottom: 6px;">
+          <span style="font-weight: 600; color: #1a1a1a;">${cert.name}</span>${cert.issuer || cert.date ? ` — ${[cert.issuer, cert.date].filter(Boolean).join(', ')}` : ''}
+        </div>
+      `).join('')}
+      ` : ''}
     </div>
+
+    ${showLanguages && data.languages && data.languages.length > 0 ? `
+    <div class="section">
+      <div class="section-title">Languages</div>
+      <div class="skills-text">${data.languages.join(' • ')}</div>
+    </div>
+    ` : ''}
   </div>
 </body>
 </html>

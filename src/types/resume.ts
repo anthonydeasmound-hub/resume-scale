@@ -27,6 +27,18 @@ export interface Reference {
   email: string;
 }
 
+export interface Certification {
+  name: string;
+  issuer: string;
+  date: string;
+}
+
+export interface Honor {
+  title: string;
+  issuer: string;
+  date: string;
+}
+
 export interface ResumeData {
   contactInfo: ContactInfo;
   jobTitle: string;
@@ -35,6 +47,9 @@ export interface ResumeData {
   education: Education[];
   skills?: string[];
   references?: Reference[];
+  certifications?: Certification[];
+  languages?: string[];
+  honors?: Honor[];
 }
 
 export interface CoverLetterData {

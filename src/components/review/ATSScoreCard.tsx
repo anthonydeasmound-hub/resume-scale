@@ -71,7 +71,7 @@ export default function ATSScoreCard({ score, loading, onCalculate, disabled }: 
       >
         <div className="flex items-center gap-3">
           <div className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-medium ${
-            score ? getScoreColor(score.overall).bg + " " + getScoreColor(score.overall).text : "bg-blue-100 text-blue-600"
+            score ? getScoreColor(score.overall).bg + " " + getScoreColor(score.overall).text : "bg-blue-100 text-brand-blue"
           }`}>
             {loading ? (
               <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -186,7 +186,7 @@ export default function ATSScoreCard({ score, loading, onCalculate, disabled }: 
             {/* Suggestions */}
             {score.suggestions.length > 0 && (
               <div className="pt-2 border-t">
-                <p className="text-xs font-medium text-blue-600 mb-2">Suggestions to Improve Score</p>
+                <p className="text-xs font-medium text-brand-blue mb-2">Suggestions to Improve Score</p>
                 <ul className="text-xs text-gray-600 space-y-1">
                   {score.suggestions.map((suggestion, i) => (
                     <li key={i} className="flex items-start gap-1">
@@ -206,7 +206,7 @@ export default function ATSScoreCard({ score, loading, onCalculate, disabled }: 
             <button
               onClick={onCalculate}
               disabled={loading}
-              className="w-full text-xs text-blue-600 hover:text-blue-700 py-2 border-t"
+              className="w-full text-xs text-brand-blue hover:text-brand-blue-dark py-2 border-t"
             >
               Recalculate Score
             </button>

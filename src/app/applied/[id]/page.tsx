@@ -223,7 +223,7 @@ export default function JobDetailPage() {
 
   if (status === "loading" || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-brand-gray">
         <div className="text-lg text-gray-600">Loading...</div>
       </div>
     );
@@ -231,7 +231,7 @@ export default function JobDetailPage() {
 
   if (!job) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-brand-gray">
         <div className="text-lg text-gray-600">Job not found</div>
       </div>
     );
@@ -252,10 +252,10 @@ export default function JobDetailPage() {
         ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-brand-gray">
       <TabsNav reviewCount={0} />
 
-      <div className="ml-16 p-8">
+      <div className="ml-64 p-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <button
@@ -316,7 +316,7 @@ export default function JobDetailPage() {
                   </span>
                 )}
                 {jobDetails?.work_type && (
-                  <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
+                  <span className="px-3 py-1 bg-blue-100 text-brand-blue rounded-full text-sm">
                     {jobDetails.work_type}
                   </span>
                 )}
@@ -516,7 +516,7 @@ export default function JobDetailPage() {
                   <div
                     className={`w-10 h-10 rounded-full flex items-center justify-center ${
                       email.direction === "inbound"
-                        ? "bg-blue-100 text-blue-600"
+                        ? "bg-blue-100 text-brand-blue"
                         : "bg-green-100 text-green-600"
                     }`}
                   >
@@ -543,7 +543,7 @@ export default function JobDetailPage() {
                     </p>
                   </div>
                   {email.status === "detected" && (
-                    <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
+                    <span className="px-2 py-1 bg-blue-100 text-brand-blue text-xs rounded-full">
                       New
                     </span>
                   )}

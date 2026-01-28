@@ -13,7 +13,7 @@ export const horizonMetadata: TemplateMetadata = {
 };
 
 export function generateHorizonHTML(data: ResumeData, options: TemplateOptions): string {
-  const { accentColor, showPhoto, showSkillBars, showIcons } = options;
+  const { accentColor, showPhoto, showSkillBars, showIcons, showLanguages } = options;
 
   // Create a lighter version of accent color for sidebar
   const sidebarBg = `${accentColor}12`;
@@ -307,7 +307,30 @@ export function generateHorizonHTML(data: ResumeData, options: TemplateOptions):
       <div class="sidebar-section">
         <div class="sidebar-title">Education</div>
         ${educationHTML}
+        ${data.honors && data.honors.length > 0 ? `
+        ${data.honors.map(honor => `
+          <div class="edu-item">
+            <div class="edu-degree">${honor.title}</div>
+            ${honor.issuer || honor.date ? `<div class="edu-school">${[honor.issuer, honor.date].filter(Boolean).join(', ')}</div>` : ''}
+          </div>
+        `).join('')}
+        ` : ''}
+        ${data.certifications && data.certifications.length > 0 ? `
+        ${data.certifications.map(cert => `
+          <div class="edu-item">
+            <div class="edu-degree">${cert.name}</div>
+            ${cert.issuer || cert.date ? `<div class="edu-school">${[cert.issuer, cert.date].filter(Boolean).join(', ')}</div>` : ''}
+          </div>
+        `).join('')}
+        ` : ''}
       </div>
+
+      ${showLanguages && data.languages && data.languages.length > 0 ? `
+      <div class="sidebar-section">
+        <div class="sidebar-title">Languages</div>
+        <div style="font-size: 8.5pt; color: #333;">${data.languages.join(' • ')}</div>
+      </div>
+      ` : ''}
     </div>
 
     <div class="main">

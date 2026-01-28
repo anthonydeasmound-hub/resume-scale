@@ -78,17 +78,17 @@ export default function WeekCalendar({ interviews, onInterviewClick }: WeekCalen
               key={dateKey}
               className={`min-h-[100px] rounded-lg p-2 ${
                 today
-                  ? "bg-blue-50 border-2 border-blue-200"
+                  ? "bg-brand-blue-light border-2 border-brand-blue"
                   : "bg-gray-50 border border-gray-100"
               }`}
             >
               <div className="text-center mb-2">
-                <div className={`text-xs font-medium ${today ? "text-blue-600" : "text-gray-500"}`}>
+                <div className={`text-xs font-medium ${today ? "text-brand-blue" : "text-gray-500"}`}>
                   {dayNames[idx]}
                 </div>
                 <div
                   className={`text-lg font-bold ${
-                    today ? "text-blue-700" : "text-gray-700"
+                    today ? "text-brand-blue" : "text-gray-700"
                   }`}
                 >
                   {day.getDate()}

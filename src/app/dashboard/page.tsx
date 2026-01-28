@@ -45,6 +45,9 @@ interface ResumeData {
   certifications: { name: string; issuer: string; date: string }[];
   languages: string[];
   honors: { title: string; issuer: string; date: string }[];
+  summary: string;
+  resume_style: string;
+  accent_color: string;
 }
 
 interface Job {
@@ -79,6 +82,7 @@ export default function DashboardPage() {
   const [setupStatus, setSetupStatus] = useState<SetupStatus | null>(null);
   const [resumeData, setResumeData] = useState<ResumeData | null>(null);
   const [hasResume, setHasResume] = useState(false);
+  const [previewHtml, setPreviewHtml] = useState("");
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -94,7 +98,7 @@ export default function DashboardPage() {
   const [submitting, setSubmitting] = useState(false);
   const [jobError, setJobError] = useState("");
 
-  const accentColor = "#3D5A80";
+  const previewScale = 0.48;
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -121,7 +125,7 @@ export default function DashboardPage() {
       const res = await fetch("/api/resume/master");
       if (res.ok) {
         const data = await res.json();
-        setResumeData({
+        const parsed: ResumeData = {
           contact_info: data.contact_info || { name: "", email: "", phone: "", location: "", linkedin: "" },
           work_experience: data.work_experience || [],
           education: data.education || [],
@@ -129,8 +133,55 @@ export default function DashboardPage() {
           certifications: data.certifications || [],
           languages: data.languages || [],
           honors: data.honors || [],
-        });
+          summary: data.summary || "",
+          resume_style: data.resume_style || "executive",
+          accent_color: data.accent_color || "#2563eb",
+        };
+        setResumeData(parsed);
         setHasResume(true);
+
+        // Fetch preview HTML using the real template system
+        const transformedData = {
+          contactInfo: {
+            name: parsed.contact_info.name || "",
+            email: parsed.contact_info.email || "",
+            phone: parsed.contact_info.phone || "",
+            location: parsed.contact_info.location || "",
+            linkedin: parsed.contact_info.linkedin || "",
+          },
+          jobTitle: parsed.work_experience[0]?.title || "",
+          summary: parsed.summary || "",
+          experience: parsed.work_experience.map(exp => ({
+            title: exp.title,
+            company: exp.company,
+            dates: `${exp.start_date} - ${exp.end_date}`,
+            description: exp.description.filter(d => d.trim() !== ""),
+          })),
+          education: parsed.education.map(edu => ({
+            school: edu.institution,
+            degree: edu.degree,
+            dates: edu.graduation_date,
+            specialty: edu.field,
+          })),
+          skills: parsed.skills,
+          certifications: parsed.certifications || [],
+          languages: parsed.languages || [],
+          honors: parsed.honors || [],
+        };
+
+        const previewRes = await fetch("/api/resume/preview-html", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            data: transformedData,
+            templateId: parsed.resume_style,
+            accentColor: parsed.accent_color,
+          }),
+        });
+        if (previewRes.ok) {
+          const html = await previewRes.text();
+          setPreviewHtml(html);
+        }
       } else if (res.status === 404) {
         setHasResume(false);
       }
@@ -264,7 +315,7 @@ export default function DashboardPage() {
 
   if (status === "loading" || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-brand-gray">
         <div className="text-lg text-gray-600">Loading...</div>
       </div>
     );
@@ -281,10 +332,40 @@ export default function DashboardPage() {
   weekStart.setHours(0, 0, 0, 0);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-brand-gray">
       <TabsNav reviewCount={stats?.review_count || 0} />
 
-      <div className="ml-16 p-8">
+      <div className="ml-64 p-8">
+        {/* Promo Banner */}
+        <div className="bg-gray-900 rounded-xl p-5 mb-8 flex items-center justify-between">
+          <p className="text-white font-semibold text-lg">
+            Level up your job search with ResumeGenie Pro
+          </p>
+          <div className="flex items-center gap-3">
+            <span className="inline-flex items-center gap-1.5 bg-gray-800 text-gray-200 text-sm px-3 py-1.5 rounded-full">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              Unlimited AI
+            </span>
+            <span className="inline-flex items-center gap-1.5 bg-gray-800 text-gray-200 text-sm px-3 py-1.5 rounded-full">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Unlimited Resumes
+            </span>
+            <span className="inline-flex items-center gap-1.5 bg-gray-800 text-gray-200 text-sm px-3 py-1.5 rounded-full">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              ATS Analysis
+            </span>
+            <button className="ml-2 bg-brand-gold hover:bg-brand-gold-dark text-gray-900 text-sm font-medium px-5 py-2 rounded-lg transition-colors">
+              Upgrade
+            </button>
+          </div>
+        </div>
+
         <div className="flex gap-8">
           {/* Left Column - Resume Preview */}
           <div className="w-[400px] shrink-0">
@@ -293,91 +374,39 @@ export default function DashboardPage() {
                 <div className="bg-white rounded-xl shadow-lg overflow-hidden">
                   <div className="bg-gray-100 px-4 py-2 border-b flex items-center justify-between">
                     <span className="text-sm font-medium text-gray-700">Master Resume</span>
-                    <Link href="/master-resume" className="text-xs text-blue-600 hover:text-blue-700 font-medium">
+                    <Link href="/master-resume" className="text-xs text-brand-blue hover:text-brand-blue-dark font-medium">
                       Edit Resume
                     </Link>
                   </div>
-                  <div className="overflow-hidden" style={{ maxHeight: "calc(100vh - 140px)" }}>
-                    <div
-                      className="text-xs"
-                      style={{
-                        fontFamily: "'Inter', sans-serif",
-                        transform: "scale(0.48)",
-                        transformOrigin: "top left",
-                        width: "208.33%",
-                      }}
-                    >
-                      <div style={{ padding: "24px 28px", minHeight: "715px", display: "flex", flexDirection: "column" }}>
-                        {/* Header */}
-                        <div className="text-center" style={{ marginBottom: "6px" }}>
-                          <div style={{ fontSize: "18pt", fontWeight: 700, color: "#1a1a1a", textTransform: "uppercase", letterSpacing: "1.5px" }}>
-                            {resumeData.contact_info.name}
-                          </div>
-                          <div style={{ fontSize: "7.5pt", color: "#333", marginTop: "4px" }}>
-                            {[resumeData.contact_info.location, resumeData.contact_info.phone, resumeData.contact_info.email].filter(Boolean).join(" \u2022 ")}
-                          </div>
-                          {resumeData.contact_info.linkedin && (
-                            <div style={{ fontSize: "7.5pt", color: "#333" }}>{resumeData.contact_info.linkedin}</div>
-                          )}
-                        </div>
-
-                        {/* Work Experience */}
-                        <div style={{ flex: 1 }}>
-                          {resumeData.work_experience.length > 0 && (
-                            <div style={{ marginBottom: "12px" }}>
-                              <h3 style={{ fontSize: "9pt", fontWeight: 700, color: accentColor, textTransform: "uppercase", borderBottom: "1px solid #ccc", paddingBottom: "3px", marginBottom: "6px" }}>
-                                Work Experience
-                              </h3>
-                              {resumeData.work_experience.map((exp, i) => (
-                                <div key={i} style={{ marginBottom: "10px" }}>
-                                  <div className="flex justify-between" style={{ marginBottom: "2px" }}>
-                                    <span style={{ fontSize: "7.5pt", fontWeight: 600, color: "#1a1a1a" }}>
-                                      {exp.title}, {exp.company}
-                                    </span>
-                                    <span style={{ fontSize: "7.5pt", color: "#333" }}>
-                                      {exp.start_date} - {exp.end_date}
-                                    </span>
-                                  </div>
-                                  <div style={{ fontSize: "7.5pt", color: "#333" }}>
-                                    {exp.description.map((d, j) => (
-                                      <p key={j} style={{ paddingLeft: "10px", position: "relative", marginBottom: "1px" }}>
-                                        <span style={{ position: "absolute", left: 0 }}>&bull;</span> {d}
-                                      </p>
-                                    ))}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Footer - Skills and Education */}
-                        <div style={{ marginTop: "auto" }}>
-                          {resumeData.skills.length > 0 && (
-                            <div style={{ marginBottom: "12px" }}>
-                              <h3 style={{ fontSize: "9pt", fontWeight: 700, color: accentColor, textTransform: "uppercase", borderBottom: "1px solid #ccc", paddingBottom: "3px", marginBottom: "6px" }}>
-                                Skills
-                              </h3>
-                              <p style={{ fontSize: "7.5pt", color: "#333" }}>{resumeData.skills.join(" | ")}</p>
-                            </div>
-                          )}
-
-                          {resumeData.education.length > 0 && (
-                            <div>
-                              <h3 style={{ fontSize: "9pt", fontWeight: 700, color: accentColor, textTransform: "uppercase", borderBottom: "1px solid #ccc", paddingBottom: "3px", marginBottom: "6px" }}>
-                                Education
-                              </h3>
-                              {resumeData.education.map((edu, i) => (
-                                <div key={i} style={{ marginBottom: "6px" }}>
-                                  <div style={{ fontSize: "7.5pt", fontWeight: 600, color: "#1a1a1a" }}>{edu.degree}</div>
-                                  <div style={{ fontSize: "7.5pt", color: "#333" }}>{edu.institution}</div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
+                  <div
+                    className="relative bg-white"
+                    style={{
+                      width: `${8.5 * previewScale}in`,
+                      height: `${11 * previewScale}in`,
+                      overflow: "hidden",
+                    }}
+                  >
+                    {previewHtml ? (
+                      <iframe
+                        srcDoc={previewHtml}
+                        title="Resume Preview"
+                        style={{
+                          width: "8.5in",
+                          height: "11in",
+                          transform: `scale(${previewScale})`,
+                          transformOrigin: "top left",
+                          border: "none",
+                          background: "white",
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                        }}
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center h-full">
+                        <div className="animate-spin w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full" />
                       </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -392,7 +421,7 @@ export default function DashboardPage() {
                 <p className="text-gray-500 text-sm mb-4">Build your master resume to get started.</p>
                 <Link
                   href="/onboarding"
-                  className="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                  className="inline-block bg-brand-gold text-gray-900 px-6 py-2 rounded-lg font-medium hover:bg-brand-gold-dark transition-colors"
                 >
                   Build Resume
                 </Link>
@@ -407,14 +436,14 @@ export default function DashboardPage() {
               <div className="bg-white rounded-xl shadow-lg p-6">
                 <h2 className="text-xl font-semibold text-gray-900 mb-1">Getting Started</h2>
                 <div className="flex items-center gap-3 mb-4">
-                  <span className="text-sm font-medium text-blue-600">{pct}% Complete</span>
+                  <span className="text-sm font-medium text-brand-blue">{pct}% Complete</span>
                   <span className="text-sm text-gray-500">{setupStatus?.completedCount || 0} of {setupStatus?.totalTasks || 3} Tasks</span>
                 </div>
 
                 {/* Progress Bar */}
                 <div className="w-full bg-gray-200 rounded-full h-2 mb-6">
                   <div
-                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                    className="bg-brand-gold h-2 rounded-full transition-all duration-300"
                     style={{ width: `${pct}%` }}
                   />
                 </div>
@@ -437,7 +466,7 @@ export default function DashboardPage() {
                         Build your Resume
                       </p>
                       {!setupStatus?.hasResume && (
-                        <Link href="/onboarding" className="text-sm text-blue-600 hover:text-blue-700">
+                        <Link href="/onboarding" className="text-sm text-brand-blue hover:text-brand-blue-dark">
                           Go to onboarding &rarr;
                         </Link>
                       )}
@@ -483,6 +512,16 @@ export default function DashboardPage() {
                         Tailor to a Job
                       </p>
                       {!setupStatus?.hasFirstJob && (
+                        <a
+                          href="https://www.linkedin.com/jobs/"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-block text-sm text-brand-blue hover:text-brand-blue-dark mt-1 mb-1"
+                        >
+                          Browse jobs on LinkedIn &rarr;
+                        </a>
+                      )}
+                      {!setupStatus?.hasFirstJob && (
                         <form onSubmit={handleJobSubmit} className="mt-2 space-y-3">
                           {jobError && (
                             <div className="p-2 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
@@ -492,13 +531,13 @@ export default function DashboardPage() {
                           <textarea
                             value={jobDescription}
                             onChange={(e) => setJobDescription(e.target.value)}
-                            className="w-full h-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none text-sm text-gray-900"
+                            className="w-full h-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue resize-none text-sm text-gray-900"
                             placeholder="Paste a job description here..."
                           />
                           <button
                             type="submit"
                             disabled={submitting}
-                            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            className="bg-brand-gold text-gray-900 px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-gold-dark disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                           >
                             {submitting ? "Analyzing..." : "Generate Tailored Resume"}
                           </button>
@@ -523,10 +562,10 @@ export default function DashboardPage() {
                           className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors group"
                         >
                           <div>
-                            <p className="font-medium text-gray-900 group-hover:text-blue-600">{job.job_title}</p>
+                            <p className="font-medium text-gray-900 group-hover:text-brand-blue">{job.job_title}</p>
                             <p className="text-sm text-gray-500">{job.company_name}</p>
                           </div>
-                          <svg className="w-4 h-4 text-gray-400 group-hover:text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-4 h-4 text-gray-400 group-hover:text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                           </svg>
                         </Link>
@@ -560,7 +599,7 @@ export default function DashboardPage() {
                               ? "bg-yellow-50 text-yellow-700"
                               : update.type === "offer"
                               ? "bg-green-50 text-green-700"
-                              : "bg-blue-50 text-blue-700"
+                              : "bg-brand-blue-light text-brand-blue"
                           }`}
                         >
                           <span className="font-medium">{update.company}</span>: {update.summary}
@@ -588,17 +627,17 @@ export default function DashboardPage() {
                       return (
                         <div
                           key={day}
-                          className={`text-center p-2 rounded-lg ${isToday ? "bg-blue-50 ring-1 ring-blue-200" : ""}`}
+                          className={`text-center p-2 rounded-lg ${isToday ? "bg-brand-blue-light ring-1 ring-blue-200" : ""}`}
                         >
                           <div className="text-xs font-medium text-gray-500">{day}</div>
-                          <div className={`text-sm font-semibold ${isToday ? "text-blue-700" : "text-gray-900"}`}>
+                          <div className={`text-sm font-semibold ${isToday ? "text-brand-blue" : "text-gray-900"}`}>
                             {date.getDate()}
                           </div>
                           {dayInterviews.map((iv, j) => (
                             <button
                               key={j}
                               onClick={() => router.push(`/applied`)}
-                              className="mt-1 w-full text-[10px] bg-blue-100 text-blue-700 rounded px-1 py-0.5 truncate hover:bg-blue-200 transition-colors"
+                              className="mt-1 w-full text-[10px] bg-blue-100 text-brand-blue rounded px-1 py-0.5 truncate hover:bg-blue-200 transition-colors"
                               title={`${iv.stage} - ${iv.job.company_name}`}
                             >
                               {iv.stage}

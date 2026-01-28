@@ -123,7 +123,7 @@ export default function JobAnalysisPanel({
           <p className="text-red-600 mb-4">{error}</p>
           <button
             onClick={fetchAnalysis}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="px-4 py-2 bg-brand-gold text-gray-900 rounded-lg hover:bg-brand-gold-dark"
           >
             Try Again
           </button>
@@ -160,7 +160,7 @@ export default function JobAnalysisPanel({
         {jobDetailsParsed && (
           <div className="flex flex-wrap gap-2 mb-4">
             {jobDetailsParsed.work_type && (
-              <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+              <span className="px-3 py-1 bg-blue-100 text-brand-blue rounded-full text-sm font-medium">
                 {jobDetailsParsed.work_type}
               </span>
             )}

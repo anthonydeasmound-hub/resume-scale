@@ -55,7 +55,7 @@ export default function InterviewGuideDisplay({ jobId, guide, generatedAt, onGen
         </div>
         <h3 className="text-lg font-medium text-gray-900 mb-2">Interview Guide Not Generated</h3>
         <p className="text-gray-500 mb-6 max-w-md mx-auto">Generate a personalized interview preparation guide based on the job description and your resume.</p>
-        <button onClick={handleGenerate} disabled={isGenerating} className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 inline-flex items-center gap-2">
+        <button onClick={handleGenerate} disabled={isGenerating} className="px-6 py-3 bg-brand-gold text-gray-900 rounded-lg hover:bg-brand-gold-dark disabled:opacity-50 inline-flex items-center gap-2">
           {isGenerating ? (<><svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" /></svg>Generating...</>) : (<><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>Generate Interview Guide</>)}
         </button>
       </div>
@@ -71,7 +71,7 @@ export default function InterviewGuideDisplay({ jobId, guide, generatedAt, onGen
         </div>
         <div className="flex gap-2">
           <button onClick={handleGenerate} disabled={isGenerating} className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50">{isGenerating ? "Regenerating..." : "Regenerate"}</button>
-          <button onClick={handleDownloadPDF} disabled={isDownloading} className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 inline-flex items-center gap-1">
+          <button onClick={handleDownloadPDF} disabled={isDownloading} className="px-3 py-1.5 text-sm bg-brand-gold text-gray-900 rounded-lg hover:bg-brand-gold-dark disabled:opacity-50 inline-flex items-center gap-1">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
             {isDownloading ? "..." : "PDF"}
           </button>
@@ -94,7 +94,7 @@ export default function InterviewGuideDisplay({ jobId, guide, generatedAt, onGen
             <div key={round.round} className="border rounded-lg overflow-hidden">
               <button onClick={() => setExpandedRound(expandedRound === round.round ? null : round.round)} className="w-full flex items-center justify-between px-4 py-3 bg-white hover:bg-gray-50">
                 <div className="flex items-center gap-3">
-                  <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-sm font-medium">{round.round}</span>
+                  <span className="w-6 h-6 rounded-full bg-blue-100 text-brand-blue flex items-center justify-center text-sm font-medium">{round.round}</span>
                   <span className="font-medium text-gray-900">{getRoundTypeLabel(round.type)}</span>
                   <span className="text-sm text-gray-500">({round.typicalDuration})</span>
                 </div>
@@ -109,10 +109,10 @@ export default function InterviewGuideDisplay({ jobId, guide, generatedAt, onGen
                         <div key={i} className="bg-white rounded-lg p-3 border text-sm mb-2">
                           <div className="font-medium text-gray-900 mb-2 italic">&ldquo;{star.question}&rdquo;</div>
                           <div className="grid grid-cols-2 gap-2 text-xs">
-                            <div><span className="font-medium text-blue-600">S:</span> <span className="text-gray-600">{star.situation}</span></div>
-                            <div><span className="font-medium text-blue-600">T:</span> <span className="text-gray-600">{star.task}</span></div>
-                            <div><span className="font-medium text-blue-600">A:</span> <span className="text-gray-600">{star.action}</span></div>
-                            <div><span className="font-medium text-blue-600">R:</span> <span className="text-gray-600">{star.result}</span></div>
+                            <div><span className="font-medium text-brand-blue">S:</span> <span className="text-gray-600">{star.situation}</span></div>
+                            <div><span className="font-medium text-brand-blue">T:</span> <span className="text-gray-600">{star.task}</span></div>
+                            <div><span className="font-medium text-brand-blue">A:</span> <span className="text-gray-600">{star.action}</span></div>
+                            <div><span className="font-medium text-brand-blue">R:</span> <span className="text-gray-600">{star.result}</span></div>
                           </div>
                         </div>
                       ))}
@@ -131,7 +131,7 @@ export default function InterviewGuideDisplay({ jobId, guide, generatedAt, onGen
         <div className="grid grid-cols-2 gap-4">
           {guide.questionsToAsk.map((cat, i) => (
             <div key={i} className="bg-gray-50 rounded-lg p-3">
-              <h5 className="text-sm font-medium text-blue-600 mb-2">{cat.category}</h5>
+              <h5 className="text-sm font-medium text-brand-blue mb-2">{cat.category}</h5>
               <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">{cat.questions.map((q, j) => <li key={j}>{q}</li>)}</ul>
             </div>
           ))}

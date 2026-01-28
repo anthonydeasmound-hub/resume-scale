@@ -13,7 +13,7 @@ export const terminalMetadata: TemplateMetadata = {
 };
 
 export function generateTerminalHTML(data: ResumeData, options: TemplateOptions): string {
-  const { accentColor, showSkillBars, showIcons } = options;
+  const { accentColor, showSkillBars, showIcons, showLanguages } = options;
 
   const experienceHTML = data.experience.map(exp => {
     const bullets = Array.isArray(exp.description) ? exp.description : [exp.description];
@@ -333,7 +333,32 @@ export function generateTerminalHTML(data: ResumeData, options: TemplateOptions)
     <div class="section">
       <div class="section-title">Education</div>
       ${educationHTML}
+      ${data.honors && data.honors.length > 0 ? `
+      ${data.honors.map(honor => `
+        <div class="edu-item">
+          <span class="edu-degree">${honor.title}</span>
+          ${honor.issuer ? `<span class="edu-field">(${honor.issuer})</span>` : ''}
+          ${honor.date ? `<span class="edu-school">// ${honor.date}</span>` : ''}
+        </div>
+      `).join('')}
+      ` : ''}
+      ${data.certifications && data.certifications.length > 0 ? `
+      ${data.certifications.map(cert => `
+        <div class="edu-item">
+          <span class="edu-degree">${cert.name}</span>
+          ${cert.issuer ? `<span class="edu-field">(${cert.issuer})</span>` : ''}
+          ${cert.date ? `<span class="edu-school">// ${cert.date}</span>` : ''}
+        </div>
+      `).join('')}
+      ` : ''}
     </div>
+
+    ${showLanguages && data.languages && data.languages.length > 0 ? `
+    <div class="section">
+      <div class="section-title">Languages</div>
+      <div class="skills-container">${data.languages.map(lang => `<span class="skill-tag">${lang}</span>`).join('')}</div>
+    </div>
+    ` : ''}
 
     <div class="footer">
       // Built with clean code and attention to detail

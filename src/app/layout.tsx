@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Lora, Poppins, DM_Serif_Display, DM_Sans } from "next/font/google";
+import { Geist, Geist_Mono, Lora, Poppins, DM_Serif_Display, DM_Sans, Chivo, Open_Sans } from "next/font/google";
 import "./globals.css";
 import SessionProvider from "@/components/SessionProvider";
 
@@ -38,6 +38,18 @@ const dmSans = DM_Sans({
   weight: ["400", "500", "700"],
 });
 
+const chivo = Chivo({
+  variable: "--font-chivo",
+  subsets: ["latin"],
+  weight: ["400", "700"],
+});
+
+const openSans = Open_Sans({
+  variable: "--font-open-sans",
+  subsets: ["latin"],
+  weight: ["400", "600", "700"],
+});
+
 export const metadata: Metadata = {
   title: "ResumeGenie - AI-Powered Job Applications",
   description: "Scale your job applications with AI-optimized resumes and cover letters",
@@ -51,7 +63,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${lora.variable} ${poppins.variable} ${dmSerifDisplay.variable} ${dmSans.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${lora.variable} ${poppins.variable} ${dmSerifDisplay.variable} ${dmSans.variable} ${chivo.variable} ${openSans.variable} antialiased`}
       >
         <SessionProvider>{children}</SessionProvider>
       </body>

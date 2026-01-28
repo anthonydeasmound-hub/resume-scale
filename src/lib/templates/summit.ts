@@ -13,7 +13,7 @@ export const summitMetadata: TemplateMetadata = {
 };
 
 export function generateSummitHTML(data: ResumeData, options: TemplateOptions): string {
-  const { accentColor, showPhoto } = options;
+  const { accentColor, showPhoto, showLanguages } = options;
 
   const experienceHTML = data.experience.map(exp => {
     const bullets = Array.isArray(exp.description) ? exp.description : [exp.description];
@@ -290,7 +290,36 @@ export function generateSummitHTML(data: ResumeData, options: TemplateOptions): 
     <div class="section">
       <div class="section-title">Education</div>
       ${educationHTML}
+      ${data.honors && data.honors.length > 0 ? `
+      ${data.honors.map(honor => `
+        <div class="edu-item">
+          <div class="edu-left">
+            <div class="edu-degree">${honor.title}</div>
+            ${honor.issuer ? `<div class="edu-school">${honor.issuer}</div>` : ''}
+          </div>
+          ${honor.date ? `<div class="edu-dates">${honor.date}</div>` : ''}
+        </div>
+      `).join('')}
+      ` : ''}
+      ${data.certifications && data.certifications.length > 0 ? `
+      ${data.certifications.map(cert => `
+        <div class="edu-item">
+          <div class="edu-left">
+            <div class="edu-degree">${cert.name}</div>
+            ${cert.issuer ? `<div class="edu-school">${cert.issuer}</div>` : ''}
+          </div>
+          ${cert.date ? `<div class="edu-dates">${cert.date}</div>` : ''}
+        </div>
+      `).join('')}
+      ` : ''}
     </div>
+
+    ${showLanguages && data.languages && data.languages.length > 0 ? `
+    <div class="section">
+      <div class="section-title">Languages</div>
+      <div class="skills-text">${data.languages.join(' · ')}</div>
+    </div>
+    ` : ''}
 
     <div class="footer-line"></div>
   </div>

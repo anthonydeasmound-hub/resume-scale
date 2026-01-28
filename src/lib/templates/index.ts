@@ -5,6 +5,7 @@ export interface TemplateOptions {
   showPhoto: boolean;
   showSkillBars: boolean;
   showIcons: boolean;
+  showLanguages: boolean;
   accentColor: string;
 }
 
@@ -116,6 +117,9 @@ const DENSITY_TIER_CSS = `
     .page.compact .contact-line { font-size: 8pt; }
     .page.compact .dates, .page.compact .exp-dates, .page.compact .edu-dates { font-size: 8pt; }
     .page.compact .photo-placeholder { width: 70px; height: 70px; margin-bottom: 12px; }
+    .page.compact .certification-item { font-size: 8.5pt; margin-bottom: 5px; }
+    .page.compact .cert-item { margin-bottom: 6px; }
+    .page.compact .honor-item { font-size: 8.5pt; margin-bottom: 5px; }
 
     /* ===== Dense tier ===== */
     .page.dense {
@@ -169,6 +173,9 @@ const DENSITY_TIER_CSS = `
     .page.dense .contact-line { font-size: 7.5pt; }
     .page.dense .dates, .page.dense .exp-dates, .page.dense .edu-dates { font-size: 7.5pt; }
     .page.dense .photo-placeholder { width: 60px; height: 60px; margin-bottom: 8px; }
+    .page.dense .certification-item { font-size: 8pt; margin-bottom: 4px; }
+    .page.dense .cert-item { margin-bottom: 4px; }
+    .page.dense .honor-item { font-size: 8pt; margin-bottom: 4px; }
 
     /* ===== One-page enforcement ===== */
     body {
@@ -248,5 +255,6 @@ export const DEFAULT_TEMPLATE_OPTIONS: TemplateOptions = {
   showPhoto: false,
   showSkillBars: true,
   showIcons: true,
+  showLanguages: false,
   accentColor: '#2563eb',
 };

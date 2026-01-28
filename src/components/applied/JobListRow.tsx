@@ -78,7 +78,7 @@ export default function JobListRow({
   const getAlertColor = (type: AlertType) => {
     switch (type) {
       case "email":
-        return "text-blue-600 bg-blue-50";
+        return "text-brand-blue bg-brand-blue-light";
       case "interview":
         return "text-purple-600 bg-purple-50";
       case "follow_up":
@@ -93,7 +93,7 @@ export default function JobListRow({
   const getStatusColor = (status: string) => {
     switch (status) {
       case "applied":
-        return "bg-blue-100 text-blue-700";
+        return "bg-blue-100 text-brand-blue";
       case "interview":
         return "bg-purple-100 text-purple-700";
       case "offer":

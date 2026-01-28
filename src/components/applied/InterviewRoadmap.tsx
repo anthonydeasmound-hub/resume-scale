@@ -153,7 +153,7 @@ export default function InterviewRoadmap({ jobId, interviews, onUpdateInterview 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <svg className="animate-spin w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24">
+        <svg className="animate-spin w-6 h-6 text-brand-blue" fill="none" viewBox="0 0 24 24">
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
         </svg>
@@ -167,7 +167,7 @@ export default function InterviewRoadmap({ jobId, interviews, onUpdateInterview 
         <h3 className="font-semibold text-gray-900">Interview Roadmap</h3>
         <button
           onClick={() => setShowAddStage(!showAddStage)}
-          className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
+          className="text-sm text-brand-blue hover:text-blue-800 flex items-center gap-1"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -178,7 +178,7 @@ export default function InterviewRoadmap({ jobId, interviews, onUpdateInterview 
 
       {/* Add Stage Form */}
       {showAddStage && (
-        <div className="bg-blue-50 rounded-lg p-4 space-y-3">
+        <div className="bg-brand-blue-light rounded-lg p-4 space-y-3">
           <div className="flex gap-3">
             <div className="flex-1">
               <label className="block text-xs font-medium text-gray-700 mb-1">Interview Type</label>
@@ -212,7 +212,7 @@ export default function InterviewRoadmap({ jobId, interviews, onUpdateInterview 
             </button>
             <button
               onClick={addStage}
-              className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+              className="px-3 py-1.5 text-sm bg-brand-gold text-gray-900 rounded hover:bg-brand-gold-dark"
             >
               Add Stage
             </button>
@@ -259,7 +259,7 @@ export default function InterviewRoadmap({ jobId, interviews, onUpdateInterview 
 
                   {/* Scheduled time */}
                   {stage.scheduled_at && (
-                    <span className="text-xs text-blue-600 mt-1">
+                    <span className="text-xs text-brand-blue mt-1">
                       {new Date(stage.scheduled_at).toLocaleDateString()}
                     </span>
                   )}
@@ -268,7 +268,7 @@ export default function InterviewRoadmap({ jobId, interviews, onUpdateInterview 
                   {stage.status === "scheduled" && (
                     <button
                       onClick={() => setExpandedStage(isExpanded ? null : stage.id)}
-                      className="text-xs text-blue-600 hover:text-blue-800 mt-1"
+                      className="text-xs text-brand-blue hover:text-blue-800 mt-1"
                     >
                       {isExpanded ? "Hide" : "Checklist"}
                     </button>
@@ -291,7 +291,7 @@ export default function InterviewRoadmap({ jobId, interviews, onUpdateInterview 
 
           {/* Expanded Checklist */}
           {expandedStage && (
-            <div className="bg-blue-50 rounded-lg p-4 mt-4">
+            <div className="bg-brand-blue-light rounded-lg p-4 mt-4">
               {(() => {
                 const stage = stages.find(s => s.id === expandedStage);
                 if (!stage) return null;
@@ -311,7 +311,7 @@ export default function InterviewRoadmap({ jobId, interviews, onUpdateInterview 
                               type="checkbox"
                               checked={isChecked}
                               onChange={() => toggleChecklistItem(expandedStage, idx)}
-                              className="w-4 h-4 text-blue-600 rounded"
+                              className="w-4 h-4 text-brand-blue rounded"
                             />
                             <span className={isChecked ? "text-gray-400 line-through" : "text-gray-700"}>
                               {item}

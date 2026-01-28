@@ -104,6 +104,7 @@ export default function MasterResumePage() {
   const [selectedColor, setSelectedColor] = useState("#2563eb");
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [showFullPreview, setShowFullPreview] = useState(false);
+  const [showLanguages, setShowLanguages] = useState(false);
 
   // Preview state
   const [previewHtml, setPreviewHtml] = useState("");
@@ -159,6 +160,9 @@ export default function MasterResumePage() {
           specialty: edu.field,
         })),
         skills: resumeData.skills,
+        certifications: resumeData.certifications || [],
+        languages: resumeData.languages || [],
+        honors: resumeData.honors || [],
       };
 
       const response = await fetch("/api/resume/preview-html", {
@@ -168,6 +172,7 @@ export default function MasterResumePage() {
           data: transformedData,
           templateId: selectedTemplate,
           accentColor: selectedColor,
+          templateOptions: { showLanguages },
         }),
       });
 
@@ -180,7 +185,7 @@ export default function MasterResumePage() {
     } finally {
       setLoadingPreview(false);
     }
-  }, [resumeData, selectedTemplate, selectedColor]);
+  }, [resumeData, selectedTemplate, selectedColor, showLanguages]);
 
   useEffect(() => {
     // Debounce preview fetching
@@ -290,6 +295,9 @@ export default function MasterResumePage() {
           specialty: edu.field,
         })),
         skills: resumeData.skills,
+        certifications: resumeData.certifications || [],
+        languages: resumeData.languages || [],
+        honors: resumeData.honors || [],
       };
 
       const response = await fetch("/api/generate-resume-pdf", {
@@ -299,6 +307,7 @@ export default function MasterResumePage() {
           data: transformedData,
           templateId: selectedTemplate,
           accentColor: selectedColor,
+          templateOptions: { showLanguages },
         }),
       });
 
@@ -550,17 +559,17 @@ export default function MasterResumePage() {
 
   if (status === "loading" || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-brand-gray">
         <div className="text-lg text-gray-600">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-brand-gray">
       <TabsNav />
 
-      <div className="ml-16 p-8">
+      <div className="ml-64 p-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -604,7 +613,7 @@ export default function MasterResumePage() {
               disabled={!hasChanges || saving}
               className={`px-6 py-2 rounded-lg font-medium transition-colors ${
                 hasChanges
-                  ? "bg-blue-600 text-white hover:bg-blue-700"
+                  ? "bg-brand-gold text-gray-900 hover:bg-brand-gold-dark"
                   : "bg-gray-200 text-gray-500 cursor-not-allowed"
               }`}
             >
@@ -627,7 +636,7 @@ export default function MasterResumePage() {
                 type="text"
                 value={resumeData.contact_info.name}
                 onChange={(e) => updateContactInfo("name", e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue text-gray-900"
                 placeholder="John Doe"
               />
             </div>
@@ -637,7 +646,7 @@ export default function MasterResumePage() {
                 type="email"
                 value={resumeData.contact_info.email}
                 onChange={(e) => updateContactInfo("email", e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue text-gray-900"
                 placeholder="john@example.com"
               />
             </div>
@@ -647,7 +656,7 @@ export default function MasterResumePage() {
                 type="tel"
                 value={resumeData.contact_info.phone}
                 onChange={(e) => updateContactInfo("phone", e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue text-gray-900"
                 placeholder="(555) 123-4567"
               />
             </div>
@@ -657,7 +666,7 @@ export default function MasterResumePage() {
                 type="text"
                 value={resumeData.contact_info.location}
                 onChange={(e) => updateContactInfo("location", e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue text-gray-900"
                 placeholder="San Francisco, CA"
               />
             </div>
@@ -667,7 +676,7 @@ export default function MasterResumePage() {
                 type="url"
                 value={resumeData.contact_info.linkedin}
                 onChange={(e) => updateContactInfo("linkedin", e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue text-gray-900"
                 placeholder="https://linkedin.com/in/johndoe"
               />
             </div>
@@ -681,7 +690,7 @@ export default function MasterResumePage() {
             value={resumeData.summary}
             onChange={(e) => setResumeData(prev => ({ ...prev, summary: e.target.value }))}
             rows={4}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue text-gray-900"
             placeholder="Write a brief professional summary highlighting your key skills and experience..."
           />
           <p className="text-xs text-gray-500 mt-2">
@@ -699,7 +708,7 @@ export default function MasterResumePage() {
                 onClick={() => handleTemplateChange(tmpl.id)}
                 className={`p-3 rounded-lg border-2 transition-colors text-left ${
                   selectedTemplate === tmpl.id
-                    ? "border-blue-500 bg-blue-50"
+                    ? "border-blue-500 bg-brand-blue-light"
                     : "border-gray-200 hover:border-gray-300"
                 }`}
               >
@@ -731,6 +740,18 @@ export default function MasterResumePage() {
               />
             ))}
           </div>
+
+          {/* Template Options */}
+          <h3 className="text-sm font-semibold text-gray-700 mt-5 mb-3">Options</h3>
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={showLanguages}
+              onChange={(e) => setShowLanguages(e.target.checked)}
+              className="w-4 h-4 text-brand-blue rounded border-gray-300 focus:ring-brand-blue"
+            />
+            <span className="text-sm text-gray-700">Show languages section</span>
+          </label>
         </div>
 
         {/* Work Experience */}
@@ -739,7 +760,7 @@ export default function MasterResumePage() {
             <h2 className="text-lg font-semibold text-gray-800">Work Experience</h2>
             <button
               onClick={addWorkExperience}
-              className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center gap-1"
+              className="text-brand-blue hover:text-brand-blue-dark text-sm font-medium flex items-center gap-1"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -800,7 +821,7 @@ export default function MasterResumePage() {
                             type="text"
                             value={job.title}
                             onChange={(e) => updateWorkExperience(jobIndex, "title", e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue text-gray-900"
                             placeholder="Software Engineer"
                           />
                         </div>
@@ -810,7 +831,7 @@ export default function MasterResumePage() {
                             type="text"
                             value={job.company}
                             onChange={(e) => updateWorkExperience(jobIndex, "company", e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue text-gray-900"
                             placeholder="Acme Inc."
                           />
                         </div>
@@ -820,7 +841,7 @@ export default function MasterResumePage() {
                             type="text"
                             value={job.start_date}
                             onChange={(e) => updateWorkExperience(jobIndex, "start_date", e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue text-gray-900"
                             placeholder="Jan 2020"
                           />
                         </div>
@@ -830,7 +851,7 @@ export default function MasterResumePage() {
                             type="text"
                             value={job.end_date}
                             onChange={(e) => updateWorkExperience(jobIndex, "end_date", e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue text-gray-900"
                             placeholder="Present"
                           />
                         </div>
@@ -842,7 +863,7 @@ export default function MasterResumePage() {
                           <label className="block text-sm font-medium text-gray-600">Achievements / Responsibilities</label>
                           <button
                             onClick={() => addBulletPoint(jobIndex)}
-                            className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                            className="text-brand-blue hover:text-brand-blue-dark text-sm font-medium"
                           >
                             + Add Bullet
                           </button>
@@ -855,7 +876,7 @@ export default function MasterResumePage() {
                                 type="text"
                                 value={bullet}
                                 onChange={(e) => updateBulletPoint(jobIndex, bulletIndex, e.target.value)}
-                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue text-gray-900"
                                 placeholder="Describe an achievement or responsibility..."
                               />
                               <button
@@ -887,7 +908,7 @@ export default function MasterResumePage() {
             <h2 className="text-lg font-semibold text-gray-800">Education</h2>
             <button
               onClick={addEducation}
-              className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center gap-1"
+              className="text-brand-blue hover:text-brand-blue-dark text-sm font-medium flex items-center gap-1"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -920,7 +941,7 @@ export default function MasterResumePage() {
                         type="text"
                         value={edu.institution}
                         onChange={(e) => updateEducation(index, "institution", e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue text-gray-900"
                         placeholder="University of California"
                       />
                     </div>
@@ -930,7 +951,7 @@ export default function MasterResumePage() {
                         type="text"
                         value={edu.degree}
                         onChange={(e) => updateEducation(index, "degree", e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue text-gray-900"
                         placeholder="Bachelor of Science"
                       />
                     </div>
@@ -940,7 +961,7 @@ export default function MasterResumePage() {
                         type="text"
                         value={edu.field}
                         onChange={(e) => updateEducation(index, "field", e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue text-gray-900"
                         placeholder="Computer Science"
                       />
                     </div>
@@ -950,7 +971,7 @@ export default function MasterResumePage() {
                         type="text"
                         value={edu.graduation_date}
                         onChange={(e) => updateEducation(index, "graduation_date", e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue text-gray-900"
                         placeholder="May 2020"
                       />
                     </div>
@@ -972,12 +993,12 @@ export default function MasterResumePage() {
               value={newSkill}
               onChange={(e) => setNewSkill(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && addSkill()}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue text-gray-900"
               placeholder="Add a skill..."
             />
             <button
               onClick={addSkill}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="px-4 py-2 bg-brand-gold text-gray-900 rounded-lg hover:bg-brand-gold-dark transition-colors"
             >
               Add
             </button>
@@ -991,7 +1012,7 @@ export default function MasterResumePage() {
               {resumeData.skills.map((skill, index) => (
                 <span
                   key={index}
-                  className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm"
+                  className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-brand-blue rounded-full text-sm"
                 >
                   {skill}
                   <button
@@ -1014,7 +1035,7 @@ export default function MasterResumePage() {
             <h2 className="text-lg font-semibold text-gray-800">Certifications</h2>
             <button
               onClick={addCertification}
-              className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center gap-1"
+              className="text-brand-blue hover:text-brand-blue-dark text-sm font-medium flex items-center gap-1"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -1044,7 +1065,7 @@ export default function MasterResumePage() {
                         type="text"
                         value={cert.name}
                         onChange={(e) => updateCertification(index, "name", e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue text-gray-900"
                         placeholder="AWS Solutions Architect"
                       />
                     </div>
@@ -1054,7 +1075,7 @@ export default function MasterResumePage() {
                         type="text"
                         value={cert.issuer}
                         onChange={(e) => updateCertification(index, "issuer", e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue text-gray-900"
                         placeholder="Amazon Web Services"
                       />
                     </div>
@@ -1064,7 +1085,7 @@ export default function MasterResumePage() {
                         type="text"
                         value={cert.date}
                         onChange={(e) => updateCertification(index, "date", e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue text-gray-900"
                         placeholder="2023"
                       />
                     </div>
@@ -1085,12 +1106,12 @@ export default function MasterResumePage() {
               value={newLanguage}
               onChange={(e) => setNewLanguage(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && addLanguage()}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue text-gray-900"
               placeholder="Add a language..."
             />
             <button
               onClick={addLanguage}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="px-4 py-2 bg-brand-gold text-gray-900 rounded-lg hover:bg-brand-gold-dark transition-colors"
             >
               Add
             </button>
@@ -1123,7 +1144,7 @@ export default function MasterResumePage() {
             <h2 className="text-lg font-semibold text-gray-800">Honors & Awards</h2>
             <button
               onClick={addHonor}
-              className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center gap-1"
+              className="text-brand-blue hover:text-brand-blue-dark text-sm font-medium flex items-center gap-1"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -1153,7 +1174,7 @@ export default function MasterResumePage() {
                         type="text"
                         value={honor.title}
                         onChange={(e) => updateHonor(index, "title", e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue text-gray-900"
                         placeholder="Employee of the Year"
                       />
                     </div>
@@ -1163,7 +1184,7 @@ export default function MasterResumePage() {
                         type="text"
                         value={honor.issuer}
                         onChange={(e) => updateHonor(index, "issuer", e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue text-gray-900"
                         placeholder="Company Name"
                       />
                     </div>
@@ -1173,7 +1194,7 @@ export default function MasterResumePage() {
                         type="text"
                         value={honor.date}
                         onChange={(e) => updateHonor(index, "date", e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue text-gray-900"
                         placeholder="2023"
                       />
                     </div>
@@ -1216,7 +1237,7 @@ export default function MasterResumePage() {
 
             <div>
               <label className="cursor-pointer">
-                <span className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors inline-block">
+                <span className="px-4 py-2 bg-brand-gold text-gray-900 rounded-lg hover:bg-brand-gold-dark transition-colors inline-block">
                   {uploadingPhoto ? "Uploading..." : resumeData.profile_photo_path ? "Change Photo" : "Upload Photo"}
                 </span>
                 <input

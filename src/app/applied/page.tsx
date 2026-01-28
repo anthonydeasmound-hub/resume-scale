@@ -322,17 +322,17 @@ export default function AppliedPage() {
 
   if (status === "loading" || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-brand-gray">
         <div className="text-lg text-gray-600">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-brand-gray">
       <TabsNav reviewCount={reviewCount} />
 
-      <div className="ml-16 p-8">
+      <div className="ml-64 p-8">
         {/* Week Calendar */}
         <WeekCalendar
           interviews={upcomingInterviews}

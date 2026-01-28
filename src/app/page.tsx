@@ -176,7 +176,7 @@ const features = [
 ];
 
 const colorMap: Record<string, { bg: string; text: string; bgLight: string }> = {
-  blue: { bg: "bg-blue-600", text: "text-blue-600", bgLight: "bg-blue-100" },
+  blue: { bg: "bg-brand-gold", text: "text-brand-blue", bgLight: "bg-blue-100" },
   rose: { bg: "bg-rose-600", text: "text-rose-600", bgLight: "bg-rose-100" },
   amber: { bg: "bg-amber-600", text: "text-amber-600", bgLight: "bg-amber-100" },
   purple: { bg: "bg-purple-600", text: "text-purple-600", bgLight: "bg-purple-100" },
@@ -194,7 +194,7 @@ const templates = [
 ];
 
 const testimonials = [
-  { name: "Jordan K.", role: "Software Engineer", initials: "JK", color: "bg-blue-100 text-blue-600", quote: "Being able to tailor my resume to each job description has been a game changer. I went from getting ghosted to landing 3 interviews in one week." },
+  { name: "Jordan K.", role: "Software Engineer", initials: "JK", color: "bg-blue-100 text-brand-blue", quote: "Being able to tailor my resume to each job description has been a game changer. I went from getting ghosted to landing 3 interviews in one week." },
   { name: "Sarah M.", role: "Product Manager", initials: "SM", color: "bg-green-100 text-green-600", quote: "The Chrome extension is so smooth. I browse LinkedIn, see a job I like, and save it in one click. Then I have a tailored resume ready in minutes." },
   { name: "Rachel L.", role: "Marketing Analyst", initials: "RL", color: "bg-purple-100 text-purple-600", quote: "The Gmail integration tracking my applications automatically is something I didn\u2019t know I needed. No more spreadsheets. Everything is in one place." },
   { name: "Michael P.", role: "Data Scientist", initials: "MP", color: "bg-amber-100 text-amber-600", quote: "I was skeptical about AI-generated resumes, but the quality blew me away. Each one is uniquely tailored and reads like I wrote it myself." },
@@ -296,13 +296,13 @@ const heroTabs = [
             <div className="font-semibold text-green-700">Pass</div>
             <div className="text-xs text-green-600">Formatting</div>
           </div>
-          <div className="bg-blue-50 rounded-lg p-3 text-center">
-            <div className="font-semibold text-blue-700">9/10</div>
-            <div className="text-xs text-blue-600">Skills</div>
+          <div className="bg-brand-blue-light rounded-lg p-3 text-center">
+            <div className="font-semibold text-brand-blue">9/10</div>
+            <div className="text-xs text-brand-blue">Skills</div>
           </div>
-          <div className="bg-blue-50 rounded-lg p-3 text-center">
-            <div className="font-semibold text-blue-700">Strong</div>
-            <div className="text-xs text-blue-600">Experience</div>
+          <div className="bg-brand-blue-light rounded-lg p-3 text-center">
+            <div className="font-semibold text-brand-blue">Strong</div>
+            <div className="text-xs text-brand-blue">Experience</div>
           </div>
         </div>
       </div>
@@ -676,7 +676,7 @@ export default function LandingPage() {
 
             {/* Premium Plan */}
             <div className="bg-white border-2 border-brand-blue rounded-2xl p-8 relative">
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-brand-gold text-white text-xs font-bold px-4 py-1 rounded-full">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-brand-gold text-gray-900 text-xs font-bold px-4 py-1 rounded-full">
                 MOST POPULAR
               </div>
               <div className="text-lg font-semibold text-gray-900 mb-1">Premium</div>

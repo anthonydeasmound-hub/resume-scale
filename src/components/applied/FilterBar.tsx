@@ -19,7 +19,7 @@ interface FilterBarProps {
 }
 
 const STATUS_OPTIONS: { value: JobStatus; label: string; color: string }[] = [
-  { value: "applied", label: "Applied", color: "bg-blue-100 text-blue-700 border-blue-300" },
+  { value: "applied", label: "Applied", color: "bg-blue-100 text-brand-blue border-blue-300" },
   { value: "interview", label: "Interview", color: "bg-yellow-100 text-yellow-700 border-yellow-300" },
   { value: "offer", label: "Offer", color: "bg-green-100 text-green-700 border-green-300" },
   { value: "rejected", label: "Rejected", color: "bg-red-100 text-red-700 border-red-300" },
@@ -99,7 +99,7 @@ export default function FilterBar({ filters, onFiltersChange, totalCount, filter
                 dateRange: { ...filters.dateRange, start: e.target.value },
               })
             }
-            className="px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-brand-blue"
           />
           <span className="text-gray-400">to</span>
           <input
@@ -111,7 +111,7 @@ export default function FilterBar({ filters, onFiltersChange, totalCount, filter
                 dateRange: { ...filters.dateRange, end: e.target.value },
               })
             }
-            className="px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-brand-blue"
           />
         </div>
 
@@ -126,7 +126,7 @@ export default function FilterBar({ filters, onFiltersChange, totalCount, filter
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Company or title..."
-            className="px-3 py-1 text-sm border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 w-40"
+            className="px-3 py-1 text-sm border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-brand-blue w-40"
           />
         </div>
 
@@ -144,7 +144,7 @@ export default function FilterBar({ filters, onFiltersChange, totalCount, filter
                 interviewStage: e.target.value ? parseInt(e.target.value) : null,
               })
             }
-            className="px-2 py-1 text-sm border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-2 py-1 text-sm border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-brand-blue"
           >
             <option value="">All Stages</option>
             <option value="0">No Interviews</option>
@@ -166,7 +166,7 @@ export default function FilterBar({ filters, onFiltersChange, totalCount, filter
         {hasActiveFilters && (
           <button
             onClick={clearFilters}
-            className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+            className="text-sm text-brand-blue hover:text-brand-blue-dark font-medium"
           >
             Clear filters
           </button>

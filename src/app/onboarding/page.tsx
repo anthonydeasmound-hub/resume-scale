@@ -193,6 +193,7 @@ function OnboardingContent() {
     showPhoto: false,
     showSkillBars: true,
     showIcons: true,
+    showLanguages: false,
   });
   const [previewHtml, setPreviewHtml] = useState("");
   const [loadingPreview, setLoadingPreview] = useState(false);
@@ -357,6 +358,9 @@ function OnboardingContent() {
           specialty: edu.field,
         })),
         skills: editableData.skills,
+        certifications: editableData.certifications || [],
+        languages: editableData.languages || [],
+        honors: editableData.honors || [],
       };
 
       const response = await fetch("/api/resume/preview-html", {
@@ -366,6 +370,7 @@ function OnboardingContent() {
           data: transformedData,
           templateId: selectedTemplate,
           accentColor: selectedColor,
+          templateOptions,
         }),
       });
 
@@ -692,6 +697,9 @@ function OnboardingContent() {
           specialty: edu.field,
         })),
         skills: editableData.skills,
+        certifications: editableData.certifications || [],
+        languages: editableData.languages || [],
+        honors: editableData.honors || [],
       };
 
       const response = await fetch("/api/generate-resume-pdf", {
@@ -701,6 +709,7 @@ function OnboardingContent() {
           data: transformedData,
           templateId: selectedTemplate,
           accentColor: selectedColor,
+          templateOptions,
         }),
       });
 
@@ -725,7 +734,7 @@ function OnboardingContent() {
 
   if (status === "loading") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-brand-gray">
         <div className="text-lg text-gray-600">Loading...</div>
       </div>
     );
@@ -755,11 +764,7 @@ function OnboardingContent() {
 
   // Steps shown in progress bar (after entry/import)
   const getVisibleSteps = () => {
-    if (entryPath === "fresh") {
-      return ["Template", "Contact", "Experience", "Achievements", "Skills", "Education", "Certs", "Languages", "Honors", "Summary"];
-    }
-    // For upload/linkedin, contact is pre-filled so we skip it
-    return ["Template", "Experience", "Achievements", "Skills", "Education", "Certs", "Languages", "Honors", "Summary"];
+    return ["Template", "Contact", "Experience", "Achievements", "Skills", "Education", "Certs", "Languages", "Honors", "Summary"];
   };
 
   const stepLabels = getVisibleSteps();
@@ -768,7 +773,7 @@ function OnboardingContent() {
   const showPreviewLayout = ["template", "contact", "work-experience", "achievements", "skills", "education", "certifications", "languages", "honors", "summary"].includes(step);
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-brand-gray py-8">
       <div className={`mx-auto px-4 ${step === "complete" ? "max-w-4xl" : showPreviewLayout ? "max-w-7xl" : "max-w-2xl"}`}>
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900">Welcome to ResumeGenie</h1>
@@ -794,7 +799,7 @@ function OnboardingContent() {
                       isComplete
                         ? "bg-green-500 text-white"
                         : isCurrent
-                        ? "bg-blue-600 text-white ring-4 ring-blue-100"
+                        ? "bg-brand-gold text-gray-900 ring-4 ring-blue-100"
                         : "bg-gray-200 text-gray-500"
                     }`}
                   >
@@ -804,7 +809,7 @@ function OnboardingContent() {
                       </svg>
                     ) : stepNum}
                   </div>
-                  <span className={`text-xs mt-1.5 whitespace-nowrap ${isCurrent ? "text-blue-600 font-medium" : "text-gray-500"}`}>
+                  <span className={`text-xs mt-1.5 whitespace-nowrap ${isCurrent ? "text-brand-blue font-medium" : "text-gray-500"}`}>
                     {label}
                   </span>
                 </div>
@@ -857,8 +862,8 @@ function OnboardingContent() {
                 }}
                 className="group p-6 rounded-xl border-2 border-gray-200 hover:border-blue-500 hover:shadow-lg transition-all duration-200 text-left"
               >
-                <div className="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center mb-4 group-hover:bg-blue-500 group-hover:text-white transition-colors">
-                  <svg className="w-7 h-7 text-blue-600 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center mb-4 group-hover:bg-brand-blue-light0 group-hover:text-white transition-colors">
+                  <svg className="w-7 h-7 text-brand-blue group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                 </div>
@@ -876,8 +881,8 @@ function OnboardingContent() {
                 }}
                 className="group p-6 rounded-xl border-2 border-gray-200 hover:border-blue-500 hover:shadow-lg transition-all duration-200 text-left"
               >
-                <div className="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center mb-4 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                  <svg className="w-7 h-7 text-blue-700 group-hover:text-white" fill="currentColor" viewBox="0 0 24 24">
+                <div className="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center mb-4 group-hover:bg-brand-gold group-hover:text-white transition-colors">
+                  <svg className="w-7 h-7 text-brand-blue group-hover:text-white" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
                   </svg>
                 </div>
@@ -979,7 +984,7 @@ function OnboardingContent() {
               <textarea
                 placeholder="Paste your resume text here..."
                 rows={8}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-brand-blue focus:border-transparent resize-none"
                 onChange={(e) => {
                   // Store the pasted text for processing
                   // TODO: Implement text parsing in Phase 2
@@ -1000,7 +1005,7 @@ function OnboardingContent() {
                   // For now, show message that this is in progress
                   setError("Resume parsing coming soon! Try LinkedIn import or Start Fresh for now.");
                 }}
-                className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                className="flex-1 bg-brand-gold text-gray-900 py-3 rounded-lg font-medium hover:bg-brand-gold-dark transition-colors"
               >
                 Continue
               </button>
@@ -1021,7 +1026,7 @@ function OnboardingContent() {
             {/* Step 1: Install extension */}
             <div className="mb-5">
               <div className="flex items-start gap-3 mb-3">
-                <div className="w-7 h-7 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5">1</div>
+                <div className="w-7 h-7 bg-brand-gold text-gray-900 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5">1</div>
                 <div>
                   <h3 className="font-semibold text-gray-800 text-sm">Install the Chrome Extension</h3>
                   <p className="text-xs text-gray-500 mt-1">
@@ -1045,7 +1050,7 @@ function OnboardingContent() {
             {/* Step 2: Connect extension */}
             <div className="mb-5">
               <div className="flex items-start gap-3 mb-3">
-                <div className="w-7 h-7 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5">2</div>
+                <div className="w-7 h-7 bg-brand-gold text-gray-900 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5">2</div>
                 <div className="flex-1">
                   <h3 className="font-semibold text-gray-800 text-sm">Connect the extension</h3>
                   <p className="text-xs text-gray-500 mt-1">
@@ -1089,7 +1094,7 @@ function OnboardingContent() {
             {/* Step 3: Log in & Import */}
             <div className="mb-6">
               <div className="flex items-start gap-3 mb-3">
-                <div className="w-7 h-7 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5">3</div>
+                <div className="w-7 h-7 bg-brand-gold text-gray-900 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5">3</div>
                 <div>
                   <h3 className="font-semibold text-gray-800 text-sm">Log into LinkedIn & import</h3>
                   <p className="text-xs text-gray-500 mt-1">
@@ -1101,7 +1106,7 @@ function OnboardingContent() {
 
             <button
               onClick={handleImportLinkedIn}
-              className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+              className="w-full bg-brand-gold text-gray-900 py-3 rounded-lg font-medium hover:bg-brand-gold-dark transition-colors flex items-center justify-center gap-2"
             >
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
@@ -1253,7 +1258,7 @@ function OnboardingContent() {
             </div>
 
             {/* Template Options */}
-            <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+            <div className="mb-6 p-4 bg-brand-gray rounded-lg">
               <label className="block text-sm font-medium text-gray-700 mb-3">Options</label>
               <div className="space-y-3">
                 <label className="flex items-center gap-3 cursor-pointer">
@@ -1283,6 +1288,15 @@ function OnboardingContent() {
                   />
                   <span className="text-sm text-gray-700">Use section icons</span>
                 </label>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={templateOptions.showLanguages}
+                    onChange={(e) => setTemplateOptions({ ...templateOptions, showLanguages: e.target.checked })}
+                    className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                  />
+                  <span className="text-sm text-gray-700">Show languages section</span>
+                </label>
               </div>
             </div>
 
@@ -1294,8 +1308,8 @@ function OnboardingContent() {
                 Back
               </button>
               <button
-                onClick={() => setStep(entryPath === "fresh" ? "contact" : "work-experience")}
-                className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                onClick={() => setStep("contact")}
+                className="flex-1 bg-brand-gold text-gray-900 py-3 rounded-lg font-medium hover:bg-brand-gold-dark transition-colors"
               >
                 Continue
               </button>
@@ -1308,7 +1322,7 @@ function OnboardingContent() {
           <div className="bg-white rounded-xl shadow-lg p-6">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-6 h-6 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
               </div>
@@ -1329,7 +1343,7 @@ function OnboardingContent() {
                     updated.contact_info.name = e.target.value;
                     setEditableData(updated);
                   }}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-brand-blue focus:border-transparent"
                   placeholder="John Doe"
                 />
               </div>
@@ -1344,7 +1358,7 @@ function OnboardingContent() {
                       updated.contact_info.email = e.target.value;
                       setEditableData(updated);
                     }}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-brand-blue focus:border-transparent"
                     placeholder="john@example.com"
                   />
                 </div>
@@ -1358,7 +1372,7 @@ function OnboardingContent() {
                       updated.contact_info.phone = e.target.value;
                       setEditableData(updated);
                     }}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-brand-blue focus:border-transparent"
                     placeholder="(555) 123-4567"
                   />
                 </div>
@@ -1373,7 +1387,7 @@ function OnboardingContent() {
                     updated.contact_info.location = e.target.value;
                     setEditableData(updated);
                   }}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-brand-blue focus:border-transparent"
                   placeholder="San Francisco, CA"
                 />
               </div>
@@ -1387,7 +1401,7 @@ function OnboardingContent() {
                     updated.contact_info.linkedin = e.target.value;
                     setEditableData(updated);
                   }}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-brand-blue focus:border-transparent"
                   placeholder="linkedin.com/in/johndoe"
                 />
               </div>
@@ -1402,7 +1416,7 @@ function OnboardingContent() {
               </button>
               <button
                 onClick={() => setStep("work-experience")}
-                className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                className="flex-1 bg-brand-gold text-gray-900 py-3 rounded-lg font-medium hover:bg-brand-gold-dark transition-colors"
               >
                 Continue
               </button>
@@ -1415,7 +1429,7 @@ function OnboardingContent() {
           <div className="bg-white rounded-xl shadow-lg p-6">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-6 h-6 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
               </div>
@@ -1428,7 +1442,7 @@ function OnboardingContent() {
             {editableData.work_experience.length > 0 ? (
               <div className="space-y-4 mb-6">
                 {editableData.work_experience.map((exp, idx) => (
-                  <div key={idx} className="p-4 bg-gray-50 rounded-lg relative">
+                  <div key={idx} className="p-4 bg-brand-gray rounded-lg relative">
                     <button
                       onClick={() => {
                         const updated = { ...editableData };
@@ -1460,7 +1474,7 @@ function OnboardingContent() {
                             }
                           }}
                           placeholder="e.g., Software Engineer"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-brand-blue focus:border-transparent"
                         />
                       </div>
                       <div>
@@ -1480,7 +1494,7 @@ function OnboardingContent() {
                             }
                           }}
                           placeholder="e.g., Google"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-brand-blue focus:border-transparent"
                         />
                       </div>
                       <div>
@@ -1493,7 +1507,7 @@ function OnboardingContent() {
                             updated.work_experience[idx].start_date = e.target.value;
                             setEditableData(updated);
                           }}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-brand-blue focus:border-transparent"
                           placeholder="e.g., Jan 2020"
                         />
                       </div>
@@ -1507,7 +1521,7 @@ function OnboardingContent() {
                             updated.work_experience[idx].end_date = e.target.value;
                             setEditableData(updated);
                           }}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-brand-blue focus:border-transparent"
                           placeholder="e.g., Present"
                         />
                       </div>
@@ -1527,7 +1541,7 @@ function OnboardingContent() {
                             <button
                               onClick={() => fetchFreshBulletSuggestions(idx, exp.title, exp.company)}
                               disabled={loadingFreshSuggestions[idx]}
-                              className="text-xs text-blue-600 hover:text-blue-700 disabled:opacity-50"
+                              className="text-xs text-brand-blue hover:text-brand-blue-dark disabled:opacity-50"
                             >
                               {loadingFreshSuggestions[idx] ? "Generating..." : "Regenerate"}
                             </button>
@@ -1576,7 +1590,7 @@ function OnboardingContent() {
                             <p className="text-xs text-gray-400 mb-2">No suggestions yet</p>
                             <button
                               onClick={() => fetchFreshBulletSuggestions(idx, exp.title, exp.company)}
-                              className="text-xs text-blue-600 hover:text-blue-700"
+                              className="text-xs text-brand-blue hover:text-brand-blue-dark"
                             >
                               Generate suggestions
                             </button>
@@ -1634,7 +1648,7 @@ function OnboardingContent() {
                       }];
                       setEditableData(updated);
                     }}
-                    className="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-600 hover:border-blue-400 hover:text-blue-600 transition-colors flex items-center justify-center gap-2"
+                    className="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-600 hover:border-blue-400 hover:text-brand-blue transition-colors flex items-center justify-center gap-2"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -1659,7 +1673,7 @@ function OnboardingContent() {
                       }];
                       setEditableData(updated);
                     }}
-                    className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors inline-flex items-center gap-2"
+                    className="px-6 py-3 bg-brand-gold text-gray-900 rounded-lg font-medium hover:bg-brand-gold-dark transition-colors inline-flex items-center gap-2"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -1672,14 +1686,14 @@ function OnboardingContent() {
 
             <div className="flex gap-4">
               <button
-                onClick={() => setStep(entryPath === "fresh" ? "contact" : "template")}
+                onClick={() => setStep("contact")}
                 className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors"
               >
                 Back
               </button>
               <button
                 onClick={() => setStep("achievements")}
-                className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                className="flex-1 bg-brand-gold text-gray-900 py-3 rounded-lg font-medium hover:bg-brand-gold-dark transition-colors"
               >
                 Continue
               </button>
@@ -1704,7 +1718,7 @@ function OnboardingContent() {
 
             <div className="space-y-6 mb-6 max-h-[32rem] overflow-y-auto">
               {editableData.work_experience.map((exp, jobIdx) => (
-                <div key={jobIdx} className="p-4 bg-gray-50 rounded-lg">
+                <div key={jobIdx} className="p-4 bg-brand-gray rounded-lg">
                   <h3 className="font-medium text-gray-800 mb-3">
                     {exp.title} at {exp.company}
                   </h3>
@@ -1728,7 +1742,7 @@ function OnboardingContent() {
                             updated.work_experience[jobIdx].description[bulletIdx] = e.target.value;
                             setEditableData(updated);
                           }}
-                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-brand-blue focus:border-transparent"
                         />
                         <button
                           onClick={() => {
@@ -1752,7 +1766,7 @@ function OnboardingContent() {
                           updated.work_experience[jobIdx].description.push("");
                           setEditableData(updated);
                         }}
-                        className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1 mt-2"
+                        className="text-sm text-brand-blue hover:text-brand-blue-dark flex items-center gap-1 mt-2"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -1901,7 +1915,7 @@ function OnboardingContent() {
               </button>
               <button
                 onClick={() => setStep("skills")}
-                className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                className="flex-1 bg-brand-gold text-gray-900 py-3 rounded-lg font-medium hover:bg-brand-gold-dark transition-colors"
               >
                 Continue
               </button>
@@ -1929,7 +1943,7 @@ function OnboardingContent() {
                 {editableData.skills.map((skill, idx) => (
                   <span
                     key={idx}
-                    className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm flex items-center gap-2"
+                    className="px-3 py-1 bg-blue-100 text-brand-blue rounded-full text-sm flex items-center gap-2"
                   >
                     {skill}
                     <button
@@ -1965,7 +1979,7 @@ function OnboardingContent() {
                     }
                   }}
                   placeholder="Add a skill..."
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-brand-blue focus:border-transparent"
                 />
                 <button
                   onClick={() => {
@@ -1976,7 +1990,7 @@ function OnboardingContent() {
                       setNewSkill("");
                     }
                   }}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                  className="px-4 py-2 bg-brand-gold text-gray-900 rounded-lg font-medium hover:bg-brand-gold-dark transition-colors"
                 >
                   Add
                 </button>
@@ -1984,7 +1998,7 @@ function OnboardingContent() {
             </div>
 
             {/* AI Skill Suggestions */}
-            <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+            <div className="mb-6 p-4 bg-brand-gray rounded-lg">
               <div className="flex items-center gap-2 mb-3">
                 <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -2104,7 +2118,7 @@ function OnboardingContent() {
                                       } : null);
                                     }
                                   }}
-                                  className="px-3 py-1 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-full text-sm text-gray-700 transition-colors"
+                                  className="px-3 py-1 bg-brand-blue-light hover:bg-blue-100 border border-brand-blue rounded-full text-sm text-gray-700 transition-colors"
                                 >
                                   + {skill}
                                 </button>
@@ -2144,7 +2158,7 @@ function OnboardingContent() {
               </button>
               <button
                 onClick={() => setStep("education")}
-                className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                className="flex-1 bg-brand-gold text-gray-900 py-3 rounded-lg font-medium hover:bg-brand-gold-dark transition-colors"
               >
                 Continue
               </button>
@@ -2171,7 +2185,7 @@ function OnboardingContent() {
 
             <div className="space-y-4 mb-6">
               {editableData.education.map((edu, idx) => (
-                <div key={idx} className="p-4 bg-gray-50 rounded-lg relative">
+                <div key={idx} className="p-4 bg-brand-gray rounded-lg relative">
                   <button
                     onClick={() => {
                       const updated = { ...editableData };
@@ -2196,7 +2210,7 @@ function OnboardingContent() {
                           updated.education[idx].institution = e.target.value;
                           setEditableData(updated);
                         }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-brand-blue focus:border-transparent"
                         placeholder="Stanford University"
                       />
                     </div>
@@ -2210,7 +2224,7 @@ function OnboardingContent() {
                           updated.education[idx].degree = e.target.value;
                           setEditableData(updated);
                         }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-brand-blue focus:border-transparent"
                         placeholder="Bachelor of Science"
                       />
                     </div>
@@ -2224,7 +2238,7 @@ function OnboardingContent() {
                           updated.education[idx].field = e.target.value;
                           setEditableData(updated);
                         }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-brand-blue focus:border-transparent"
                         placeholder="Computer Science"
                       />
                     </div>
@@ -2238,7 +2252,7 @@ function OnboardingContent() {
                           updated.education[idx].graduation_date = e.target.value;
                           setEditableData(updated);
                         }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-brand-blue focus:border-transparent"
                         placeholder="May 2020"
                       />
                     </div>
@@ -2256,7 +2270,7 @@ function OnboardingContent() {
                 updated.education = [...updated.education, { institution: "", degree: "", field: "", graduation_date: "" }];
                 setEditableData(updated);
               }}
-              className="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-600 hover:border-blue-400 hover:text-blue-600 transition-colors mb-6 flex items-center justify-center gap-2"
+              className="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-600 hover:border-blue-400 hover:text-brand-blue transition-colors mb-6 flex items-center justify-center gap-2"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -2273,7 +2287,7 @@ function OnboardingContent() {
               </button>
               <button
                 onClick={() => setStep("certifications")}
-                className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                className="flex-1 bg-brand-gold text-gray-900 py-3 rounded-lg font-medium hover:bg-brand-gold-dark transition-colors"
               >
                 Continue
               </button>
@@ -2298,7 +2312,7 @@ function OnboardingContent() {
 
             <div className="space-y-3 mb-6">
               {editableData.certifications.map((cert, idx) => (
-                <div key={idx} className="p-3 bg-gray-50 rounded-lg relative">
+                <div key={idx} className="p-3 bg-brand-gray rounded-lg relative">
                   <button
                     onClick={() => {
                       const updated = { ...editableData };
@@ -2367,7 +2381,7 @@ function OnboardingContent() {
                 updated.certifications = [...updated.certifications, { name: "", issuer: "", date: "" }];
                 setEditableData(updated);
               }}
-              className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-600 hover:border-blue-400 hover:text-blue-600 transition-colors mb-6"
+              className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-600 hover:border-blue-400 hover:text-brand-blue transition-colors mb-6"
             >
               + Add Certification
             </button>
@@ -2381,7 +2395,7 @@ function OnboardingContent() {
               </button>
               <button
                 onClick={() => setStep("languages")}
-                className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                className="flex-1 bg-brand-gold text-gray-900 py-3 rounded-lg font-medium hover:bg-brand-gold-dark transition-colors"
               >
                 Continue
               </button>
@@ -2436,7 +2450,7 @@ function OnboardingContent() {
                   type="text"
                   id="new-language"
                   placeholder="Add a language..."
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-brand-blue focus:border-transparent"
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       const input = e.target as HTMLInputElement;
@@ -2459,7 +2473,7 @@ function OnboardingContent() {
                       input.value = "";
                     }
                   }}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                  className="px-4 py-2 bg-brand-gold text-gray-900 rounded-lg font-medium hover:bg-brand-gold-dark transition-colors"
                 >
                   Add
                 </button>
@@ -2475,7 +2489,7 @@ function OnboardingContent() {
               </button>
               <button
                 onClick={() => setStep("honors")}
-                className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                className="flex-1 bg-brand-gold text-gray-900 py-3 rounded-lg font-medium hover:bg-brand-gold-dark transition-colors"
               >
                 Continue
               </button>
@@ -2500,7 +2514,7 @@ function OnboardingContent() {
 
             <div className="space-y-3 mb-6">
               {editableData.honors.map((honor, idx) => (
-                <div key={idx} className="p-3 bg-gray-50 rounded-lg relative">
+                <div key={idx} className="p-3 bg-brand-gray rounded-lg relative">
                   <button
                     onClick={() => {
                       const updated = { ...editableData };
@@ -2568,7 +2582,7 @@ function OnboardingContent() {
                 updated.honors = [...updated.honors, { title: "", issuer: "", date: "" }];
                 setEditableData(updated);
               }}
-              className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-600 hover:border-blue-400 hover:text-blue-600 transition-colors mb-6"
+              className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-600 hover:border-blue-400 hover:text-brand-blue transition-colors mb-6"
             >
               + Add Honor/Award
             </button>
@@ -2582,7 +2596,7 @@ function OnboardingContent() {
               </button>
               <button
                 onClick={() => setStep("summary")}
-                className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                className="flex-1 bg-brand-gold text-gray-900 py-3 rounded-lg font-medium hover:bg-brand-gold-dark transition-colors"
               >
                 Continue
               </button>
@@ -2683,7 +2697,7 @@ function OnboardingContent() {
               <button
                 onClick={handleSave}
                 disabled={!selectedSummary}
-                className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 bg-brand-gold text-gray-900 py-3 rounded-lg font-medium hover:bg-brand-gold-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Confirm & Continue
               </button>
@@ -2750,7 +2764,7 @@ function OnboardingContent() {
               <button
                 onClick={handleDownloadPdf}
                 disabled={downloadingPdf}
-                className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 px-6 py-3 bg-brand-gold text-gray-900 rounded-lg font-medium hover:bg-brand-gold-dark transition-colors disabled:opacity-50"
               >
                 {downloadingPdf ? (
                   <>
@@ -2883,7 +2897,7 @@ function OnboardingContent() {
 
 export default function OnboardingPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center"><div className="text-gray-500">Loading...</div></div>}>
+    <Suspense fallback={<div className="min-h-screen bg-brand-gray flex items-center justify-center"><div className="text-gray-500">Loading...</div></div>}>
       <OnboardingContent />
     </Suspense>
   );
