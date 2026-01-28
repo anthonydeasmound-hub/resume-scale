@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import TabsNav from "@/components/TabsNav";
 import { JobDetailSkeleton } from "@/components/Skeleton";
+import { showToast } from "@/components/Toast";
 
 interface InterviewStage {
   id: number;
@@ -124,7 +125,9 @@ export default function JobDetailPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ pinned: job.pinned ? 0 : 1 }),
       });
+      const wasPinned = job.pinned;
       setJob((prev) => (prev ? { ...prev, pinned: prev.pinned ? 0 : 1 } : null));
+      showToast("success", wasPinned ? "Job unpinned" : "Job pinned");
     } catch (err) {
       console.error("Failed to toggle pin:", err);
       setError("Failed to update pin status.");
@@ -145,6 +148,7 @@ export default function JobDetailPage() {
         const note = await res.json();
         setNotes((prev) => [note, ...prev]);
         setNewNote("");
+        showToast("success", "Note added");
       } else {
         setError("Failed to add note. Please try again.");
       }

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { InterviewStage, StageType, StageStatus } from "@/lib/db";
+import { showToast } from "@/components/Toast";
 
 interface InterviewRoadmapProps {
   jobId: number;
@@ -125,6 +126,7 @@ export default function InterviewRoadmap({ jobId, interviews, onUpdateInterview 
         setShowAddStage(false);
         setNewStageType('phone_screen');
         setNewStageName('');
+        showToast("success", "Stage added");
       } else {
         setError("Failed to add interview stage.");
       }
@@ -145,6 +147,7 @@ export default function InterviewRoadmap({ jobId, interviews, onUpdateInterview 
 
       if (response.ok) {
         await fetchStages();
+        showToast("success", "Stage deleted");
       } else {
         setError("Failed to delete interview stage.");
       }

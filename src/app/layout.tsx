@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Lora, Poppins, DM_Serif_Display, DM_Sans, Chivo, Open_Sans } from "next/font/google";
 import "./globals.css";
 import SessionProvider from "@/components/SessionProvider";
+import ToastContainer from "@/components/Toast";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -90,7 +91,10 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${lora.variable} ${poppins.variable} ${dmSerifDisplay.variable} ${dmSans.variable} ${chivo.variable} ${openSans.variable} antialiased`}
       >
-        <SessionProvider>{children}</SessionProvider>
+        <SessionProvider>
+          {children}
+          <ToastContainer />
+        </SessionProvider>
       </body>
     </html>
   );

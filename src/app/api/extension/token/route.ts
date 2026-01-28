@@ -22,14 +22,17 @@ export async function GET() {
     user = { id: result.rows[0].id as number };
   }
 
+  // Clean up expired tokens for this user
+  await execute("DELETE FROM extension_tokens WHERE user_id = $1 AND expires_at IS NOT NULL AND expires_at <= NOW()", [user.id]);
+
   // Check for existing valid token
-  const existingToken = await queryOne<{ token: string }>(
-    "SELECT token FROM extension_tokens WHERE user_id = $1 AND (expires_at IS NULL OR expires_at > NOW())",
+  const existingToken = await queryOne<{ token: string; expires_at: string }>(
+    "SELECT token, expires_at FROM extension_tokens WHERE user_id = $1 AND (expires_at IS NULL OR expires_at > NOW())",
     [user.id]
   );
 
   if (existingToken) {
-    return NextResponse.json({ token: existingToken.token });
+    return NextResponse.json({ token: existingToken.token, expires_at: existingToken.expires_at });
   }
 
   // Generate new token

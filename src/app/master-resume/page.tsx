@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import TabsNav from "@/components/TabsNav";
 import { MasterResumeSkeleton } from "@/components/Skeleton";
+import { showToast } from "@/components/Toast";
 import ContactInfoSection from "@/components/master-resume/ContactInfoSection";
 import ProfessionalSummarySection from "@/components/master-resume/ProfessionalSummarySection";
 import TemplateStyleSelector from "@/components/master-resume/TemplateStyleSelector";
@@ -56,7 +57,6 @@ export default function MasterResumePage() {
   const [resumeData, setResumeData] = useState<ResumeData>(emptyResume);
   const [originalData, setOriginalData] = useState<ResumeData>(emptyResume);
   const [hasChanges, setHasChanges] = useState(false);
-  const [saveMessage, setSaveMessage] = useState("");
   const [expandedJobs, setExpandedJobs] = useState<Set<number>>(new Set());
   const [newSkill, setNewSkill] = useState("");
   const [newLanguage, setNewLanguage] = useState("");
@@ -196,7 +196,6 @@ export default function MasterResumePage() {
 
   const handleSave = async () => {
     setSaving(true);
-    setSaveMessage("");
 
     try {
       const response = await fetch("/api/resume/save", {
@@ -207,14 +206,13 @@ export default function MasterResumePage() {
 
       if (response.ok) {
         setOriginalData(resumeData);
-        setSaveMessage("Changes saved successfully!");
-        setTimeout(() => setSaveMessage(""), 3000);
+        showToast("success", "Changes saved successfully!");
       } else {
-        setSaveMessage("Failed to save changes. Please try again.");
+        showToast("error", "Failed to save changes. Please try again.");
       }
     } catch (err) {
       console.error("Save error:", err);
-      setSaveMessage("Failed to save changes. Please try again.");
+      showToast("error", "Failed to save changes. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -285,7 +283,7 @@ export default function MasterResumePage() {
       URL.revokeObjectURL(url);
     } catch (err) {
       console.error("PDF download error:", err);
-      setSaveMessage("Failed to download PDF. Please try again.");
+      showToast("error", "Failed to download PDF. Please try again.");
     } finally {
       setDownloadingPdf(false);
     }
@@ -486,7 +484,7 @@ export default function MasterResumePage() {
       }
     } catch (err) {
       console.error("Photo upload error:", err);
-      setSaveMessage("Failed to upload photo. Please try again.");
+      showToast("error", "Failed to upload photo. Please try again.");
     } finally {
       setUploadingPhoto(false);
     }
@@ -499,11 +497,11 @@ export default function MasterResumePage() {
         setResumeData((prev) => ({ ...prev, profile_photo_path: null }));
         setOriginalData((prev) => ({ ...prev, profile_photo_path: null }));
       } else {
-        setSaveMessage("Failed to delete photo. Please try again.");
+        showToast("error", "Failed to delete photo. Please try again.");
       }
     } catch (err) {
       console.error("Photo delete error:", err);
-      setSaveMessage("Failed to delete photo. Please try again.");
+      showToast("error", "Failed to delete photo. Please try again.");
     }
   };
 
@@ -544,11 +542,6 @@ export default function MasterResumePage() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            {saveMessage && (
-              <span className={`text-sm ${saveMessage.includes("success") ? "text-green-600" : "text-red-600"}`}>
-                {saveMessage}
-              </span>
-            )}
             <button
               onClick={() => setShowFullPreview(true)}
               className="px-4 py-2 rounded-lg font-medium border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2"
