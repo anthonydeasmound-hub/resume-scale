@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 import { useRouter, useParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import TabsNav from "@/components/TabsNav";
+import { JobDetailSkeleton } from "@/components/Skeleton";
 
 interface InterviewStage {
   id: number;
@@ -221,8 +222,11 @@ export default function JobDetailPage() {
 
   if (status === "loading" || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-brand-gray">
-        <div className="text-lg text-gray-600">Loading...</div>
+      <div className="min-h-screen bg-brand-gray">
+        <TabsNav />
+        <div className="pt-14 md:pt-0 md:ml-64 p-4 md:p-8">
+          <JobDetailSkeleton />
+        </div>
       </div>
     );
   }

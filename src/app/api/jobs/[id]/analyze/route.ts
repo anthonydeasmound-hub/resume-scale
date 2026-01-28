@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
-import db, { JobApplication, Resume, JobAnalysis } from "@/lib/db";
+import { queryOne, execute, JobApplication, Resume, JobAnalysis } from "@/lib/db";
 import { analyzeJobDescription, ParsedResume, JobDetailsParsed } from "@/lib/gemini";
 
 // GET /api/jobs/[id]/analyze - Get cached analysis or generate new one
@@ -22,17 +22,17 @@ export async function GET(
   const jobId = parseInt(id);
 
   // Get user
-  const user = db.prepare("SELECT id FROM users WHERE email = ?").get(session.user.email) as { id: number } | undefined;
+  const user = await queryOne<{ id: number }>("SELECT id FROM users WHERE email = $1", [session.user.email]);
   if (!user) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
   // Get job application
-  const job = db.prepare(`
+  const job = await queryOne<Pick<JobApplication, 'id' | 'job_description' | 'job_title' | 'company_name' | 'job_details_parsed' | 'job_analysis'>>(`
     SELECT id, job_description, job_title, company_name, job_details_parsed, job_analysis
     FROM job_applications
-    WHERE id = ? AND user_id = ?
-  `).get(jobId, user.id) as Pick<JobApplication, 'id' | 'job_description' | 'job_title' | 'company_name' | 'job_details_parsed' | 'job_analysis'> | undefined;
+    WHERE id = $1 AND user_id = $2
+  `, [jobId, user.id]);
 
   if (!job) {
     return NextResponse.json({ error: "Job not found" }, { status: 404 });
@@ -56,13 +56,13 @@ export async function GET(
   }
 
   // Get user's resume
-  const resume = db.prepare(`
+  const resume = await queryOne<Pick<Resume, 'contact_info' | 'work_experience' | 'skills' | 'education'>>(`
     SELECT contact_info, work_experience, skills, education
     FROM resumes
-    WHERE user_id = ?
+    WHERE user_id = $1
     ORDER BY updated_at DESC
     LIMIT 1
-  `).get(user.id) as Pick<Resume, 'contact_info' | 'work_experience' | 'skills' | 'education'> | undefined;
+  `, [user.id]);
 
   if (!resume) {
     return NextResponse.json({
@@ -103,11 +103,11 @@ export async function GET(
   );
 
   // Cache the analysis
-  db.prepare(`
+  await execute(`
     UPDATE job_applications
-    SET job_analysis = ?, updated_at = CURRENT_TIMESTAMP
-    WHERE id = ?
-  `).run(JSON.stringify(analysis), jobId);
+    SET job_analysis = $1, updated_at = NOW()
+    WHERE id = $2
+  `, [JSON.stringify(analysis), jobId]);
 
   return NextResponse.json({ analysis, cached: false });
 }
@@ -129,17 +129,17 @@ export async function POST(
   const jobId = parseInt(id);
 
   // Get user
-  const user = db.prepare("SELECT id FROM users WHERE email = ?").get(session.user.email) as { id: number } | undefined;
+  const user = await queryOne<{ id: number }>("SELECT id FROM users WHERE email = $1", [session.user.email]);
   if (!user) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
   // Get job application
-  const job = db.prepare(`
+  const job = await queryOne<Pick<JobApplication, 'id' | 'job_description' | 'job_title' | 'company_name' | 'job_details_parsed'>>(`
     SELECT id, job_description, job_title, company_name, job_details_parsed
     FROM job_applications
-    WHERE id = ? AND user_id = ?
-  `).get(jobId, user.id) as Pick<JobApplication, 'id' | 'job_description' | 'job_title' | 'company_name' | 'job_details_parsed'> | undefined;
+    WHERE id = $1 AND user_id = $2
+  `, [jobId, user.id]);
 
   if (!job) {
     return NextResponse.json({ error: "Job not found" }, { status: 404 });
@@ -152,13 +152,13 @@ export async function POST(
   }
 
   // Get user's resume
-  const resume = db.prepare(`
+  const resume = await queryOne<Pick<Resume, 'contact_info' | 'work_experience' | 'skills' | 'education'>>(`
     SELECT contact_info, work_experience, skills, education
     FROM resumes
-    WHERE user_id = ?
+    WHERE user_id = $1
     ORDER BY updated_at DESC
     LIMIT 1
-  `).get(user.id) as Pick<Resume, 'contact_info' | 'work_experience' | 'skills' | 'education'> | undefined;
+  `, [user.id]);
 
   if (!resume) {
     return NextResponse.json({
@@ -199,11 +199,11 @@ export async function POST(
   );
 
   // Cache the analysis
-  db.prepare(`
+  await execute(`
     UPDATE job_applications
-    SET job_analysis = ?, updated_at = CURRENT_TIMESTAMP
-    WHERE id = ?
-  `).run(JSON.stringify(analysis), jobId);
+    SET job_analysis = $1, updated_at = NOW()
+    WHERE id = $2
+  `, [JSON.stringify(analysis), jobId]);
 
   return NextResponse.json({ analysis, cached: false });
 }

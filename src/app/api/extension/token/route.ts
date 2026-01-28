@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import db from "@/lib/db";
+import { queryOne, execute } from "@/lib/db";
 import crypto from "crypto";
 
 export async function GET() {
@@ -12,21 +12,21 @@ export async function GET() {
   }
 
   // Get or create user
-  let user = db.prepare("SELECT * FROM users WHERE email = ?").get(session.user.email) as { id: number } | undefined;
+  let user = await queryOne<{ id: number }>("SELECT id FROM users WHERE email = $1", [session.user.email]);
 
   if (!user) {
-    const result = db.prepare("INSERT INTO users (email, name, image) VALUES (?, ?, ?)").run(
-      session.user.email,
-      session.user.name || null,
-      session.user.image || null
+    const result = await execute(
+      "INSERT INTO users (email, name, image) VALUES ($1, $2, $3) RETURNING id",
+      [session.user.email, session.user.name || null, session.user.image || null]
     );
-    user = { id: result.lastInsertRowid as number };
+    user = { id: result.rows[0].id as number };
   }
 
   // Check for existing valid token
-  const existingToken = db.prepare(
-    "SELECT token FROM extension_tokens WHERE user_id = ? AND (expires_at IS NULL OR expires_at > datetime('now'))"
-  ).get(user.id) as { token: string } | undefined;
+  const existingToken = await queryOne<{ token: string }>(
+    "SELECT token FROM extension_tokens WHERE user_id = $1 AND (expires_at IS NULL OR expires_at > NOW())",
+    [user.id]
+  );
 
   if (existingToken) {
     return NextResponse.json({ token: existingToken.token });
@@ -36,9 +36,10 @@ export async function GET() {
   const token = crypto.randomBytes(32).toString("hex");
 
   // Store token (expires in 30 days)
-  db.prepare(
-    "INSERT INTO extension_tokens (user_id, token, expires_at) VALUES (?, ?, datetime('now', '+30 days'))"
-  ).run(user.id, token);
+  await execute(
+    "INSERT INTO extension_tokens (user_id, token, expires_at) VALUES ($1, $2, NOW() + INTERVAL '30 days')",
+    [user.id, token]
+  );
 
   return NextResponse.json({ token });
 }
@@ -50,10 +51,10 @@ export async function DELETE() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const user = db.prepare("SELECT id FROM users WHERE email = ?").get(session.user.email) as { id: number } | undefined;
+  const user = await queryOne<{ id: number }>("SELECT id FROM users WHERE email = $1", [session.user.email]);
 
   if (user) {
-    db.prepare("DELETE FROM extension_tokens WHERE user_id = ?").run(user.id);
+    await execute("DELETE FROM extension_tokens WHERE user_id = $1", [user.id]);
   }
 
   return NextResponse.json({ success: true });

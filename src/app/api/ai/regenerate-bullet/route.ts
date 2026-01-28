@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
-import db from "@/lib/db";
+import { queryOne, queryAll, execute } from "@/lib/db";
 import Groq from "groq-sdk";
 import { buildEnhancementContext, formatBulletsForPrompt } from "@/lib/resume-examples";
 import { z } from "zod";
@@ -46,12 +46,12 @@ export async function POST(request: Request) {
     const { role, rejectedBullet, existingBullets, feedback } = parsed.data;
 
     // Store feedback for future learning
-    const user = db.prepare("SELECT id FROM users WHERE email = ?").get(session.user.email) as { id: number } | undefined;
+    const user = await queryOne<{ id: number }>("SELECT id FROM users WHERE email = $1", [session.user.email]);
     if (user) {
-      db.prepare(`
+      await execute(`
         INSERT INTO bullet_feedback (user_id, role_title, company, bullet_text, feedback, was_user_written)
-        VALUES (?, ?, ?, ?, ?, 0)
-      `).run(user.id, role.title, role.company, rejectedBullet, feedback);
+        VALUES ($1, $2, $3, $4, $5, 0)
+      `, [user.id, role.title, role.company, rejectedBullet, feedback]);
     }
 
     // If feedback is "up", no need to regenerate
@@ -66,12 +66,12 @@ export async function POST(request: Request) {
     // Get previously rejected bullets for this role/user to avoid similar ones
     let previouslyRejected: string[] = [];
     if (user) {
-      const rejectedFeedback = db.prepare(`
+      const rejectedFeedback = await queryAll<{ bullet_text: string }>(`
         SELECT bullet_text FROM bullet_feedback
-        WHERE user_id = ? AND role_title = ? AND feedback = 'down'
+        WHERE user_id = $1 AND role_title = $2 AND feedback = 'down'
         ORDER BY created_at DESC
         LIMIT 10
-      `).all(user.id, role.title) as { bullet_text: string }[];
+      `, [user.id, role.title]);
       previouslyRejected = rejectedFeedback.map(f => f.bullet_text);
     }
 

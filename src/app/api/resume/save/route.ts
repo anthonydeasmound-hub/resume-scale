@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import db from "@/lib/db";
+import { queryOne, execute } from "@/lib/db";
 import { z } from "zod";
 
 const inputSchema = z.object({
@@ -35,27 +35,28 @@ export async function POST(request: NextRequest) {
     const { contact_info, work_experience, skills, education, certifications, languages, honors, profile_photo_path, raw_text, summary, resume_style, accent_color } = parsed.data;
 
     // Get or create user
-    let user = db.prepare("SELECT id FROM users WHERE email = ?").get(session.user.email) as { id: number } | undefined;
+    let user = await queryOne<{ id: number }>("SELECT id FROM users WHERE email = $1", [session.user.email]);
 
     if (!user) {
-      const result = db.prepare(
-        "INSERT INTO users (email, name, image) VALUES (?, ?, ?)"
-      ).run(session.user.email, session.user.name, session.user.image);
-      user = { id: result.lastInsertRowid as number };
+      const result = await execute(
+        "INSERT INTO users (email, name, image) VALUES ($1, $2, $3) RETURNING id",
+        [session.user.email, session.user.name, session.user.image]
+      );
+      user = { id: result.rows[0].id as number };
     }
 
     // Check if resume exists
-    const existingResume = db.prepare("SELECT id FROM resumes WHERE user_id = ?").get(user.id);
+    const existingResume = await queryOne<{ id: number }>("SELECT id FROM resumes WHERE user_id = $1", [user.id]);
 
     if (existingResume) {
       // Update existing resume
-      db.prepare(`
+      await execute(`
         UPDATE resumes
-        SET contact_info = ?, work_experience = ?, skills = ?, education = ?,
-            certifications = ?, languages = ?, honors = ?, profile_photo_path = ?,
-            raw_text = ?, summary = ?, resume_style = ?, accent_color = ?, updated_at = CURRENT_TIMESTAMP
-        WHERE user_id = ?
-      `).run(
+        SET contact_info = $1, work_experience = $2, skills = $3, education = $4,
+            certifications = $5, languages = $6, honors = $7, profile_photo_path = $8,
+            raw_text = $9, summary = $10, resume_style = $11, accent_color = $12, updated_at = NOW()
+        WHERE user_id = $13
+      `, [
         JSON.stringify(contact_info),
         JSON.stringify(work_experience),
         JSON.stringify(skills),
@@ -69,13 +70,13 @@ export async function POST(request: NextRequest) {
         resume_style || 'basic',
         accent_color || '#2563eb',
         user.id
-      );
+      ]);
     } else {
       // Insert new resume
-      db.prepare(`
+      await execute(`
         INSERT INTO resumes (user_id, contact_info, work_experience, skills, education, certifications, languages, honors, profile_photo_path, raw_text, summary, resume_style, accent_color)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+      `, [
         user.id,
         JSON.stringify(contact_info),
         JSON.stringify(work_experience),
@@ -89,7 +90,7 @@ export async function POST(request: NextRequest) {
         summary || null,
         resume_style || 'basic',
         accent_color || '#2563eb'
-      );
+      ]);
     }
 
     return NextResponse.json({ success: true });

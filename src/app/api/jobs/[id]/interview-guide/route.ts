@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
-import db, { JobApplication, InterviewGuide } from "@/lib/db";
+import { queryOne, execute, JobApplication, InterviewGuide } from "@/lib/db";
 import { generateInterviewGuide, extractRecruiterFromDescription, ParsedResume, JobDetailsParsed } from "@/lib/gemini";
 
 // GET - Retrieve cached interview guide
@@ -23,16 +23,16 @@ export async function GET(
     const { id } = await params;
     const jobId = parseInt(id);
 
-    const user = db.prepare("SELECT id FROM users WHERE email = ?").get(session.user.email) as { id: number } | undefined;
+    const user = await queryOne<{ id: number }>("SELECT id FROM users WHERE email = $1", [session.user.email]);
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const job = db.prepare(`
+    const job = await queryOne<{ interview_guide: string | null; interview_guide_generated_at: string | null }>(`
       SELECT interview_guide, interview_guide_generated_at
-      FROM job_applications WHERE id = ? AND user_id = ?
-    `).get(jobId, user.id) as { interview_guide: string | null; interview_guide_generated_at: string | null } | undefined;
+      FROM job_applications WHERE id = $1 AND user_id = $2
+    `, [jobId, user.id]);
 
     if (!job) {
       return NextResponse.json({ error: "Job not found" }, { status: 404 });
@@ -70,30 +70,30 @@ export async function POST(
     const { id } = await params;
     const jobId = parseInt(id);
 
-    const user = db.prepare("SELECT id FROM users WHERE email = ?").get(session.user.email) as { id: number } | undefined;
+    const user = await queryOne<{ id: number }>("SELECT id FROM users WHERE email = $1", [session.user.email]);
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     // Get job details
-    const job = db.prepare(`
-      SELECT * FROM job_applications WHERE id = ? AND user_id = ?
-    `).get(jobId, user.id) as JobApplication | undefined;
+    const job = await queryOne<JobApplication>(`
+      SELECT * FROM job_applications WHERE id = $1 AND user_id = $2
+    `, [jobId, user.id]);
 
     if (!job) {
       return NextResponse.json({ error: "Job not found" }, { status: 404 });
     }
 
     // Get user's resume
-    const resume = db.prepare(`
-      SELECT * FROM resumes WHERE user_id = ? ORDER BY updated_at DESC LIMIT 1
-    `).get(user.id) as {
+    const resume = await queryOne<{
       contact_info: string | null;
       work_experience: string | null;
       skills: string | null;
       education: string | null;
-    } | undefined;
+    }>(`
+      SELECT * FROM resumes WHERE user_id = $1 ORDER BY updated_at DESC LIMIT 1
+    `, [user.id]);
 
     if (!resume) {
       return NextResponse.json({ error: "No resume found. Please complete your profile first." }, { status: 400 });
@@ -136,21 +136,23 @@ export async function POST(
     }
 
     // Save guide to database
-    const updateFields = ["interview_guide = ?", "interview_guide_generated_at = CURRENT_TIMESTAMP", "updated_at = CURRENT_TIMESTAMP"];
+    const updateFields = ["interview_guide = $1", "interview_guide_generated_at = NOW()", "updated_at = NOW()"];
     const values: (string | number)[] = [JSON.stringify(guide)];
 
+    let paramIndex = 2;
     for (const [key, value] of Object.entries(recruiterUpdate)) {
-      updateFields.push(`${key} = ?`);
+      updateFields.push(`${key} = $${paramIndex}`);
       values.push(value);
+      paramIndex++;
     }
 
     values.push(jobId, user.id);
 
-    db.prepare(`
+    await execute(`
       UPDATE job_applications
       SET ${updateFields.join(", ")}
-      WHERE id = ? AND user_id = ?
-    `).run(...values);
+      WHERE id = $${paramIndex} AND user_id = $${paramIndex + 1}
+    `, values);
 
     return NextResponse.json({
       guide,

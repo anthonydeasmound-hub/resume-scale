@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import db from "@/lib/db";
+import { queryOne, execute } from "@/lib/db";
 import fs from "fs";
 import path from "path";
 
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user
-    const user = db.prepare("SELECT id FROM users WHERE email = ?").get(session.user.email) as { id: number } | undefined;
+    const user = await queryOne<{ id: number }>("SELECT id FROM users WHERE email = $1", [session.user.email]);
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -57,14 +57,14 @@ export async function POST(request: NextRequest) {
 
     // Update database with relative path
     const relativePath = `/uploads/photos/${filename}`;
-    db.prepare(`
+    await execute(`
       UPDATE resumes
-      SET profile_photo_path = ?, updated_at = CURRENT_TIMESTAMP
-      WHERE user_id = ?
-    `).run(relativePath, user.id);
+      SET profile_photo_path = $1, updated_at = NOW()
+      WHERE user_id = $2
+    `, [relativePath, user.id]);
 
     // Delete old photo if exists
-    const oldResume = db.prepare("SELECT profile_photo_path FROM resumes WHERE user_id = ?").get(user.id) as { profile_photo_path: string | null } | undefined;
+    const oldResume = await queryOne<{ profile_photo_path: string | null }>("SELECT profile_photo_path FROM resumes WHERE user_id = $1", [user.id]);
     if (oldResume?.profile_photo_path && oldResume.profile_photo_path !== relativePath) {
       const oldPath = path.join(process.cwd(), "public", oldResume.profile_photo_path);
       if (fs.existsSync(oldPath)) {
@@ -87,14 +87,14 @@ export async function DELETE() {
   }
 
   try {
-    const user = db.prepare("SELECT id FROM users WHERE email = ?").get(session.user.email) as { id: number } | undefined;
+    const user = await queryOne<{ id: number }>("SELECT id FROM users WHERE email = $1", [session.user.email]);
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     // Get current photo path
-    const resume = db.prepare("SELECT profile_photo_path FROM resumes WHERE user_id = ?").get(user.id) as { profile_photo_path: string | null } | undefined;
+    const resume = await queryOne<{ profile_photo_path: string | null }>("SELECT profile_photo_path FROM resumes WHERE user_id = $1", [user.id]);
 
     if (resume?.profile_photo_path) {
       // Delete file
@@ -104,11 +104,11 @@ export async function DELETE() {
       }
 
       // Update database
-      db.prepare(`
+      await execute(`
         UPDATE resumes
-        SET profile_photo_path = NULL, updated_at = CURRENT_TIMESTAMP
-        WHERE user_id = ?
-      `).run(user.id);
+        SET profile_photo_path = NULL, updated_at = NOW()
+        WHERE user_id = $1
+      `, [user.id]);
     }
 
     return NextResponse.json({ success: true });

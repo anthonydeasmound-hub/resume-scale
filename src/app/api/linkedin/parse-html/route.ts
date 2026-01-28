@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
-import db from "@/lib/db";
+import { queryOne, execute } from "@/lib/db";
 import Groq from "groq-sdk";
 import { z } from "zod";
 
@@ -32,9 +32,10 @@ export async function POST(request: NextRequest) {
   if (authHeader?.startsWith("Bearer ")) {
     const token = authHeader.slice(7);
     // Validate token from database
-    const tokenRecord = db.prepare(
-      "SELECT u.email FROM extension_tokens t JOIN users u ON t.user_id = u.id WHERE t.token = ?"
-    ).get(token) as { email: string } | undefined;
+    const tokenRecord = await queryOne<{ email: string }>(
+      "SELECT u.email FROM extension_tokens t JOIN users u ON t.user_id = u.id WHERE t.token = $1",
+      [token]
+    );
 
     if (tokenRecord) {
       userEmail = tokenRecord.email;
@@ -241,18 +242,19 @@ ${textContent}`;
     });
 
     // Get or create user
-    let user = db.prepare("SELECT * FROM users WHERE email = ?").get(userEmail) as { id: number } | undefined;
+    let user = await queryOne<{ id: number }>("SELECT * FROM users WHERE email = $1", [userEmail]);
 
     if (!user) {
-      const result = db.prepare("INSERT INTO users (email) VALUES (?)").run(userEmail);
-      user = { id: result.lastInsertRowid as number };
+      const result = await execute("INSERT INTO users (email) VALUES ($1) RETURNING id", [userEmail]);
+      user = { id: result.rows[0].id as number };
     }
 
     // Store the import data
-    db.prepare(`
-      INSERT OR REPLACE INTO linkedin_imports (user_id, profile_data, status)
-      VALUES (?, ?, 'pending')
-    `).run(user.id, JSON.stringify(transformedData));
+    await execute(`
+      INSERT INTO linkedin_imports (user_id, profile_data, status)
+      VALUES ($1, $2, 'pending')
+      ON CONFLICT (user_id) DO UPDATE SET profile_data = $2, status = 'pending'
+    `, [user.id, JSON.stringify(transformedData)]);
 
     return NextResponse.json(
       { success: true, data: transformedData },

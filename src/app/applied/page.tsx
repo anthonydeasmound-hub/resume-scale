@@ -6,6 +6,7 @@ import { useState, useEffect, useMemo } from "react";
 import TabsNav from "@/components/TabsNav";
 import WeekCalendar from "@/components/applied/WeekCalendar";
 import JobListRow, { JobAlert, AlertType } from "@/components/applied/JobListRow";
+import { AppliedSkeleton } from "@/components/Skeleton";
 
 interface InterviewStage {
   id: number;
@@ -320,8 +321,11 @@ export default function AppliedPage() {
 
   if (status === "loading" || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-brand-gray">
-        <div className="text-lg text-gray-600">Loading...</div>
+      <div className="min-h-screen bg-brand-gray">
+        <TabsNav />
+        <div className="pt-14 md:pt-0 md:ml-64 p-4 md:p-8">
+          <AppliedSkeleton />
+        </div>
       </div>
     );
   }

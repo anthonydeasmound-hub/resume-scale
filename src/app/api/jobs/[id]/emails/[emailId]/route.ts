@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import db, { EmailAction } from "@/lib/db";
+import { queryOne, execute, EmailAction } from "@/lib/db";
 
 // GET /api/jobs/[id]/emails/[emailId] - Get a specific email action
 export async function GET(
@@ -18,17 +18,17 @@ export async function GET(
   const emailIdNum = parseInt(emailId);
 
   // Verify job belongs to user
-  const user = db.prepare("SELECT id FROM users WHERE email = ?").get(session.user.email) as { id: number } | undefined;
+  const user = await queryOne<{ id: number }>("SELECT id FROM users WHERE email = $1", [session.user.email]);
   if (!user) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  const job = db.prepare("SELECT id FROM job_applications WHERE id = ? AND user_id = ?").get(jobId, user.id);
+  const job = await queryOne<{ id: number }>("SELECT id FROM job_applications WHERE id = $1 AND user_id = $2", [jobId, user.id]);
   if (!job) {
     return NextResponse.json({ error: "Job not found" }, { status: 404 });
   }
 
-  const email = db.prepare("SELECT * FROM email_actions WHERE id = ? AND job_id = ?").get(emailIdNum, jobId) as EmailAction | undefined;
+  const email = await queryOne<EmailAction>("SELECT * FROM email_actions WHERE id = $1 AND job_id = $2", [emailIdNum, jobId]);
   if (!email) {
     return NextResponse.json({ error: "Email not found" }, { status: 404 });
   }
@@ -51,17 +51,17 @@ export async function PATCH(
   const emailIdNum = parseInt(emailId);
 
   // Verify job belongs to user
-  const user = db.prepare("SELECT id FROM users WHERE email = ?").get(session.user.email) as { id: number } | undefined;
+  const user = await queryOne<{ id: number }>("SELECT id FROM users WHERE email = $1", [session.user.email]);
   if (!user) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  const job = db.prepare("SELECT id FROM job_applications WHERE id = ? AND user_id = ?").get(jobId, user.id);
+  const job = await queryOne<{ id: number }>("SELECT id FROM job_applications WHERE id = $1 AND user_id = $2", [jobId, user.id]);
   if (!job) {
     return NextResponse.json({ error: "Job not found" }, { status: 404 });
   }
 
-  const existingEmail = db.prepare("SELECT * FROM email_actions WHERE id = ? AND job_id = ?").get(emailIdNum, jobId) as EmailAction | undefined;
+  const existingEmail = await queryOne<EmailAction>("SELECT * FROM email_actions WHERE id = $1 AND job_id = $2", [emailIdNum, jobId]);
   if (!existingEmail) {
     return NextResponse.json({ error: "Email not found" }, { status: 404 });
   }
@@ -70,10 +70,11 @@ export async function PATCH(
   const allowedFields = ['subject', 'body', 'recipient_email', 'status', 'sent_at', 'gmail_message_id'];
   const updates: string[] = [];
   const values: (string | null)[] = [];
+  let paramIndex = 1;
 
   for (const field of allowedFields) {
     if (field in body) {
-      updates.push(`${field} = ?`);
+      updates.push(`${field} = $${paramIndex++}`);
       values.push(body[field] ?? null);
     }
   }
@@ -82,15 +83,13 @@ export async function PATCH(
     return NextResponse.json({ error: "No valid fields to update" }, { status: 400 });
   }
 
-  values.push(emailIdNum.toString());
-
-  db.prepare(`
+  await execute(`
     UPDATE email_actions
     SET ${updates.join(", ")}
-    WHERE id = ?
-  `).run(...values.slice(0, -1), emailIdNum);
+    WHERE id = $${paramIndex++}
+  `, [...values, emailIdNum]);
 
-  const updatedEmail = db.prepare("SELECT * FROM email_actions WHERE id = ?").get(emailIdNum) as EmailAction;
+  const updatedEmail = await queryOne<EmailAction>("SELECT * FROM email_actions WHERE id = $1", [emailIdNum]);
 
   return NextResponse.json(updatedEmail);
 }
@@ -110,22 +109,22 @@ export async function DELETE(
   const emailIdNum = parseInt(emailId);
 
   // Verify job belongs to user
-  const user = db.prepare("SELECT id FROM users WHERE email = ?").get(session.user.email) as { id: number } | undefined;
+  const user = await queryOne<{ id: number }>("SELECT id FROM users WHERE email = $1", [session.user.email]);
   if (!user) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  const job = db.prepare("SELECT id FROM job_applications WHERE id = ? AND user_id = ?").get(jobId, user.id);
+  const job = await queryOne<{ id: number }>("SELECT id FROM job_applications WHERE id = $1 AND user_id = $2", [jobId, user.id]);
   if (!job) {
     return NextResponse.json({ error: "Job not found" }, { status: 404 });
   }
 
-  const existingEmail = db.prepare("SELECT * FROM email_actions WHERE id = ? AND job_id = ?").get(emailIdNum, jobId);
+  const existingEmail = await queryOne<{ id: number }>("SELECT * FROM email_actions WHERE id = $1 AND job_id = $2", [emailIdNum, jobId]);
   if (!existingEmail) {
     return NextResponse.json({ error: "Email not found" }, { status: 404 });
   }
 
-  db.prepare("DELETE FROM email_actions WHERE id = ?").run(emailIdNum);
+  await execute("DELETE FROM email_actions WHERE id = $1", [emailIdNum]);
 
   return NextResponse.json({ success: true });
 }

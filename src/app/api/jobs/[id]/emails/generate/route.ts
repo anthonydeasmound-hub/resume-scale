@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
-import db from "@/lib/db";
+import { queryOne, execute } from "@/lib/db";
 import { generateThankYouEmail, generateFollowUpEmail } from "@/lib/gemini";
 import { z } from "zod";
 
@@ -31,23 +31,23 @@ export async function POST(
   const jobId = parseInt(id);
 
   // Verify job belongs to user
-  const user = db.prepare("SELECT id, name FROM users WHERE email = ?").get(session.user.email) as { id: number; name: string | null } | undefined;
+  const user = await queryOne<{ id: number; name: string | null }>("SELECT id, name FROM users WHERE email = $1", [session.user.email]);
   if (!user) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  const job = db.prepare(`
-    SELECT id, company_name, job_title, recruiter_name, recruiter_email, date_applied
-    FROM job_applications
-    WHERE id = ? AND user_id = ?
-  `).get(jobId, user.id) as {
+  const job = await queryOne<{
     id: number;
     company_name: string;
     job_title: string;
     recruiter_name: string | null;
     recruiter_email: string | null;
     date_applied: string | null;
-  } | undefined;
+  }>(`
+    SELECT id, company_name, job_title, recruiter_name, recruiter_email, date_applied
+    FROM job_applications
+    WHERE id = $1 AND user_id = $2
+  `, [jobId, user.id]);
 
   if (!job) {
     return NextResponse.json({ error: "Job not found" }, { status: 404 });
@@ -87,19 +87,19 @@ export async function POST(
   }
 
   // Create a draft email action
-  const result = db.prepare(`
+  const result = await execute(`
     INSERT INTO email_actions (job_id, stage_id, email_type, direction, subject, body, recipient_email, status)
-    VALUES (?, ?, ?, 'outbound', ?, ?, ?, 'draft')
-  `).run(
+    VALUES ($1, $2, $3, 'outbound', $4, $5, $6, 'draft') RETURNING id
+  `, [
     jobId,
     stage_id || null,
     email_type,
     generatedEmail.subject,
     generatedEmail.body,
     job.recruiter_email || null
-  );
+  ]);
 
-  const newEmail = db.prepare("SELECT * FROM email_actions WHERE id = ?").get(result.lastInsertRowid);
+  const newEmail = await queryOne("SELECT * FROM email_actions WHERE id = $1", [result.rows[0].id]);
 
   return NextResponse.json({
     email: newEmail,

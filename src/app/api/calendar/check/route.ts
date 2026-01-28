@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { fetchUpcomingEvents } from "@/lib/calendar";
 import { classifyCalendarEvent } from "@/lib/gemini";
-import db from "@/lib/db";
+import { queryOne, queryAll, execute } from "@/lib/db";
 
 interface JobApplication {
   id: number;
@@ -26,23 +26,18 @@ export async function POST() {
   if (rateLimited) return rateLimited;
 
   try {
-    const user = db
-      .prepare("SELECT id FROM users WHERE email = ?")
-      .get(session.user.email) as { id: number } | undefined;
+    const user = await queryOne<{ id: number }>("SELECT id FROM users WHERE email = $1", [session.user.email]);
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     // Get all active job applications
-    const jobs = db
-      .prepare(
-        `
-      SELECT id, company_name, status FROM job_applications
-      WHERE user_id = ? AND status IN ('applied', 'interview')
-    `
-      )
-      .all(user.id) as JobApplication[];
+    const jobs = await queryAll<JobApplication>(
+      `SELECT id, company_name, status FROM job_applications
+      WHERE user_id = $1 AND status IN ('applied', 'interview')`,
+      [user.id]
+    );
 
     if (jobs.length === 0) {
       return NextResponse.json({
@@ -94,11 +89,11 @@ export async function POST() {
 
       // For interviews, update job status if not already in interview
       if (classification.type === "interview" && matchingJob.status !== "interview") {
-        db.prepare(`
+        await execute(`
           UPDATE job_applications
-          SET status = 'interview', updated_at = CURRENT_TIMESTAMP
-          WHERE id = ?
-        `).run(matchingJob.id);
+          SET status = 'interview', updated_at = NOW()
+          WHERE id = $1
+        `, [matchingJob.id]);
       }
 
       updates.push({

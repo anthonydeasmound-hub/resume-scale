@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import db from "@/lib/db";
+import { queryOne } from "@/lib/db";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -11,7 +11,7 @@ export async function GET() {
   }
 
   try {
-    const user = db.prepare("SELECT id FROM users WHERE email = ?").get(session.user.email) as { id: number } | undefined;
+    const user = await queryOne<{ id: number }>("SELECT id FROM users WHERE email = $1", [session.user.email]);
 
     if (!user) {
       return NextResponse.json({
@@ -26,7 +26,15 @@ export async function GET() {
     }
 
     // Get counts
-    const stats = db.prepare(`
+    const stats = await queryOne<{
+      resumes_created: number;
+      cover_letters_created: number;
+      jobs_applied: number;
+      rejections: number;
+      interviews: number;
+      offers: number;
+      review_count: number;
+    }>(`
       SELECT
         COUNT(CASE WHEN tailored_resume IS NOT NULL THEN 1 END) as resumes_created,
         COUNT(CASE WHEN cover_letter IS NOT NULL THEN 1 END) as cover_letters_created,
@@ -36,16 +44,8 @@ export async function GET() {
         COUNT(CASE WHEN status = 'offer' THEN 1 END) as offers,
         COUNT(CASE WHEN status = 'review' AND (reviewed = 0 OR reviewed IS NULL) THEN 1 END) as review_count
       FROM job_applications
-      WHERE user_id = ?
-    `).get(user.id) as {
-      resumes_created: number;
-      cover_letters_created: number;
-      jobs_applied: number;
-      rejections: number;
-      interviews: number;
-      offers: number;
-      review_count: number;
-    };
+      WHERE user_id = $1
+    `, [user.id]);
 
     return NextResponse.json(stats);
   } catch (error) {

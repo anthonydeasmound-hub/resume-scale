@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import db from "@/lib/db";
+import { queryOne, execute } from "@/lib/db";
 
-function getUserFromToken(request: NextRequest): { id: number; email: string } | null {
+async function getUserFromToken(request: NextRequest): Promise<{ id: number; email: string } | null> {
   const authHeader = request.headers.get("authorization");
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -10,9 +10,10 @@ function getUserFromToken(request: NextRequest): { id: number; email: string } |
 
   const token = authHeader.substring(7);
 
-  const tokenRecord = db.prepare(
-    "SELECT et.user_id, u.email FROM extension_tokens et JOIN users u ON et.user_id = u.id WHERE et.token = ? AND (et.expires_at IS NULL OR et.expires_at > datetime('now'))"
-  ).get(token) as { user_id: number; email: string } | undefined;
+  const tokenRecord = await queryOne<{ user_id: number; email: string }>(
+    "SELECT et.user_id, u.email FROM extension_tokens et JOIN users u ON et.user_id = u.id WHERE et.token = $1 AND (et.expires_at IS NULL OR et.expires_at > NOW())",
+    [token]
+  );
 
   if (!tokenRecord) {
     return null;
@@ -22,7 +23,7 @@ function getUserFromToken(request: NextRequest): { id: number; email: string } |
 }
 
 export async function POST(request: NextRequest) {
-  const user = getUserFromToken(request);
+  const user = await getUserFromToken(request);
 
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -36,28 +37,29 @@ export async function POST(request: NextRequest) {
     const description = job_description || "No description available";
 
     // Check for duplicate (same company and title for this user)
-    const existing = db.prepare(
-      "SELECT id FROM job_applications WHERE user_id = ? AND company_name = ? AND job_title = ?"
-    ).get(user.id, company_name || "Unknown Company", job_title || "Unknown Position");
+    const existing = await queryOne<{ id: number }>(
+      "SELECT id FROM job_applications WHERE user_id = $1 AND company_name = $2 AND job_title = $3",
+      [user.id, company_name || "Unknown Company", job_title || "Unknown Position"]
+    );
 
     if (existing) {
       return NextResponse.json({ error: "Job already saved" }, { status: 409 });
     }
 
     // Create job application
-    const result = db.prepare(`
+    const result = await execute(`
       INSERT INTO job_applications (user_id, company_name, job_title, job_description, status)
-      VALUES (?, ?, ?, ?, 'review')
-    `).run(
+      VALUES ($1, $2, $3, $4, 'review') RETURNING id
+    `, [
       user.id,
       company_name || "Unknown Company",
       job_title || "Unknown Position",
       description
-    );
+    ]);
 
     return NextResponse.json({
       success: true,
-      job_id: result.lastInsertRowid,
+      job_id: result.rows[0].id,
       message: `${job_title} at ${company_name} saved!`,
     });
   } catch (error) {

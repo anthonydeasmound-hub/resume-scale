@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import db, { CalendarEvent, CalendarSyncStatus } from "@/lib/db";
+import { queryOne, queryAll, execute, CalendarEvent, CalendarSyncStatus } from "@/lib/db";
 
 // GET /api/jobs/[id]/calendar - Get all calendar events for a job
 export async function GET(
@@ -17,21 +17,21 @@ export async function GET(
   const jobId = parseInt(id);
 
   // Verify job belongs to user
-  const user = db.prepare("SELECT id FROM users WHERE email = ?").get(session.user.email) as { id: number } | undefined;
+  const user = await queryOne<{ id: number }>("SELECT id FROM users WHERE email = $1", [session.user.email]);
   if (!user) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  const job = db.prepare("SELECT id FROM job_applications WHERE id = ? AND user_id = ?").get(jobId, user.id);
+  const job = await queryOne<{ id: number }>("SELECT id FROM job_applications WHERE id = $1 AND user_id = $2", [jobId, user.id]);
   if (!job) {
     return NextResponse.json({ error: "Job not found" }, { status: 404 });
   }
 
-  const events = db.prepare(`
+  const events = await queryAll<CalendarEvent>(`
     SELECT * FROM calendar_events
-    WHERE job_id = ?
+    WHERE job_id = $1
     ORDER BY start_time ASC
-  `).all(jobId) as CalendarEvent[];
+  `, [jobId]);
 
   return NextResponse.json(events);
 }
@@ -50,12 +50,12 @@ export async function POST(
   const jobId = parseInt(id);
 
   // Verify job belongs to user
-  const user = db.prepare("SELECT id FROM users WHERE email = ?").get(session.user.email) as { id: number } | undefined;
+  const user = await queryOne<{ id: number }>("SELECT id FROM users WHERE email = $1", [session.user.email]);
   if (!user) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  const job = db.prepare("SELECT id, company_name, job_title FROM job_applications WHERE id = ? AND user_id = ?").get(jobId, user.id) as { id: number; company_name: string; job_title: string } | undefined;
+  const job = await queryOne<{ id: number; company_name: string; job_title: string }>("SELECT id, company_name, job_title FROM job_applications WHERE id = $1 AND user_id = $2", [jobId, user.id]);
   if (!job) {
     return NextResponse.json({ error: "Job not found" }, { status: 404 });
   }
@@ -90,10 +90,10 @@ export async function POST(
   // Generate default title if not provided
   const eventTitle = title || `Interview - ${job.company_name} (${job.job_title})`;
 
-  const result = db.prepare(`
+  const result = await execute(`
     INSERT INTO calendar_events (job_id, stage_id, google_event_id, title, description, start_time, end_time, location, meeting_link, sync_status)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id
+  `, [
     jobId,
     stage_id || null,
     google_event_id || null,
@@ -104,17 +104,17 @@ export async function POST(
     location || null,
     meeting_link || null,
     sync_status
-  );
+  ]);
 
-  const newEvent = db.prepare("SELECT * FROM calendar_events WHERE id = ?").get(result.lastInsertRowid) as CalendarEvent;
+  const newEvent = await queryOne<CalendarEvent>("SELECT * FROM calendar_events WHERE id = $1", [result.rows[0].id]);
 
   // If there's a linked stage, update its scheduled_at
   if (stage_id) {
-    db.prepare(`
+    await execute(`
       UPDATE interview_stages
-      SET scheduled_at = ?, status = 'scheduled', updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `).run(start_time, stage_id);
+      SET scheduled_at = $1, status = 'scheduled', updated_at = NOW()
+      WHERE id = $2
+    `, [start_time, stage_id]);
   }
 
   return NextResponse.json(newEvent, { status: 201 });

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import db, { InterviewStage, StageType, StageStatus, StageSource } from "@/lib/db";
+import { queryOne, queryAll, execute, InterviewStage, StageType, StageStatus, StageSource } from "@/lib/db";
 
 // GET /api/jobs/[id]/stages - Get all stages for a job
 export async function GET(
@@ -17,21 +17,21 @@ export async function GET(
   const jobId = parseInt(id);
 
   // Verify job belongs to user
-  const user = db.prepare("SELECT id FROM users WHERE email = ?").get(session.user.email) as { id: number } | undefined;
+  const user = await queryOne<{ id: number }>("SELECT id FROM users WHERE email = $1", [session.user.email]);
   if (!user) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  const job = db.prepare("SELECT id FROM job_applications WHERE id = ? AND user_id = ?").get(jobId, user.id);
+  const job = await queryOne<{ id: number }>("SELECT id FROM job_applications WHERE id = $1 AND user_id = $2", [jobId, user.id]);
   if (!job) {
     return NextResponse.json({ error: "Job not found" }, { status: 404 });
   }
 
-  const stages = db.prepare(`
+  const stages = await queryAll<InterviewStage>(`
     SELECT * FROM interview_stages
-    WHERE job_id = ?
+    WHERE job_id = $1
     ORDER BY stage_number ASC
-  `).all(jobId) as InterviewStage[];
+  `, [jobId]);
 
   return NextResponse.json(stages);
 }
@@ -50,12 +50,12 @@ export async function POST(
   const jobId = parseInt(id);
 
   // Verify job belongs to user
-  const user = db.prepare("SELECT id FROM users WHERE email = ?").get(session.user.email) as { id: number } | undefined;
+  const user = await queryOne<{ id: number }>("SELECT id FROM users WHERE email = $1", [session.user.email]);
   if (!user) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  const job = db.prepare("SELECT id FROM job_applications WHERE id = ? AND user_id = ?").get(jobId, user.id);
+  const job = await queryOne<{ id: number }>("SELECT id FROM job_applications WHERE id = $1 AND user_id = $2", [jobId, user.id]);
   if (!job) {
     return NextResponse.json({ error: "Job not found" }, { status: 404 });
   }
@@ -84,15 +84,15 @@ export async function POST(
   }
 
   // Get the next stage number
-  const maxStage = db.prepare(`
-    SELECT MAX(stage_number) as max_num FROM interview_stages WHERE job_id = ?
-  `).get(jobId) as { max_num: number | null };
+  const maxStage = await queryOne<{ max_num: number | null }>(`
+    SELECT MAX(stage_number) as max_num FROM interview_stages WHERE job_id = $1
+  `, [jobId]);
   const stageNumber = (maxStage?.max_num || 0) + 1;
 
-  const result = db.prepare(`
+  const result = await execute(`
     INSERT INTO interview_stages (job_id, stage_number, stage_type, stage_name, status, scheduled_at, notes, source, source_email_id)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id
+  `, [
     jobId,
     stageNumber,
     stage_type,
@@ -102,16 +102,16 @@ export async function POST(
     notes || null,
     source,
     source_email_id || null
-  );
+  ]);
 
-  const newStage = db.prepare("SELECT * FROM interview_stages WHERE id = ?").get(result.lastInsertRowid) as InterviewStage;
+  const newStage = await queryOne<InterviewStage>("SELECT * FROM interview_stages WHERE id = $1", [result.rows[0].id]);
 
   // Update job status to 'interview' if it's still 'applied'
-  db.prepare(`
+  await execute(`
     UPDATE job_applications
-    SET status = 'interview', updated_at = CURRENT_TIMESTAMP
-    WHERE id = ? AND status = 'applied'
-  `).run(jobId);
+    SET status = 'interview', updated_at = NOW()
+    WHERE id = $1 AND status = 'applied'
+  `, [jobId]);
 
   return NextResponse.json(newStage, { status: 201 });
 }

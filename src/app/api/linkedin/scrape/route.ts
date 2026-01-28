@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import db from "@/lib/db";
+import { queryOne, execute } from "@/lib/db";
 
 const SCRAPINGDOG_API_KEY = process.env.SCRAPINGDOG_API_KEY;
 
@@ -62,22 +62,23 @@ export async function POST(request: NextRequest) {
     const transformedData = transformLinkedInData(profileData, session.user.email);
 
     // Get or create user
-    let user = db.prepare("SELECT * FROM users WHERE email = ?").get(session.user.email) as { id: number } | undefined;
+    let user = await queryOne<{ id: number }>("SELECT * FROM users WHERE email = $1", [session.user.email]);
 
     if (!user) {
-      const result = db.prepare("INSERT INTO users (email, name, image) VALUES (?, ?, ?)").run(
+      const result = await execute("INSERT INTO users (email, name, image) VALUES ($1, $2, $3) RETURNING id", [
         session.user.email,
         session.user.name || null,
         session.user.image || null
-      );
-      user = { id: result.lastInsertRowid as number };
+      ]);
+      user = { id: result.rows[0].id as number };
     }
 
     // Store the import data
-    db.prepare(`
-      INSERT OR REPLACE INTO linkedin_imports (user_id, profile_data, status)
-      VALUES (?, ?, 'pending')
-    `).run(user.id, JSON.stringify(transformedData));
+    await execute(`
+      INSERT INTO linkedin_imports (user_id, profile_data, status)
+      VALUES ($1, $2, 'pending')
+      ON CONFLICT (user_id) DO UPDATE SET profile_data = $2, status = 'pending'
+    `, [user.id, JSON.stringify(transformedData)]);
 
     return NextResponse.json({
       success: true,

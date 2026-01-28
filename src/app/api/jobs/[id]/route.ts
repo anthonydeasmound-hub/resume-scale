@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import db from "@/lib/db";
+import { queryOne, execute } from "@/lib/db";
 
 export async function GET(
   request: NextRequest,
@@ -17,15 +17,15 @@ export async function GET(
     const { id } = await params;
     const jobId = parseInt(id);
 
-    const user = db.prepare("SELECT id FROM users WHERE email = ?").get(session.user.email) as { id: number } | undefined;
+    const user = await queryOne<{ id: number }>("SELECT id FROM users WHERE email = $1", [session.user.email]);
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const job = db.prepare(`
-      SELECT * FROM job_applications WHERE id = ? AND user_id = ?
-    `).get(jobId, user.id);
+    const job = await queryOne(`
+      SELECT * FROM job_applications WHERE id = $1 AND user_id = $2
+    `, [jobId, user.id]);
 
     if (!job) {
       return NextResponse.json({ error: "Job not found" }, { status: 404 });
@@ -53,7 +53,7 @@ export async function PATCH(
     const jobId = parseInt(id);
     const updates = await request.json();
 
-    const user = db.prepare("SELECT id FROM users WHERE email = ?").get(session.user.email) as { id: number } | undefined;
+    const user = await queryOne<{ id: number }>("SELECT id FROM users WHERE email = $1", [session.user.email]);
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -68,11 +68,12 @@ export async function PATCH(
     ];
     const updateFields: string[] = [];
     const values: (string | number)[] = [];
+    let paramIndex = 1;
 
     for (const [key, value] of Object.entries(updates)) {
       if (allowedFields.includes(key)) {
-        updateFields.push(`${key} = ?`);
-        // Convert booleans to integers for SQLite, stringify objects
+        updateFields.push(`${key} = $${paramIndex++}`);
+        // Convert booleans to integers, stringify objects
         let dbValue: string | number | null;
         if (typeof value === "boolean") {
           dbValue = value ? 1 : 0;
@@ -89,14 +90,14 @@ export async function PATCH(
       return NextResponse.json({ error: "No valid fields to update" }, { status: 400 });
     }
 
-    updateFields.push("updated_at = CURRENT_TIMESTAMP");
+    updateFields.push("updated_at = NOW()");
     values.push(jobId, user.id);
 
-    db.prepare(`
+    await execute(`
       UPDATE job_applications
       SET ${updateFields.join(", ")}
-      WHERE id = ? AND user_id = ?
-    `).run(...values);
+      WHERE id = $${paramIndex++} AND user_id = $${paramIndex++}
+    `, values);
 
     return NextResponse.json({ success: true });
   } catch (error) {

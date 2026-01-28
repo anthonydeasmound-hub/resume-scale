@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import TabsNav from "@/components/TabsNav";
+import { DashboardSkeleton } from "@/components/Skeleton";
 
 interface SetupStatus {
   hasResume: boolean;
@@ -313,8 +314,11 @@ export default function DashboardPage() {
 
   if (status === "loading" || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-brand-gray">
-        <div className="text-lg text-gray-600">Loading...</div>
+      <div className="min-h-screen bg-brand-gray">
+        <TabsNav />
+        <div className="pt-14 md:pt-0 md:ml-64 p-4 md:p-8">
+          <DashboardSkeleton />
+        </div>
       </div>
     );
   }

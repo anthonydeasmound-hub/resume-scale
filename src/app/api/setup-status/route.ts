@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import db from "@/lib/db";
+import { queryOne } from "@/lib/db";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -11,7 +11,7 @@ export async function GET() {
   }
 
   try {
-    const user = db.prepare("SELECT id FROM users WHERE email = ?").get(session.user.email) as { id: number } | undefined;
+    const user = await queryOne<{ id: number }>("SELECT id FROM users WHERE email = $1", [session.user.email]);
 
     if (!user) {
       return NextResponse.json({
@@ -23,18 +23,20 @@ export async function GET() {
       });
     }
 
-    const resume = db.prepare("SELECT id FROM resumes WHERE user_id = ?").get(user.id) as { id: number } | undefined;
+    const resume = await queryOne<{ id: number }>("SELECT id FROM resumes WHERE user_id = $1", [user.id]);
     const hasResume = !!resume;
 
-    const extensionToken = db.prepare(
-      "SELECT token FROM extension_tokens WHERE user_id = ? AND (expires_at IS NULL OR expires_at > datetime('now'))"
-    ).get(user.id) as { token: string } | undefined;
+    const extensionToken = await queryOne<{ token: string }>(
+      "SELECT token FROM extension_tokens WHERE user_id = $1 AND (expires_at IS NULL OR expires_at > NOW())",
+      [user.id]
+    );
     const hasExtension = !!extensionToken;
 
-    const jobCount = db.prepare(
-      "SELECT COUNT(*) as count FROM job_applications WHERE user_id = ?"
-    ).get(user.id) as { count: number };
-    const hasFirstJob = jobCount.count > 0;
+    const jobCount = await queryOne<{ count: number }>(
+      "SELECT COUNT(*) as count FROM job_applications WHERE user_id = $1",
+      [user.id]
+    );
+    const hasFirstJob = jobCount!.count > 0;
 
     const completedCount = [hasResume, hasExtension, hasFirstJob].filter(Boolean).length;
 

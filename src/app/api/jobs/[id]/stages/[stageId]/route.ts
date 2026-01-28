@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import db, { InterviewStage, StageStatus } from "@/lib/db";
+import { queryOne, queryAll, execute, InterviewStage, StageStatus } from "@/lib/db";
 
 // GET /api/jobs/[id]/stages/[stageId] - Get a specific stage
 export async function GET(
@@ -18,17 +18,17 @@ export async function GET(
   const stageIdNum = parseInt(stageId);
 
   // Verify job belongs to user
-  const user = db.prepare("SELECT id FROM users WHERE email = ?").get(session.user.email) as { id: number } | undefined;
+  const user = await queryOne<{ id: number }>("SELECT id FROM users WHERE email = $1", [session.user.email]);
   if (!user) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  const job = db.prepare("SELECT id FROM job_applications WHERE id = ? AND user_id = ?").get(jobId, user.id);
+  const job = await queryOne<{ id: number }>("SELECT id FROM job_applications WHERE id = $1 AND user_id = $2", [jobId, user.id]);
   if (!job) {
     return NextResponse.json({ error: "Job not found" }, { status: 404 });
   }
 
-  const stage = db.prepare("SELECT * FROM interview_stages WHERE id = ? AND job_id = ?").get(stageIdNum, jobId) as InterviewStage | undefined;
+  const stage = await queryOne<InterviewStage>("SELECT * FROM interview_stages WHERE id = $1 AND job_id = $2", [stageIdNum, jobId]);
   if (!stage) {
     return NextResponse.json({ error: "Stage not found" }, { status: 404 });
   }
@@ -51,17 +51,17 @@ export async function PATCH(
   const stageIdNum = parseInt(stageId);
 
   // Verify job belongs to user
-  const user = db.prepare("SELECT id FROM users WHERE email = ?").get(session.user.email) as { id: number } | undefined;
+  const user = await queryOne<{ id: number }>("SELECT id FROM users WHERE email = $1", [session.user.email]);
   if (!user) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  const job = db.prepare("SELECT id FROM job_applications WHERE id = ? AND user_id = ?").get(jobId, user.id);
+  const job = await queryOne<{ id: number }>("SELECT id FROM job_applications WHERE id = $1 AND user_id = $2", [jobId, user.id]);
   if (!job) {
     return NextResponse.json({ error: "Job not found" }, { status: 404 });
   }
 
-  const existingStage = db.prepare("SELECT * FROM interview_stages WHERE id = ? AND job_id = ?").get(stageIdNum, jobId) as InterviewStage | undefined;
+  const existingStage = await queryOne<InterviewStage>("SELECT * FROM interview_stages WHERE id = $1 AND job_id = $2", [stageIdNum, jobId]);
   if (!existingStage) {
     return NextResponse.json({ error: "Stage not found" }, { status: 404 });
   }
@@ -70,10 +70,11 @@ export async function PATCH(
   const allowedFields = ['stage_type', 'stage_name', 'status', 'scheduled_at', 'completed_at', 'notes'];
   const updates: string[] = [];
   const values: (string | null)[] = [];
+  let paramIndex = 1;
 
   for (const field of allowedFields) {
     if (field in body) {
-      updates.push(`${field} = ?`);
+      updates.push(`${field} = $${paramIndex++}`);
       values.push(body[field] ?? null);
     }
   }
@@ -82,27 +83,26 @@ export async function PATCH(
     return NextResponse.json({ error: "No valid fields to update" }, { status: 400 });
   }
 
-  updates.push("updated_at = CURRENT_TIMESTAMP");
-  values.push(stageIdNum.toString());
+  updates.push("updated_at = NOW()");
 
-  db.prepare(`
+  await execute(`
     UPDATE interview_stages
     SET ${updates.join(", ")}
-    WHERE id = ?
-  `).run(...values.slice(0, -1), stageIdNum);
+    WHERE id = $${paramIndex++}
+  `, [...values, stageIdNum]);
 
-  const updatedStage = db.prepare("SELECT * FROM interview_stages WHERE id = ?").get(stageIdNum) as InterviewStage;
+  const updatedStage = await queryOne<InterviewStage>("SELECT * FROM interview_stages WHERE id = $1", [stageIdNum]);
 
   // If status changed to 'rejected', check if all stages are rejected and update job status
   if (body.status === 'rejected') {
-    const allStages = db.prepare("SELECT status FROM interview_stages WHERE job_id = ?").all(jobId) as { status: StageStatus }[];
+    const allStages = await queryAll<{ status: StageStatus }>("SELECT status FROM interview_stages WHERE job_id = $1", [jobId]);
     const allRejected = allStages.every(s => s.status === 'rejected' || s.status === 'cancelled');
     if (allRejected) {
-      db.prepare(`
+      await execute(`
         UPDATE job_applications
-        SET status = 'rejected', updated_at = CURRENT_TIMESTAMP
-        WHERE id = ?
-      `).run(jobId);
+        SET status = 'rejected', updated_at = NOW()
+        WHERE id = $1
+      `, [jobId]);
     }
   }
 
@@ -124,31 +124,31 @@ export async function DELETE(
   const stageIdNum = parseInt(stageId);
 
   // Verify job belongs to user
-  const user = db.prepare("SELECT id FROM users WHERE email = ?").get(session.user.email) as { id: number } | undefined;
+  const user = await queryOne<{ id: number }>("SELECT id FROM users WHERE email = $1", [session.user.email]);
   if (!user) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  const job = db.prepare("SELECT id FROM job_applications WHERE id = ? AND user_id = ?").get(jobId, user.id);
+  const job = await queryOne<{ id: number }>("SELECT id FROM job_applications WHERE id = $1 AND user_id = $2", [jobId, user.id]);
   if (!job) {
     return NextResponse.json({ error: "Job not found" }, { status: 404 });
   }
 
-  const existingStage = db.prepare("SELECT * FROM interview_stages WHERE id = ? AND job_id = ?").get(stageIdNum, jobId);
+  const existingStage = await queryOne<{ id: number }>("SELECT * FROM interview_stages WHERE id = $1 AND job_id = $2", [stageIdNum, jobId]);
   if (!existingStage) {
     return NextResponse.json({ error: "Stage not found" }, { status: 404 });
   }
 
-  db.prepare("DELETE FROM interview_stages WHERE id = ?").run(stageIdNum);
+  await execute("DELETE FROM interview_stages WHERE id = $1", [stageIdNum]);
 
   // Renumber remaining stages
-  const remainingStages = db.prepare(`
-    SELECT id FROM interview_stages WHERE job_id = ? ORDER BY stage_number ASC
-  `).all(jobId) as { id: number }[];
+  const remainingStages = await queryAll<{ id: number }>(`
+    SELECT id FROM interview_stages WHERE job_id = $1 ORDER BY stage_number ASC
+  `, [jobId]);
 
-  remainingStages.forEach((stage, index) => {
-    db.prepare("UPDATE interview_stages SET stage_number = ? WHERE id = ?").run(index + 1, stage.id);
-  });
+  for (let index = 0; index < remainingStages.length; index++) {
+    await execute("UPDATE interview_stages SET stage_number = $1 WHERE id = $2", [index + 1, remainingStages[index].id]);
+  }
 
   return NextResponse.json({ success: true });
 }

@@ -3,55 +3,20 @@
 import { useSession } from "next-auth/react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import TabsNav from "@/components/TabsNav";
-
-interface WorkExperience {
-  company: string;
-  title: string;
-  start_date: string;
-  end_date: string;
-  description: string[];
-}
-
-interface Education {
-  institution: string;
-  degree: string;
-  field: string;
-  graduation_date: string;
-}
-
-interface ContactInfo {
-  name: string;
-  email: string;
-  phone: string;
-  location: string;
-  linkedin: string;
-}
-
-interface Certification {
-  name: string;
-  issuer: string;
-  date: string;
-}
-
-interface Honor {
-  title: string;
-  issuer: string;
-  date: string;
-}
-
-interface ResumeData {
-  contact_info: ContactInfo;
-  work_experience: WorkExperience[];
-  education: Education[];
-  skills: string[];
-  certifications: Certification[];
-  languages: string[];
-  honors: Honor[];
-  profile_photo_path: string | null;
-  summary: string;
-  resume_style: string;
-  accent_color: string;
-}
+import { MasterResumeSkeleton } from "@/components/Skeleton";
+import ContactInfoSection from "@/components/master-resume/ContactInfoSection";
+import ProfessionalSummarySection from "@/components/master-resume/ProfessionalSummarySection";
+import TemplateStyleSelector from "@/components/master-resume/TemplateStyleSelector";
+import WorkExperienceSection from "@/components/master-resume/WorkExperienceSection";
+import EducationSection from "@/components/master-resume/EducationSection";
+import SkillsSection from "@/components/master-resume/SkillsSection";
+import CertificationsSection from "@/components/master-resume/CertificationsSection";
+import LanguagesSection from "@/components/master-resume/LanguagesSection";
+import HonorsSection from "@/components/master-resume/HonorsSection";
+import ProfilePhotoSection from "@/components/master-resume/ProfilePhotoSection";
+import LivePreviewPanel from "@/components/master-resume/LivePreviewPanel";
+import FullPreviewModal from "@/components/master-resume/FullPreviewModal";
+import type { ResumeData, ContactInfo, WorkExperience, Education, Certification, Honor } from "@/components/master-resume/types";
 
 const TEMPLATES = [
   { id: "executive", name: "Executive", description: "Traditional corporate style" },
@@ -436,7 +401,6 @@ export default function MasterResumePage() {
     }));
   };
 
-  // Certification handlers
   const addCertification = () => {
     setResumeData((prev) => ({
       ...prev,
@@ -460,7 +424,6 @@ export default function MasterResumePage() {
     }));
   };
 
-  // Language handlers
   const addLanguage = () => {
     if (newLanguage.trim() && !resumeData.languages.includes(newLanguage.trim())) {
       setResumeData((prev) => ({
@@ -478,7 +441,6 @@ export default function MasterResumePage() {
     }));
   };
 
-  // Honor handlers
   const addHonor = () => {
     setResumeData((prev) => ({
       ...prev,
@@ -502,7 +464,6 @@ export default function MasterResumePage() {
     }));
   };
 
-  // Photo handlers
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -555,8 +516,11 @@ export default function MasterResumePage() {
 
   if (status === "loading" || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-brand-gray">
-        <div className="text-lg text-gray-600">Loading...</div>
+      <div className="min-h-screen bg-brand-gray">
+        <TabsNav />
+        <div className="pt-14 md:pt-0 md:ml-64 p-4 md:p-8">
+          <MasterResumeSkeleton />
+        </div>
       </div>
     );
   }
@@ -621,774 +585,93 @@ export default function MasterResumePage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left side - Form */}
           <div className="space-y-6">
-
-        {/* Contact Information */}
-        <div className="bg-white rounded-xl shadow p-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">Contact Information</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">Name</label>
-              <input
-                type="text"
-                value={resumeData.contact_info.name}
-                onChange={(e) => updateContactInfo("name", e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue text-gray-900"
-                placeholder="John Doe"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">Email</label>
-              <input
-                type="email"
-                value={resumeData.contact_info.email}
-                onChange={(e) => updateContactInfo("email", e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue text-gray-900"
-                placeholder="john@example.com"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">Phone</label>
-              <input
-                type="tel"
-                value={resumeData.contact_info.phone}
-                onChange={(e) => updateContactInfo("phone", e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue text-gray-900"
-                placeholder="(555) 123-4567"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">Location</label>
-              <input
-                type="text"
-                value={resumeData.contact_info.location}
-                onChange={(e) => updateContactInfo("location", e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue text-gray-900"
-                placeholder="San Francisco, CA"
-              />
-            </div>
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-600 mb-1">LinkedIn URL</label>
-              <input
-                type="url"
-                value={resumeData.contact_info.linkedin}
-                onChange={(e) => updateContactInfo("linkedin", e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue text-gray-900"
-                placeholder="https://linkedin.com/in/johndoe"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Professional Summary */}
-        <div className="bg-white rounded-xl shadow p-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">Professional Summary</h2>
-          <textarea
-            value={resumeData.summary}
-            onChange={(e) => setResumeData(prev => ({ ...prev, summary: e.target.value }))}
-            rows={4}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue text-gray-900"
-            placeholder="Write a brief professional summary highlighting your key skills and experience..."
-          />
-          <p className="text-xs text-gray-500 mt-2">
-            This summary will be displayed at the top of your resume. It should be 2-4 sentences that highlight your expertise and career goals.
-          </p>
-        </div>
-
-        {/* Resume Template */}
-        <div className="bg-white rounded-xl shadow p-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">Resume Template</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {TEMPLATES.map(tmpl => (
-              <button
-                key={tmpl.id}
-                onClick={() => handleTemplateChange(tmpl.id)}
-                className={`p-3 rounded-lg border-2 transition-colors text-left ${
-                  selectedTemplate === tmpl.id
-                    ? "border-blue-500 bg-brand-blue-light"
-                    : "border-gray-200 hover:border-gray-300"
-                }`}
-              >
-                <div className="w-full h-16 bg-gray-100 rounded mb-2 flex items-center justify-center">
-                  <svg className="w-8 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                </div>
-                <p className="text-sm font-medium text-gray-700">{tmpl.name}</p>
-                <p className="text-xs text-gray-500">{tmpl.description}</p>
-              </button>
-            ))}
-          </div>
-
-          {/* Accent Color */}
-          <h3 className="text-sm font-semibold text-gray-700 mt-5 mb-3">Accent Color</h3>
-          <div className="flex gap-3">
-            {COLORS.map(color => (
-              <button
-                key={color.id}
-                onClick={() => handleColorChange(color.hex)}
-                className={`w-9 h-9 rounded-full border-2 transition-all ${
-                  selectedColor === color.hex
-                    ? "border-gray-800 scale-110 ring-2 ring-offset-2 ring-gray-300"
-                    : "border-gray-200 hover:scale-105"
-                }`}
-                style={{ backgroundColor: color.hex }}
-                title={color.name}
-              />
-            ))}
-          </div>
-
-          {/* Template Options */}
-          <h3 className="text-sm font-semibold text-gray-700 mt-5 mb-3">Options</h3>
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={showLanguages}
-              onChange={(e) => setShowLanguages(e.target.checked)}
-              className="w-4 h-4 text-brand-blue rounded border-gray-300 focus:ring-brand-blue"
+            <ContactInfoSection
+              contactInfo={resumeData.contact_info}
+              onUpdate={updateContactInfo}
             />
-            <span className="text-sm text-gray-700">Show languages section</span>
-          </label>
-        </div>
-
-        {/* Work Experience */}
-        <div className="bg-white rounded-xl shadow p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-800">Work Experience</h2>
-            <button
-              onClick={addWorkExperience}
-              className="text-brand-blue hover:text-brand-blue-dark text-sm font-medium flex items-center gap-1"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Add Position
-            </button>
-          </div>
-
-          {resumeData.work_experience.length === 0 ? (
-            <p className="text-gray-500 text-sm">No work experience added yet.</p>
-          ) : (
-            <div className="space-y-4">
-              {resumeData.work_experience.map((job, jobIndex) => (
-                <div key={jobIndex} className="border border-gray-200 rounded-lg overflow-hidden">
-                  {/* Job Header */}
-                  <div
-                    className="flex items-center justify-between p-4 bg-gray-50 cursor-pointer"
-                    onClick={() => toggleJobExpanded(jobIndex)}
-                  >
-                    <div className="flex-1">
-                      <p className="font-medium text-gray-900">
-                        {job.title || "Untitled Position"} {job.company && `at ${job.company}`}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        {job.start_date || "Start"} - {job.end_date || "Present"}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          removeWorkExperience(jobIndex);
-                        }}
-                        className="text-red-500 hover:text-red-700 p-1"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
-                      <svg
-                        className={`w-5 h-5 text-gray-400 transition-transform ${expandedJobs.has(jobIndex) ? "rotate-180" : ""}`}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </div>
-                  </div>
-
-                  {/* Job Details (Expanded) */}
-                  {expandedJobs.has(jobIndex) && (
-                    <div className="p-4 border-t border-gray-200 space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-600 mb-1">Job Title</label>
-                          <input
-                            type="text"
-                            value={job.title}
-                            onChange={(e) => updateWorkExperience(jobIndex, "title", e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue text-gray-900"
-                            placeholder="Software Engineer"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-600 mb-1">Company</label>
-                          <input
-                            type="text"
-                            value={job.company}
-                            onChange={(e) => updateWorkExperience(jobIndex, "company", e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue text-gray-900"
-                            placeholder="Acme Inc."
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-600 mb-1">Start Date</label>
-                          <input
-                            type="text"
-                            value={job.start_date}
-                            onChange={(e) => updateWorkExperience(jobIndex, "start_date", e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue text-gray-900"
-                            placeholder="Jan 2020"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-600 mb-1">End Date</label>
-                          <input
-                            type="text"
-                            value={job.end_date}
-                            onChange={(e) => updateWorkExperience(jobIndex, "end_date", e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue text-gray-900"
-                            placeholder="Present"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Bullet Points */}
-                      <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <label className="block text-sm font-medium text-gray-600">Achievements / Responsibilities</label>
-                          <button
-                            onClick={() => addBulletPoint(jobIndex)}
-                            className="text-brand-blue hover:text-brand-blue-dark text-sm font-medium"
-                          >
-                            + Add Bullet
-                          </button>
-                        </div>
-                        <div className="space-y-2">
-                          {job.description.map((bullet, bulletIndex) => (
-                            <div key={bulletIndex} className="flex gap-2">
-                              <span className="text-gray-400 mt-2">•</span>
-                              <input
-                                type="text"
-                                value={bullet}
-                                onChange={(e) => updateBulletPoint(jobIndex, bulletIndex, e.target.value)}
-                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue text-gray-900"
-                                placeholder="Describe an achievement or responsibility..."
-                              />
-                              <button
-                                onClick={() => removeBulletPoint(jobIndex, bulletIndex)}
-                                className="text-red-500 hover:text-red-700 p-2"
-                              >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                              </button>
-                            </div>
-                          ))}
-                          {job.description.length === 0 && (
-                            <p className="text-gray-400 text-sm">No bullet points added.</p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Education */}
-        <div className="bg-white rounded-xl shadow p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-800">Education</h2>
-            <button
-              onClick={addEducation}
-              className="text-brand-blue hover:text-brand-blue-dark text-sm font-medium flex items-center gap-1"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Add Education
-            </button>
-          </div>
-
-          {resumeData.education.length === 0 ? (
-            <p className="text-gray-500 text-sm">No education added yet.</p>
-          ) : (
-            <div className="space-y-4">
-              {resumeData.education.map((edu, index) => (
-                <div key={index} className="border border-gray-200 rounded-lg p-4">
-                  <div className="flex justify-between mb-3">
-                    <span className="text-sm font-medium text-gray-500">Education #{index + 1}</span>
-                    <button
-                      onClick={() => removeEducation(index)}
-                      className="text-red-500 hover:text-red-700"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-1">Institution</label>
-                      <input
-                        type="text"
-                        value={edu.institution}
-                        onChange={(e) => updateEducation(index, "institution", e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue text-gray-900"
-                        placeholder="University of California"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-1">Degree</label>
-                      <input
-                        type="text"
-                        value={edu.degree}
-                        onChange={(e) => updateEducation(index, "degree", e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue text-gray-900"
-                        placeholder="Bachelor of Science"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-1">Field of Study</label>
-                      <input
-                        type="text"
-                        value={edu.field}
-                        onChange={(e) => updateEducation(index, "field", e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue text-gray-900"
-                        placeholder="Computer Science"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-1">Graduation Date</label>
-                      <input
-                        type="text"
-                        value={edu.graduation_date}
-                        onChange={(e) => updateEducation(index, "graduation_date", e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue text-gray-900"
-                        placeholder="May 2020"
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Skills */}
-        <div className="bg-white rounded-xl shadow p-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">Skills</h2>
-
-          {/* Add Skill Input */}
-          <div className="flex gap-2 mb-4">
-            <input
-              type="text"
-              value={newSkill}
-              onChange={(e) => setNewSkill(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && addSkill()}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue text-gray-900"
-              placeholder="Add a skill..."
+            <ProfessionalSummarySection
+              summary={resumeData.summary}
+              onUpdate={(value) => setResumeData(prev => ({ ...prev, summary: value }))}
             />
-            <button
-              onClick={addSkill}
-              className="px-4 py-2 bg-brand-gold text-gray-900 rounded-lg hover:bg-brand-gold-dark transition-colors"
-            >
-              Add
-            </button>
-          </div>
-
-          {/* Skills Tags */}
-          {resumeData.skills.length === 0 ? (
-            <p className="text-gray-500 text-sm">No skills added yet.</p>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {resumeData.skills.map((skill, index) => (
-                <span
-                  key={index}
-                  className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-brand-blue rounded-full text-sm"
-                >
-                  {skill}
-                  <button
-                    onClick={() => removeSkill(skill)}
-                    className="hover:text-blue-900"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Certifications */}
-        <div className="bg-white rounded-xl shadow p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-800">Certifications</h2>
-            <button
-              onClick={addCertification}
-              className="text-brand-blue hover:text-brand-blue-dark text-sm font-medium flex items-center gap-1"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Add Certification
-            </button>
-          </div>
-
-          {resumeData.certifications.length === 0 ? (
-            <p className="text-gray-500 text-sm">No certifications added yet.</p>
-          ) : (
-            <div className="space-y-3">
-              {resumeData.certifications.map((cert, index) => (
-                <div key={index} className="border border-gray-200 rounded-lg p-4">
-                  <div className="flex justify-between mb-3">
-                    <span className="text-sm font-medium text-gray-500">Certification #{index + 1}</span>
-                    <button onClick={() => removeCertification(index)} className="text-red-500 hover:text-red-700">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-1">Name</label>
-                      <input
-                        type="text"
-                        value={cert.name}
-                        onChange={(e) => updateCertification(index, "name", e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue text-gray-900"
-                        placeholder="AWS Solutions Architect"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-1">Issuer</label>
-                      <input
-                        type="text"
-                        value={cert.issuer}
-                        onChange={(e) => updateCertification(index, "issuer", e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue text-gray-900"
-                        placeholder="Amazon Web Services"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-1">Date</label>
-                      <input
-                        type="text"
-                        value={cert.date}
-                        onChange={(e) => updateCertification(index, "date", e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue text-gray-900"
-                        placeholder="2023"
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Languages */}
-        <div className="bg-white rounded-xl shadow p-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">Languages</h2>
-
-          <div className="flex gap-2 mb-4">
-            <input
-              type="text"
-              value={newLanguage}
-              onChange={(e) => setNewLanguage(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && addLanguage()}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue text-gray-900"
-              placeholder="Add a language..."
+            <TemplateStyleSelector
+              templates={TEMPLATES}
+              colors={COLORS}
+              selectedTemplate={selectedTemplate}
+              selectedColor={selectedColor}
+              showLanguages={showLanguages}
+              onTemplateChange={handleTemplateChange}
+              onColorChange={handleColorChange}
+              onShowLanguagesChange={setShowLanguages}
             />
-            <button
-              onClick={addLanguage}
-              className="px-4 py-2 bg-brand-gold text-gray-900 rounded-lg hover:bg-brand-gold-dark transition-colors"
-            >
-              Add
-            </button>
+            <WorkExperienceSection
+              workExperience={resumeData.work_experience}
+              expandedJobs={expandedJobs}
+              onAdd={addWorkExperience}
+              onRemove={removeWorkExperience}
+              onUpdate={updateWorkExperience}
+              onToggleExpanded={toggleJobExpanded}
+              onAddBullet={addBulletPoint}
+              onUpdateBullet={updateBulletPoint}
+              onRemoveBullet={removeBulletPoint}
+            />
+            <EducationSection
+              education={resumeData.education}
+              onAdd={addEducation}
+              onRemove={removeEducation}
+              onUpdate={updateEducation}
+            />
+            <SkillsSection
+              skills={resumeData.skills}
+              newSkill={newSkill}
+              onNewSkillChange={setNewSkill}
+              onAdd={addSkill}
+              onRemove={removeSkill}
+            />
+            <CertificationsSection
+              certifications={resumeData.certifications}
+              onAdd={addCertification}
+              onRemove={removeCertification}
+              onUpdate={updateCertification}
+            />
+            <LanguagesSection
+              languages={resumeData.languages}
+              newLanguage={newLanguage}
+              onNewLanguageChange={setNewLanguage}
+              onAdd={addLanguage}
+              onRemove={removeLanguage}
+            />
+            <HonorsSection
+              honors={resumeData.honors}
+              onAdd={addHonor}
+              onRemove={removeHonor}
+              onUpdate={updateHonor}
+            />
+            <ProfilePhotoSection
+              profilePhotoPath={resumeData.profile_photo_path}
+              uploadingPhoto={uploadingPhoto}
+              onUpload={handlePhotoUpload}
+              onDelete={handlePhotoDelete}
+            />
           </div>
-
-          {resumeData.languages.length === 0 ? (
-            <p className="text-gray-500 text-sm">No languages added yet.</p>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {resumeData.languages.map((language, index) => (
-                <span
-                  key={index}
-                  className="inline-flex items-center gap-1 px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm"
-                >
-                  {language}
-                  <button onClick={() => removeLanguage(language)} className="hover:text-indigo-900">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Honors & Awards */}
-        <div className="bg-white rounded-xl shadow p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-800">Honors & Awards</h2>
-            <button
-              onClick={addHonor}
-              className="text-brand-blue hover:text-brand-blue-dark text-sm font-medium flex items-center gap-1"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Add Honor
-            </button>
-          </div>
-
-          {resumeData.honors.length === 0 ? (
-            <p className="text-gray-500 text-sm">No honors or awards added yet.</p>
-          ) : (
-            <div className="space-y-3">
-              {resumeData.honors.map((honor, index) => (
-                <div key={index} className="border border-gray-200 rounded-lg p-4">
-                  <div className="flex justify-between mb-3">
-                    <span className="text-sm font-medium text-gray-500">Honor #{index + 1}</span>
-                    <button onClick={() => removeHonor(index)} className="text-red-500 hover:text-red-700">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-1">Title</label>
-                      <input
-                        type="text"
-                        value={honor.title}
-                        onChange={(e) => updateHonor(index, "title", e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue text-gray-900"
-                        placeholder="Employee of the Year"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-1">Issuer</label>
-                      <input
-                        type="text"
-                        value={honor.issuer}
-                        onChange={(e) => updateHonor(index, "issuer", e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue text-gray-900"
-                        placeholder="Company Name"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-1">Date</label>
-                      <input
-                        type="text"
-                        value={honor.date}
-                        onChange={(e) => updateHonor(index, "date", e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue text-gray-900"
-                        placeholder="2023"
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Profile Photo */}
-        <div className="bg-white rounded-xl shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">Profile Photo</h2>
-          <p className="text-gray-500 text-sm mb-4">This photo is displayed in your dashboard only, not on generated resumes.</p>
-
-          <div className="flex items-center gap-6">
-            {resumeData.profile_photo_path ? (
-              <div className="relative">
-                <img
-                  src={resumeData.profile_photo_path}
-                  alt="Profile"
-                  className="w-24 h-24 rounded-full object-cover border-2 border-gray-200"
-                />
-                <button
-                  onClick={handlePhotoDelete}
-                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-            ) : (
-              <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center">
-                <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-              </div>
-            )}
-
-            <div>
-              <label className="cursor-pointer">
-                <span className="px-4 py-2 bg-brand-gold text-gray-900 rounded-lg hover:bg-brand-gold-dark transition-colors inline-block">
-                  {uploadingPhoto ? "Uploading..." : resumeData.profile_photo_path ? "Change Photo" : "Upload Photo"}
-                </span>
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  onChange={handlePhotoUpload}
-                  disabled={uploadingPhoto}
-                  className="hidden"
-                />
-              </label>
-              <p className="text-xs text-gray-400 mt-2">JPEG, PNG, or WebP. Max 5MB.</p>
-            </div>
-          </div>
-        </div>
-
-          </div>
-          {/* End of Left side - Form */}
 
           {/* Right side - Live Preview */}
-          <div className="lg:sticky lg:top-8 h-fit">
-            <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-              <div className="bg-gray-100 px-4 py-2 border-b flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-700">Live Preview</span>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setPreviewScale(Math.max(0.3, previewScale - 0.1))}
-                    className="p-1 hover:bg-gray-200 rounded text-gray-600"
-                    title="Zoom out"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
-                    </svg>
-                  </button>
-                  <span className="text-xs text-gray-500 w-12 text-center">{Math.round(previewScale * 100)}%</span>
-                  <button
-                    onClick={() => setPreviewScale(Math.min(1, previewScale + 0.1))}
-                    className="p-1 hover:bg-gray-200 rounded text-gray-600"
-                    title="Zoom in"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-
-              <div className="overflow-auto p-4 bg-gray-100" style={{ maxHeight: "calc(100vh - 180px)" }}>
-                <div className="flex justify-center">
-                  {loadingPreview && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 z-10">
-                      <div className="animate-spin w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full" />
-                    </div>
-                  )}
-                  {previewHtml ? (
-                    <div
-                      className="shadow-lg bg-white relative"
-                      style={{
-                        width: `${8.5 * previewScale}in`,
-                        height: `${11 * previewScale}in`,
-                        overflow: "hidden",
-                      }}
-                    >
-                      <iframe
-                        srcDoc={previewHtml}
-                        title="Resume Preview"
-                        style={{
-                          width: "8.5in",
-                          height: "11in",
-                          transform: `scale(${previewScale})`,
-                          transformOrigin: "top left",
-                          border: "none",
-                          background: "white",
-                          position: "absolute",
-                          top: 0,
-                          left: 0,
-                        }}
-                      />
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-center h-64 text-gray-400">
-                      <p>Add content to preview your resume</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-          {/* End of Right side - Live Preview */}
+          <LivePreviewPanel
+            previewHtml={previewHtml}
+            previewScale={previewScale}
+            loadingPreview={loadingPreview}
+            onScaleChange={setPreviewScale}
+          />
         </div>
-        {/* End of grid */}
-
       </div>
 
       {/* Full Preview Modal */}
       {showFullPreview && (
-        <div className="fixed inset-0 z-50 bg-black bg-opacity-75 flex items-start justify-center overflow-auto py-8">
-          {/* Close and Download bar */}
-          <div className="fixed top-0 left-0 right-0 z-60 bg-gray-900 bg-opacity-90 px-6 py-3 flex items-center justify-between">
-            <span className="text-white font-medium">Resume Preview</span>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={handleDownloadPdf}
-                disabled={downloadingPdf}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
-              >
-                {downloadingPdf ? (
-                  <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
-                ) : (
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                )}
-                {downloadingPdf ? "Generating..." : "Download PDF"}
-              </button>
-              <button
-                onClick={() => setShowFullPreview(false)}
-                className="flex items-center gap-1 px-4 py-2 bg-gray-700 text-white rounded-lg font-medium hover:bg-gray-600 transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-                Close
-              </button>
-            </div>
-          </div>
-
-          {/* Resume at full scale */}
-          <div className="mt-16">
-            {previewHtml ? (
-              <div
-                className="bg-white shadow-2xl"
-                style={{
-                  width: `${8.5 * 96}px`,
-                  height: `${11 * 96}px`,
-                  overflow: "hidden",
-                }}
-              >
-                <iframe
-                  srcDoc={previewHtml}
-                  title="Resume Full Preview"
-                  style={{
-                    width: `${8.5 * 96}px`,
-                    height: `${11 * 96}px`,
-                    border: "none",
-                    background: "white",
-                  }}
-                />
-              </div>
-            ) : (
-              <div className="flex items-center justify-center h-96 text-white">
-                <div className="animate-spin w-8 h-8 border-4 border-white border-t-transparent rounded-full" />
-              </div>
-            )}
-          </div>
-        </div>
+        <FullPreviewModal
+          previewHtml={previewHtml}
+          downloadingPdf={downloadingPdf}
+          onDownloadPdf={handleDownloadPdf}
+          onClose={() => setShowFullPreview(false)}
+        />
       )}
     </div>
   );

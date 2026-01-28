@@ -3,6 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useState, useEffect, useCallback } from "react";
 import TabsNav from "@/components/TabsNav";
+import { ExtensionSkeleton } from "@/components/Skeleton";
 
 export default function ExtensionPage() {
   const { data: session, status } = useSession();
@@ -76,8 +77,11 @@ export default function ExtensionPage() {
 
   if (status === "loading") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-brand-gray">
-        <div className="text-lg text-gray-600">Loading...</div>
+      <div className="min-h-screen bg-brand-gray">
+        <TabsNav />
+        <div className="pt-14 md:pt-0 md:ml-64 p-4 md:p-8">
+          <ExtensionSkeleton />
+        </div>
       </div>
     );
   }

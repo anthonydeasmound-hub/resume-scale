@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import db, { InterviewGuide } from "@/lib/db";
+import { queryOne, InterviewGuide } from "@/lib/db";
 import { generateInterviewGuidePDF } from "@/lib/pdf-generator-puppeteer";
 
 // GET - Download interview guide as PDF
@@ -19,21 +19,21 @@ export async function GET(
     const { id } = await params;
     const jobId = parseInt(id);
 
-    const user = db.prepare("SELECT id FROM users WHERE email = ?").get(session.user.email) as { id: number } | undefined;
+    const user = await queryOne<{ id: number }>("SELECT id FROM users WHERE email = $1", [session.user.email]);
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const job = db.prepare(`
-      SELECT company_name, job_title, interview_guide, resume_color
-      FROM job_applications WHERE id = ? AND user_id = ?
-    `).get(jobId, user.id) as {
+    const job = await queryOne<{
       company_name: string;
       job_title: string;
       interview_guide: string | null;
       resume_color: string;
-    } | undefined;
+    }>(`
+      SELECT company_name, job_title, interview_guide, resume_color
+      FROM job_applications WHERE id = $1 AND user_id = $2
+    `, [jobId, user.id]);
 
     if (!job) {
       return NextResponse.json({ error: "Job not found" }, { status: 404 });

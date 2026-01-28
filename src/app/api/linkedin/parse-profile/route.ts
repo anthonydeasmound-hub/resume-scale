@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import db from "@/lib/db";
+import { queryOne, execute } from "@/lib/db";
 
 // CORS headers for Chrome extension
 const corsHeaders = {
@@ -15,7 +15,7 @@ export async function OPTIONS() {
   return NextResponse.json({}, { headers: corsHeaders });
 }
 
-function getUserFromToken(request: NextRequest): { id: number; email: string } | null {
+async function getUserFromToken(request: NextRequest): Promise<{ id: number; email: string } | null> {
   const authHeader = request.headers.get("authorization");
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -24,9 +24,10 @@ function getUserFromToken(request: NextRequest): { id: number; email: string } |
 
   const token = authHeader.substring(7);
 
-  const tokenRecord = db.prepare(
-    "SELECT et.user_id, u.email FROM extension_tokens et JOIN users u ON et.user_id = u.id WHERE et.token = ? AND (et.expires_at IS NULL OR et.expires_at > datetime('now'))"
-  ).get(token) as { user_id: number; email: string } | undefined;
+  const tokenRecord = await queryOne<{ user_id: number; email: string }>(
+    "SELECT et.user_id, u.email FROM extension_tokens et JOIN users u ON et.user_id = u.id WHERE et.token = $1 AND (et.expires_at IS NULL OR et.expires_at > NOW())",
+    [token]
+  );
 
   if (!tokenRecord) {
     return null;
@@ -36,7 +37,7 @@ function getUserFromToken(request: NextRequest): { id: number; email: string } |
 }
 
 export async function POST(request: NextRequest) {
-  const user = getUserFromToken(request);
+  const user = await getUserFromToken(request);
 
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: corsHeaders });
@@ -130,10 +131,11 @@ export async function POST(request: NextRequest) {
     }));
 
     // Store the import data temporarily
-    db.prepare(`
-      INSERT OR REPLACE INTO linkedin_imports (user_id, profile_data, status)
-      VALUES (?, ?, 'pending')
-    `).run(user.id, JSON.stringify({
+    await execute(`
+      INSERT INTO linkedin_imports (user_id, profile_data, status)
+      VALUES ($1, $2, 'pending')
+      ON CONFLICT (user_id) DO UPDATE SET profile_data = $2, status = 'pending'
+    `, [user.id, JSON.stringify({
       contact_info: contactInfo,
       work_experience: workExperience,
       education: educationData,
@@ -143,7 +145,7 @@ export async function POST(request: NextRequest) {
       honors: honorsData,
       profile_picture_url: profile_picture_url || "",
       about: about || "",
-    }));
+    })]);
 
     return NextResponse.json({
       success: true,
@@ -169,7 +171,7 @@ export async function GET(request: NextRequest) {
   console.log("[LinkedIn API] GET request received");
 
   // Try token auth first (for extension)
-  let user = getUserFromToken(request);
+  let user = await getUserFromToken(request);
   console.log("[LinkedIn API] Token auth result:", user ? "found" : "not found");
 
   // Fall back to session auth (for web app)
@@ -178,7 +180,7 @@ export async function GET(request: NextRequest) {
     const session = await getServerSession(authOptions);
     console.log("[LinkedIn API] Session:", session?.user?.email || "no session");
     if (session?.user?.email) {
-      const dbUser = db.prepare("SELECT id, email FROM users WHERE email = ?").get(session.user.email) as { id: number; email: string } | undefined;
+      const dbUser = await queryOne<{ id: number; email: string }>("SELECT id, email FROM users WHERE email = $1", [session.user.email]);
       console.log("[LinkedIn API] DB user:", dbUser ? "found" : "not found");
       if (dbUser) {
         user = { id: dbUser.id, email: dbUser.email };
@@ -193,9 +195,10 @@ export async function GET(request: NextRequest) {
 
   console.log("[LinkedIn API] User authenticated:", user.email);
 
-  const importData = db.prepare(
-    "SELECT profile_data FROM linkedin_imports WHERE user_id = ? AND status = 'pending' ORDER BY created_at DESC LIMIT 1"
-  ).get(user.id) as { profile_data: string } | undefined;
+  const importData = await queryOne<{ profile_data: string }>(
+    "SELECT profile_data FROM linkedin_imports WHERE user_id = $1 AND status = 'pending' ORDER BY created_at DESC LIMIT 1",
+    [user.id]
+  );
 
   if (!importData) {
     console.log("[LinkedIn API] No pending import found");

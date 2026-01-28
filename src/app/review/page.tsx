@@ -8,78 +8,16 @@ import TabsNav from "@/components/TabsNav";
 import JobAnalysisPanel from "@/components/review/JobAnalysisPanel";
 import ATSScoreCard from "@/components/review/ATSScoreCard";
 import { ATSScore } from "@/lib/ats-scorer";
-
-interface Job {
-  id: number;
-  company_name: string;
-  job_title: string;
-  job_description: string;
-  tailored_resume: string | null;
-  cover_letter: string | null;
-  resume_style: string;
-  resume_color: string;
-  status: string;
-  reviewed: boolean;
-  created_at: string;
-  job_details_parsed: string | null;
-}
-
-interface JobDetailsParsed {
-  responsibilities: string[];
-  requirements: string[];
-  qualifications: string[];
-  benefits: string[];
-  salary_range: string | null;
-  location: string | null;
-  work_type: string | null;
-}
-
-interface ContactInfo {
-  name: string;
-  email: string;
-  phone: string;
-  location: string;
-  linkedin?: string;
-}
-
-interface WorkExperience {
-  company: string;
-  title: string;
-  start_date: string;
-  end_date: string;
-  description: string[];
-}
-
-interface Education {
-  institution: string;
-  degree: string;
-  field: string;
-  graduation_date: string;
-}
-
-interface MasterResume {
-  contact_info: ContactInfo;
-  work_experience: WorkExperience[];
-  skills: string[];
-  education: Education[];
-}
-
-interface TailoredResume {
-  contact_info: ContactInfo;
-  summary: string;
-  work_experience: WorkExperience[];
-  skills: string[];
-  education: Education[];
-}
-
-interface SelectedRole {
-  roleIndex: number;
-  selectedBullets: number[];
-  masterBullets: string[];  // Original bullets from master resume
-  aiBullets: string[];      // AI-generated alternatives
-  bulletOptions: string[];  // Combined: master first, then AI
-  loadingBullets: boolean;
-}
+import { ReviewSkeleton } from "@/components/Skeleton";
+import { Job, MasterResume, TailoredResume, SelectedRole, ResumeReviewResult } from "@/components/review/types";
+import JobSelectionList from "@/components/review/JobSelectionList";
+import SummarySection from "@/components/review/SummarySection";
+import WorkExperienceSection from "@/components/review/WorkExperienceSection";
+import SkillsSection from "@/components/review/SkillsSection";
+import ResumeQualityPanel from "@/components/review/ResumeQualityPanel";
+import JobDetailsSidebar from "@/components/review/JobDetailsSidebar";
+import CoverLetterPreview from "@/components/review/CoverLetterPreview";
+import ResumePreviewPane from "@/components/review/ResumePreviewPane";
 
 const COLOR_OPTIONS = [
   { id: "blue", name: "Navy Blue", hex: "#3D5A80" },
@@ -145,24 +83,6 @@ function ReviewContent() {
   const [loadingPreview, setLoadingPreview] = useState(false);
 
   // Resume Review Score
-  interface ResumeReviewResult {
-    overallScore: number;
-    categoryScores: {
-      impact: number;
-      metrics: number;
-      actionVerbs: number;
-      relevance: number;
-      clarity: number;
-    };
-    strengths: string[];
-    improvements: string[];
-    bulletFeedback: {
-      bullet: string;
-      score: number;
-      feedback: string;
-      suggestion?: string;
-    }[];
-  }
   const [reviewScore, setReviewScore] = useState<ResumeReviewResult | null>(null);
   const [loadingReview, setLoadingReview] = useState(false);
   const [showReviewPanel, setShowReviewPanel] = useState(false);
@@ -961,8 +881,11 @@ function ReviewContent() {
 
   if (status === "loading" || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-brand-gray">
-        <div className="text-lg text-gray-600">Loading...</div>
+      <div className="min-h-screen bg-brand-gray">
+        <TabsNav />
+        <div className="pt-14 md:pt-0 md:ml-64 p-4 md:p-8">
+          <ReviewSkeleton />
+        </div>
       </div>
     );
   }
@@ -973,37 +896,10 @@ function ReviewContent() {
 
       <div className="pt-14 md:pt-0 md:ml-64 p-4 md:p-8">
         {!selectedJob ? (
-          <>
-            <h1 className="text-2xl font-bold text-gray-900 mb-6">
-              Review ({jobs.length} pending)
-            </h1>
-
-            {jobs.length === 0 ? (
-              <div className="bg-white rounded-xl shadow-lg p-8 text-center text-gray-500">
-                No jobs to review. Add a job from the Dashboard.
-              </div>
-            ) : (
-              <div className="grid gap-4">
-                {jobs.map((job) => (
-                  <div
-                    key={job.id}
-                    onClick={() => router.push(`/review?job=${job.id}`)}
-                    className="bg-white rounded-xl shadow p-4 cursor-pointer hover:shadow-lg transition-shadow"
-                  >
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <h3 className="font-semibold text-gray-900">{job.job_title}</h3>
-                        <p className="text-gray-600">{job.company_name}</p>
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {new Date(job.created_at).toLocaleDateString()}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </>
+          <JobSelectionList
+            jobs={jobs}
+            onSelectJob={(jobId) => router.push(`/review?job=${jobId}`)}
+          />
         ) : (
           <>
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
@@ -1079,526 +975,60 @@ function ReviewContent() {
 
                 {activeTab === "resume" && (
                   <>
-                    {/* Summary Accordion */}
-                    <div className="bg-white rounded-xl shadow overflow-hidden">
-                      <button
-                        onClick={() => toggleSection("summary")}
-                        className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-medium ${
-                            selectedSummaryIndex !== null ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
-                          }`}>
-                            {selectedSummaryIndex !== null ? "✓" : "1"}
-                          </div>
-                          <span className="font-medium text-gray-900">Summary</span>
-                        </div>
-                        <svg
-                          className={`w-5 h-5 text-gray-500 transition-transform ${expandedSection === "summary" ? "rotate-180" : ""}`}
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </button>
+                    <SummarySection
+                      expandedSection={expandedSection}
+                      toggleSection={toggleSection}
+                      loadingSummaries={loadingSummaries}
+                      summaryOptions={summaryOptions}
+                      selectedSummaryIndex={selectedSummaryIndex}
+                      editingSummary={editingSummary}
+                      editedSummaryText={editedSummaryText}
+                      onSetEditingSummary={setEditingSummary}
+                      onSetEditedSummaryText={setEditedSummaryText}
+                      onSaveSummaryEdit={setSummaryOptions}
+                      onSelectSummary={selectSummary}
+                    />
 
-                      {expandedSection === "summary" && (
-                        <div className="px-4 pb-4 border-t">
-                          {loadingSummaries ? (
-                            <div className="py-8 text-center">
-                              <div className="animate-spin w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-2" />
-                              <p className="text-sm text-gray-500">Generating summary options...</p>
-                            </div>
-                          ) : (
-                            <div className="pt-3">
-                              {/* Selected Summary at top - Editable */}
-                              {selectedSummaryIndex !== null && summaryOptions[selectedSummaryIndex] && (
-                                <div className="mb-4">
-                                  <div className="flex items-center justify-between mb-2">
-                                    <p className="text-xs font-medium text-gray-600">Selected:</p>
-                                    {!editingSummary && (
-                                      <button
-                                        onClick={() => {
-                                          setEditingSummary(true);
-                                          setEditedSummaryText(summaryOptions[selectedSummaryIndex]);
-                                        }}
-                                        className="text-xs text-brand-blue hover:text-blue-800"
-                                      >
-                                        Edit
-                                      </button>
-                                    )}
-                                  </div>
-                                  {editingSummary ? (
-                                    <div className="space-y-2">
-                                      <textarea
-                                        value={editedSummaryText}
-                                        onChange={(e) => setEditedSummaryText(e.target.value)}
-                                        className="w-full p-3 rounded-lg border-2 border-blue-500 bg-white text-sm text-gray-700 resize-none focus:outline-none focus:ring-2 focus:ring-blue-300"
-                                        rows={4}
-                                        autoFocus
-                                      />
-                                      <div className="flex gap-2 justify-end">
-                                        <button
-                                          onClick={() => {
-                                            setEditingSummary(false);
-                                            setEditedSummaryText("");
-                                          }}
-                                          className="px-3 py-1 text-xs text-gray-600 hover:text-gray-800"
-                                        >
-                                          Cancel
-                                        </button>
-                                        <button
-                                          onClick={() => {
-                                            const newOptions = [...summaryOptions];
-                                            newOptions[selectedSummaryIndex] = editedSummaryText;
-                                            setSummaryOptions(newOptions);
-                                            setEditingSummary(false);
-                                            setEditedSummaryText("");
-                                          }}
-                                          className="px-3 py-1 text-xs bg-brand-gold text-gray-900 rounded hover:bg-brand-gold-dark"
-                                        >
-                                          Save
-                                        </button>
-                                      </div>
-                                    </div>
-                                  ) : (
-                                    <div
-                                      onClick={() => {
-                                        setEditingSummary(true);
-                                        setEditedSummaryText(summaryOptions[selectedSummaryIndex]);
-                                      }}
-                                      className="p-3 rounded-lg border-2 border-blue-500 bg-brand-blue-light cursor-pointer hover:bg-blue-100 transition-colors"
-                                    >
-                                      <p className="text-sm text-gray-700">{summaryOptions[selectedSummaryIndex]}</p>
-                                    </div>
-                                  )}
-                                </div>
-                              )}
+                    {masterResume && (
+                      <WorkExperienceSection
+                        expandedSection={expandedSection}
+                        toggleSection={toggleSection}
+                        masterResume={masterResume}
+                        selectedRoles={selectedRoles}
+                        totalSelectedBullets={totalSelectedBullets}
+                        maxTotalBullets={MAX_TOTAL_BULLETS}
+                        initialSuggestionsShown={INITIAL_SUGGESTIONS_SHOWN}
+                        expandedBulletOptions={expandedBulletOptions}
+                        editingBulletKey={editingBulletKey}
+                        editingBulletText={editingBulletText}
+                        editedBullets={editedBullets}
+                        draggedBullet={draggedBullet}
+                        dragOverIndex={dragOverIndex}
+                        getBulletText={getBulletText}
+                        onToggleBullet={toggleBullet}
+                        onStartEditingBullet={startEditingBullet}
+                        onSaveEditedBullet={saveEditedBullet}
+                        onCancelEditingBullet={cancelEditingBullet}
+                        onSetEditingBulletText={setEditingBulletText}
+                        onSetExpandedBulletOptions={setExpandedBulletOptions}
+                        onDragStart={handleDragStart}
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
+                        onDrop={handleDrop}
+                        onDragEnd={handleDragEnd}
+                      />
+                    )}
 
-                              {/* Alternative summaries below */}
-                              {summaryOptions.filter((_, idx) => idx !== selectedSummaryIndex).length > 0 && (
-                                <div>
-                                  <p className="text-xs font-medium text-purple-600 mb-2">AI Alternatives (click to select):</p>
-                                  <div className="space-y-2">
-                                    {summaryOptions.map((summary, idx) => {
-                                      if (idx === selectedSummaryIndex) return null;
-                                      return (
-                                        <div
-                                          key={idx}
-                                          onClick={() => selectSummary(idx)}
-                                          className="p-3 rounded-lg border border-gray-200 hover:border-purple-300 cursor-pointer transition-colors"
-                                        >
-                                          <p className="text-sm text-gray-700">{summary}</p>
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Work Experience Accordion */}
-                    <div className="bg-white rounded-xl shadow overflow-hidden">
-                      <button
-                        onClick={() => toggleSection("experience")}
-                        className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-medium ${
-                            selectedRoles.length > 0 ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
-                          }`}>
-                            {selectedRoles.length > 0 ? "✓" : "2"}
-                          </div>
-                          <span className="font-medium text-gray-900">Work Experience</span>
-                          {selectedRoles.length > 0 && (
-                            <span className="text-sm text-gray-500">({selectedRoles.length} role{selectedRoles.length > 1 ? "s" : ""} selected)</span>
-                          )}
-                        </div>
-                        <svg
-                          className={`w-5 h-5 text-gray-500 transition-transform ${expandedSection === "experience" ? "rotate-180" : ""}`}
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </button>
-
-                      {expandedSection === "experience" && masterResume && (
-                        <div className="px-4 pb-4 border-t">
-                          <p className="text-sm text-gray-600 py-3">
-                            Select bullets for your resume ({totalSelectedBullets}/{MAX_TOTAL_BULLETS} selected):
-                          </p>
-
-                          <div className="space-y-3">
-                            {selectedRoles.length === 0 ? (
-                              <div className="py-8 text-center">
-                                <div className="animate-spin w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-2" />
-                                <p className="text-sm text-gray-500">Generating bullet options for your roles...</p>
-                              </div>
-                            ) : (
-                              selectedRoles.map((selectedRole) => {
-                                const role = masterResume.work_experience[selectedRole.roleIndex];
-                                if (!role) return null;
-
-                                // Get selected bullets text
-                                const selectedBulletTexts = selectedRole.selectedBullets.map(idx => selectedRole.bulletOptions[idx]);
-                                // Get unselected bullets (AI alternatives not yet selected)
-                                const unselectedBullets = selectedRole.bulletOptions
-                                  .map((bullet, idx) => ({ bullet, idx }))
-                                  .filter(({ idx }) => !selectedRole.selectedBullets.includes(idx));
-
-                                return (
-                                  <div key={selectedRole.roleIndex} className="rounded-lg border border-blue-500">
-                                    <div className="px-3 py-2 bg-brand-blue-light border-b border-brand-blue">
-                                      <div className="font-medium text-gray-900">{role.title}</div>
-                                      <div className="text-sm text-gray-500">{role.company} | {role.start_date} - {role.end_date}</div>
-                                    </div>
-
-                                    <div className="px-3 pb-3 bg-gray-50">
-                                      {selectedRole.loadingBullets ? (
-                                        <div className="py-4 text-center">
-                                          <div className="animate-spin w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-2" />
-                                          <p className="text-xs text-gray-500">Loading AI alternatives...</p>
-                                        </div>
-                                      ) : (
-                                        <div className="pt-3">
-                                          {/* Selected bullets at top */}
-                                          <div className="mb-3">
-                                            <p className="text-xs font-medium text-gray-600 mb-2">
-                                              Selected ({selectedRole.selectedBullets.length}) - drag to reorder, click edit to modify:
-                                            </p>
-                                            <div className="space-y-2">
-                                              {selectedRole.selectedBullets.length === 0 ? (
-                                                <p className="text-xs text-gray-400 italic">No bullets selected yet</p>
-                                              ) : (
-                                                selectedRole.selectedBullets.map((bulletIdx, selectedIndex) => {
-                                                  const bulletText = getBulletText(selectedRole.roleIndex, bulletIdx, selectedRole.bulletOptions);
-                                                  const isFromMaster = bulletIdx < selectedRole.masterBullets.length;
-                                                  const editKey = `${selectedRole.roleIndex}-${bulletIdx}`;
-                                                  const isEditing = editingBulletKey === editKey;
-                                                  const isEdited = editedBullets[editKey] !== undefined;
-                                                  const isDragging = draggedBullet?.roleIndex === selectedRole.roleIndex && draggedBullet?.selectedIndex === selectedIndex;
-                                                  const isDragOver = draggedBullet?.roleIndex === selectedRole.roleIndex && dragOverIndex === selectedIndex;
-
-                                                  return (
-                                                    <div
-                                                      key={bulletIdx}
-                                                      draggable={!isEditing}
-                                                      onDragStart={() => handleDragStart(selectedRole.roleIndex, selectedIndex)}
-                                                      onDragOver={(e) => handleDragOver(e, selectedIndex)}
-                                                      onDragLeave={handleDragLeave}
-                                                      onDrop={(e) => handleDrop(e, selectedRole.roleIndex, selectedIndex)}
-                                                      onDragEnd={handleDragEnd}
-                                                      className={`p-2 rounded border-2 text-sm transition-all ${
-                                                        isFromMaster ? "border-blue-400 bg-brand-blue-light" : "border-purple-400 bg-purple-50"
-                                                      } ${isEdited ? "ring-2 ring-green-300" : ""} ${
-                                                        isDragging ? "opacity-50 scale-95" : ""
-                                                      } ${isDragOver ? "border-dashed border-gray-500 bg-gray-100" : ""}`}
-                                                    >
-                                                      {isEditing ? (
-                                                        /* Editing mode */
-                                                        <div className="space-y-2">
-                                                          <textarea
-                                                            value={editingBulletText}
-                                                            onChange={(e) => setEditingBulletText(e.target.value)}
-                                                            className="w-full p-2 border rounded text-sm resize-none"
-                                                            rows={3}
-                                                            autoFocus
-                                                          />
-                                                          <div className="flex justify-end gap-2">
-                                                            <button
-                                                              onClick={cancelEditingBullet}
-                                                              className="px-2 py-1 text-xs text-gray-600 hover:bg-gray-200 rounded"
-                                                            >
-                                                              Cancel
-                                                            </button>
-                                                            <button
-                                                              onClick={saveEditedBullet}
-                                                              className="px-2 py-1 text-xs bg-brand-gold text-gray-900 rounded hover:bg-brand-gold-dark"
-                                                            >
-                                                              Save
-                                                            </button>
-                                                          </div>
-                                                        </div>
-                                                      ) : (
-                                                        /* Display mode */
-                                                        <div className="flex items-start gap-2">
-                                                          {/* Drag handle */}
-                                                          <div
-                                                            className="flex-shrink-0 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 mt-0.5"
-                                                            title="Drag to reorder"
-                                                          >
-                                                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                                              <path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-8a2 2 0 1 0-.001-4.001A2 2 0 0 0 13 6zm0 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z" />
-                                                            </svg>
-                                                          </div>
-                                                          {/* Checkbox */}
-                                                          <div
-                                                            onClick={() => toggleBullet(selectedRole.roleIndex, bulletIdx)}
-                                                            className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 mt-0.5 cursor-pointer ${
-                                                              isFromMaster ? "bg-brand-blue-light0" : "bg-purple-500"
-                                                            }`}
-                                                            title="Click to remove"
-                                                          >
-                                                            <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                                            </svg>
-                                                          </div>
-                                                          {/* Bullet text */}
-                                                          <span className="text-gray-700 flex-1">{bulletText}</span>
-                                                          {/* Labels and edit button */}
-                                                          <div className="flex items-center gap-1 flex-shrink-0">
-                                                            {isEdited && (
-                                                              <span className="text-xs px-1.5 py-0.5 rounded bg-green-100 text-green-600">
-                                                                Edited
-                                                              </span>
-                                                            )}
-                                                            <span className={`text-xs px-1.5 py-0.5 rounded ${isFromMaster ? "bg-blue-100 text-brand-blue" : "bg-purple-100 text-purple-600"}`}>
-                                                              {isFromMaster ? "Resume" : "AI"}
-                                                            </span>
-                                                            <button
-                                                              onClick={(e) => { e.stopPropagation(); startEditingBullet(selectedRole.roleIndex, bulletIdx, bulletText); }}
-                                                              className="p-1 text-gray-500 hover:text-brand-blue hover:bg-brand-blue-light rounded"
-                                                              title="Edit bullet"
-                                                            >
-                                                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                                              </svg>
-                                                            </button>
-                                                          </div>
-                                                        </div>
-                                                      )}
-                                                    </div>
-                                                  );
-                                                })
-                                              )}
-                                            </div>
-                                          </div>
-
-                                          {/* Unselected bullets below */}
-                                          {unselectedBullets.length > 0 && (
-                                            <div>
-                                              {(() => {
-                                                const isMaxReached = totalSelectedBullets >= MAX_TOTAL_BULLETS;
-                                                const isExpanded = expandedBulletOptions[selectedRole.roleIndex];
-                                                const bulletsToShow = isExpanded
-                                                  ? unselectedBullets
-                                                  : unselectedBullets.slice(0, INITIAL_SUGGESTIONS_SHOWN);
-                                                const hasMoreOptions = unselectedBullets.length > INITIAL_SUGGESTIONS_SHOWN;
-
-                                                return (
-                                                  <>
-                                                    <p className="text-xs font-medium text-purple-600 mb-2">
-                                                      Available options - click to add:
-                                                    </p>
-                                                    {isMaxReached && (
-                                                      <p className="text-xs text-amber-600 mb-2">
-                                                        Maximum {MAX_TOTAL_BULLETS} bullets reached - remove one to add more
-                                                      </p>
-                                                    )}
-                                                    <div className="space-y-2">
-                                                      {bulletsToShow.map(({ bullet, idx }) => {
-                                                        const isFromMaster = idx < selectedRole.masterBullets.length;
-                                                        return (
-                                                          <div
-                                                            key={idx}
-                                                            onClick={() => !isMaxReached && toggleBullet(selectedRole.roleIndex, idx)}
-                                                            className={`p-2 rounded border cursor-pointer text-sm transition-colors ${
-                                                              isMaxReached
-                                                                ? "border-gray-200 bg-gray-100 opacity-50 cursor-not-allowed"
-                                                                : "border-gray-200 hover:border-purple-300 hover:bg-purple-50"
-                                                            }`}
-                                                          >
-                                                            <div className="flex items-start gap-2">
-                                                              <div className="w-4 h-4 rounded border border-gray-300 flex-shrink-0 mt-0.5" />
-                                                              <span className="text-gray-700 flex-1">{bullet}</span>
-                                                              <span className={`text-xs px-1.5 py-0.5 rounded ${isFromMaster ? "bg-gray-100 text-gray-500" : "bg-purple-50 text-purple-500"}`}>
-                                                                {isFromMaster ? "Resume" : "AI"}
-                                                              </span>
-                                                            </div>
-                                                          </div>
-                                                        );
-                                                      })}
-                                                    </div>
-                                                    {hasMoreOptions && !isExpanded && (
-                                                      <button
-                                                        onClick={() => setExpandedBulletOptions(prev => ({ ...prev, [selectedRole.roleIndex]: true }))}
-                                                        className="w-full py-2 mt-2 text-sm text-purple-600 hover:text-purple-700 flex items-center justify-center gap-1"
-                                                      >
-                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                                        </svg>
-                                                        Load more options ({unselectedBullets.length - INITIAL_SUGGESTIONS_SHOWN} more)
-                                                      </button>
-                                                    )}
-                                                    {isExpanded && hasMoreOptions && (
-                                                      <button
-                                                        onClick={() => setExpandedBulletOptions(prev => ({ ...prev, [selectedRole.roleIndex]: false }))}
-                                                        className="w-full py-2 mt-2 text-sm text-gray-500 hover:text-gray-600 flex items-center justify-center gap-1"
-                                                      >
-                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                                                        </svg>
-                                                        Show less
-                                                      </button>
-                                                    )}
-                                                  </>
-                                                );
-                                              })()}
-                                            </div>
-                                          )}
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                );
-                              })
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Skills Accordion */}
-                    <div className="bg-white rounded-xl shadow overflow-hidden">
-                      <button
-                        onClick={() => toggleSection("skills")}
-                        className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-medium ${
-                            selectedSkills.length > 0 ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
-                          }`}>
-                            {selectedSkills.length > 0 ? "✓" : "3"}
-                          </div>
-                          <span className="font-medium text-gray-900">Skills</span>
-                          {selectedSkills.length > 0 && (
-                            <span className="text-sm text-gray-500">({selectedSkills.length} selected)</span>
-                          )}
-                        </div>
-                        <svg
-                          className={`w-5 h-5 text-gray-500 transition-transform ${expandedSection === "skills" ? "rotate-180" : ""}`}
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </button>
-
-                      {expandedSection === "skills" && (
-                        <div className="px-4 pb-4 border-t">
-                          {loadingSkills ? (
-                            <div className="py-8 text-center">
-                              <div className="animate-spin w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-2" />
-                              <p className="text-sm text-gray-500">Analyzing skills for this role...</p>
-                            </div>
-                          ) : (
-                            <div className="pt-3">
-                              {/* Selected skills at top */}
-                              <div className="mb-4">
-                                <p className="text-xs font-medium text-gray-600 mb-2">
-                                  Selected ({selectedSkills.length}) - click to remove:
-                                </p>
-                                <div className="flex flex-wrap gap-2">
-                                  {selectedSkills.length === 0 ? (
-                                    <p className="text-xs text-gray-400 italic">No skills selected yet</p>
-                                  ) : (
-                                    selectedSkills.map((skill) => {
-                                      const isFromResume = skillsFromResume.includes(skill);
-                                      return (
-                                        <button
-                                          key={skill}
-                                          onClick={() => toggleSkill(skill)}
-                                          className={`px-3 py-1 rounded-full text-sm transition-colors ${
-                                            isFromResume
-                                              ? "bg-blue-100 text-brand-blue border-2 border-blue-400"
-                                              : "bg-purple-100 text-purple-700 border-2 border-purple-400"
-                                          }`}
-                                        >
-                                          {skill} ✕
-                                        </button>
-                                      );
-                                    })
-                                  )}
-                                </div>
-                              </div>
-
-                              {/* Skills from Job Description - Most Important */}
-                              {skillsFromJobDescription.filter(s => !selectedSkills.includes(s)).length > 0 && (
-                                <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                                  <div className="flex items-center gap-2 mb-2">
-                                    <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                    </svg>
-                                    <p className="text-xs font-medium text-amber-700">Required in Job Description - click to add:</p>
-                                  </div>
-                                  <div className="flex flex-wrap gap-2">
-                                    {skillsFromJobDescription
-                                      .filter(skill => !selectedSkills.includes(skill))
-                                      .map((skill) => (
-                                        <button
-                                          key={skill}
-                                          onClick={() => toggleSkill(skill)}
-                                          className="px-3 py-1 rounded-full text-sm transition-colors bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-200 font-medium"
-                                        >
-                                          + {skill}
-                                        </button>
-                                      ))}
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Unselected skills from resume */}
-                              {skillsFromResume.filter(s => !selectedSkills.includes(s)).length > 0 && (
-                                <div className="mb-4">
-                                  <p className="text-xs font-medium text-gray-600 mb-2">From your resume - click to add:</p>
-                                  <div className="flex flex-wrap gap-2">
-                                    {skillsFromResume
-                                      .filter(skill => !selectedSkills.includes(skill))
-                                      .map((skill) => (
-                                        <button
-                                          key={skill}
-                                          onClick={() => toggleSkill(skill)}
-                                          className="px-3 py-1 rounded-full text-sm transition-colors bg-gray-100 text-gray-600 border border-gray-200 hover:border-blue-300 hover:bg-brand-blue-light"
-                                        >
-                                          + {skill}
-                                        </button>
-                                      ))}
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* AI recommended skills */}
-                              {recommendedSkills.filter(s => !selectedSkills.includes(s)).length > 0 && (
-                                <div>
-                                  <p className="text-xs font-medium text-purple-600 mb-2">AI Suggestions - click to add:</p>
-                                  <div className="flex flex-wrap gap-2">
-                                    {recommendedSkills
-                                      .filter(skill => !selectedSkills.includes(skill))
-                                      .map((skill) => (
-                                        <button
-                                          key={skill}
-                                          onClick={() => toggleSkill(skill)}
-                                          className="px-3 py-1 rounded-full text-sm transition-colors bg-gray-100 text-gray-600 border border-gray-200 hover:border-purple-300 hover:bg-purple-50"
-                                        >
-                                          + {skill}
-                                        </button>
-                                      ))}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
+                    <SkillsSection
+                      expandedSection={expandedSection}
+                      toggleSection={toggleSection}
+                      loadingSkills={loadingSkills}
+                      selectedSkills={selectedSkills}
+                      skillsFromResume={skillsFromResume}
+                      skillsFromJobDescription={skillsFromJobDescription}
+                      recommendedSkills={recommendedSkills}
+                      onToggleSkill={toggleSkill}
+                    />
 
                     {/* Color Selection */}
                     <div className="bg-white rounded-xl shadow p-4">
@@ -1628,149 +1058,14 @@ function ReviewContent() {
                       disabled={selectedRoles.length === 0 || !selectedJob}
                     />
 
-                    {/* Resume Quality Score */}
-                    <div className="bg-white rounded-xl shadow overflow-hidden">
-                      <button
-                        onClick={() => showReviewPanel ? setShowReviewPanel(false) : reviewResumeQuality()}
-                        disabled={selectedRoles.length === 0 || loadingReview}
-                        className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 disabled:opacity-50"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-medium ${
-                            reviewScore ? (reviewScore.overallScore >= 70 ? "bg-green-100 text-green-700" : reviewScore.overallScore >= 50 ? "bg-yellow-100 text-yellow-700" : "bg-red-100 text-red-700") : "bg-purple-100 text-purple-600"
-                          }`}>
-                            {loadingReview ? (
-                              <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                              </svg>
-                            ) : reviewScore ? (
-                              Math.round(reviewScore.overallScore)
-                            ) : (
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                              </svg>
-                            )}
-                          </div>
-                          <span className="font-medium text-gray-900">
-                            {loadingReview ? "Analyzing..." : reviewScore ? `Score: ${reviewScore.overallScore}/100` : "AI Resume Score"}
-                          </span>
-                        </div>
-                        <svg
-                          className={`w-5 h-5 text-gray-500 transition-transform ${showReviewPanel ? "rotate-180" : ""}`}
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </button>
-
-                      {showReviewPanel && (
-                        <div className="px-4 pb-4 border-t">
-                          {loadingReview ? (
-                            <div className="py-8 text-center">
-                              <div className="animate-spin w-6 h-6 border-2 border-purple-600 border-t-transparent rounded-full mx-auto mb-2" />
-                              <p className="text-sm text-gray-500">AI is reviewing your resume bullets...</p>
-                            </div>
-                          ) : reviewScore ? (
-                            <div className="pt-4 space-y-4">
-                              {/* Overall Score */}
-                              <div className="text-center">
-                                <div className={`inline-flex items-center justify-center w-20 h-20 rounded-full text-2xl font-bold ${
-                                  reviewScore.overallScore >= 70 ? "bg-green-100 text-green-700" :
-                                  reviewScore.overallScore >= 50 ? "bg-yellow-100 text-yellow-700" :
-                                  "bg-red-100 text-red-700"
-                                }`}>
-                                  {reviewScore.overallScore}
-                                </div>
-                                <p className="text-sm text-gray-500 mt-2">Overall Score</p>
-                              </div>
-
-                              {/* Category Scores */}
-                              <div className="grid grid-cols-5 gap-2">
-                                {Object.entries(reviewScore.categoryScores).map(([key, value]) => (
-                                  <div key={key} className="text-center">
-                                    <div className={`text-sm font-semibold ${
-                                      value >= 7 ? "text-green-600" : value >= 5 ? "text-yellow-600" : "text-red-600"
-                                    }`}>
-                                      {value}/10
-                                    </div>
-                                    <div className="text-xs text-gray-500 capitalize">{key}</div>
-                                  </div>
-                                ))}
-                              </div>
-
-                              {/* Strengths */}
-                              {reviewScore.strengths.length > 0 && (
-                                <div>
-                                  <p className="text-xs font-medium text-green-600 mb-1">Strengths</p>
-                                  <ul className="text-xs text-gray-600 space-y-1">
-                                    {reviewScore.strengths.map((s, i) => (
-                                      <li key={i} className="flex items-start gap-1">
-                                        <span className="text-green-500">+</span> {s}
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              )}
-
-                              {/* Improvements */}
-                              {reviewScore.improvements.length > 0 && (
-                                <div>
-                                  <p className="text-xs font-medium text-amber-600 mb-1">Areas to Improve</p>
-                                  <ul className="text-xs text-gray-600 space-y-1">
-                                    {reviewScore.improvements.map((s, i) => (
-                                      <li key={i} className="flex items-start gap-1">
-                                        <span className="text-amber-500">!</span> {s}
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              )}
-
-                              {/* Bullet Feedback */}
-                              {reviewScore.bulletFeedback.length > 0 && (
-                                <div>
-                                  <p className="text-xs font-medium text-gray-700 mb-2">Bullet Analysis</p>
-                                  <div className="space-y-2 max-h-48 overflow-y-auto">
-                                    {reviewScore.bulletFeedback.map((fb, i) => (
-                                      <div key={i} className={`p-2 rounded text-xs ${
-                                        fb.score >= 7 ? "bg-green-50 border border-green-200" :
-                                        fb.score >= 5 ? "bg-yellow-50 border border-yellow-200" :
-                                        "bg-red-50 border border-red-200"
-                                      }`}>
-                                        <div className="flex justify-between items-start mb-1">
-                                          <span className="text-gray-700 truncate flex-1 mr-2">{fb.bullet}</span>
-                                          <span className={`font-semibold ${
-                                            fb.score >= 7 ? "text-green-600" : fb.score >= 5 ? "text-yellow-600" : "text-red-600"
-                                          }`}>{fb.score}/10</span>
-                                        </div>
-                                        <p className="text-gray-500">{fb.feedback}</p>
-                                        {fb.suggestion && (
-                                          <p className="text-purple-600 mt-1 italic">Suggestion: {fb.suggestion}</p>
-                                        )}
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-
-                              <button
-                                onClick={reviewResumeQuality}
-                                className="w-full py-2 text-sm text-purple-600 hover:text-purple-700"
-                              >
-                                Re-analyze
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="py-4 text-center text-sm text-gray-500">
-                              Click to analyze your resume bullets with AI
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
+                    <ResumeQualityPanel
+                      reviewScore={reviewScore}
+                      loadingReview={loadingReview}
+                      showReviewPanel={showReviewPanel}
+                      selectedRolesCount={selectedRoles.length}
+                      onTogglePanel={() => showReviewPanel ? setShowReviewPanel(false) : reviewResumeQuality()}
+                      onReviewResumeQuality={reviewResumeQuality}
+                    />
 
                     {/* Download Buttons */}
                     <div className="bg-white rounded-xl shadow p-4">
@@ -1875,240 +1170,32 @@ function ReviewContent() {
 
                 <div className="overflow-auto p-4 bg-gray-100" style={{ maxHeight: "calc(100vh - 200px)" }}>
                   {activeTab === "resume" && (
-                    <div className="flex justify-center">
-                      {loadingPreview && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 z-10">
-                          <div className="animate-spin w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full" />
-                        </div>
-                      )}
-                      {previewHtml ? (
-                        <div
-                          className="shadow-lg bg-white relative"
-                          style={{
-                            width: "425px",
-                            height: "550px",
-                            overflow: "hidden",
-                          }}
-                        >
-                          <iframe
-                            ref={iframeRef}
-                            srcDoc={previewHtml}
-                            title="Resume Preview"
-                            style={{
-                              width: "8.5in",
-                              height: "11in",
-                              transform: "scale(0.52)",
-                              transformOrigin: "top left",
-                              border: "none",
-                              background: "white",
-                              position: "absolute",
-                              top: 0,
-                              left: 0,
-                            }}
-                          />
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-center h-64 text-gray-400">
-                          <p>Select options to preview your resume</p>
-                        </div>
-                      )}
-                    </div>
+                    <ResumePreviewPane
+                      iframeRef={iframeRef}
+                      previewHtml={previewHtml}
+                      loadingPreview={loadingPreview}
+                    />
                   )}
 
                   {activeTab === "cover" && masterResume && (
-                    <div className="p-8 text-xs" style={{ fontFamily: "var(--font-poppins), 'Poppins', sans-serif" }}>
-                      <div className="mb-4">
-                        <h1 style={{ fontFamily: "var(--font-lora), 'Lora', serif", fontSize: "16pt", color: accentColor }}>
-                          {masterResume.contact_info.name}
-                        </h1>
-                        <div style={{ fontSize: "8pt", color: "#666" }}>
-                          <p>{masterResume.contact_info.email}</p>
-                          <p>{masterResume.contact_info.phone}</p>
-                        </div>
-                      </div>
-                      <p style={{ fontSize: "8pt", marginBottom: "12px" }}>
-                        {new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
-                      </p>
-                      <p style={{ fontSize: "8pt", marginBottom: "8px" }}>Dear Hiring Manager,</p>
-                      <div style={{ fontSize: "8pt", color: "#444", lineHeight: "1.5", whiteSpace: "pre-wrap" }}>
-                        {coverLetter || "Your cover letter will appear here..."}
-                      </div>
-                      <div style={{ marginTop: "16px", fontSize: "8pt" }}>
-                        <p>Sincerely,</p>
-                        <p style={{ marginTop: "16px", fontWeight: 600 }}>{masterResume.contact_info.name}</p>
-                      </div>
-                    </div>
+                    <CoverLetterPreview
+                      contactInfo={masterResume.contact_info}
+                      coverLetter={coverLetter}
+                      accentColor={accentColor}
+                    />
                   )}
                 </div>
               </div>
 
               {/* Right side - Job Details Sidebar */}
               {showJobDetails && selectedJob?.job_details_parsed && (
-                <div className="bg-white rounded-xl shadow-lg overflow-hidden sticky top-8" style={{ height: "fit-content" }}>
-                  <div className="bg-gradient-to-r from-indigo-500 to-purple-600 px-4 py-3 flex items-center justify-between">
-                    <span className="text-sm font-medium text-white">Job Details</span>
-                    <button
-                      onClick={() => setShowJobDetails(false)}
-                      className="text-white/80 hover:text-white transition-colors"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </div>
-
-                  <div className="overflow-auto p-4 space-y-4" style={{ maxHeight: "calc(100vh - 200px)" }}>
-                    {(() => {
-                      const details: JobDetailsParsed = JSON.parse(selectedJob.job_details_parsed);
-                      return (
-                        <>
-                          {/* Location & Work Type */}
-                          {(details.location || details.work_type || details.salary_range) && (
-                            <div className="flex flex-wrap gap-2 pb-3 border-b border-gray-100">
-                              {details.location && (
-                                <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 rounded text-xs text-gray-600">
-                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                  </svg>
-                                  {details.location}
-                                </span>
-                              )}
-                              {details.work_type && (
-                                <span className="inline-flex items-center gap-1 px-2 py-1 bg-brand-blue-light rounded text-xs text-brand-blue">
-                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                                  </svg>
-                                  {details.work_type}
-                                </span>
-                              )}
-                              {details.salary_range && (
-                                <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-50 rounded text-xs text-green-600">
-                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                  </svg>
-                                  {details.salary_range}
-                                </span>
-                              )}
-                            </div>
-                          )}
-
-                          {/* Requirements */}
-                          {details.requirements.length > 0 && (
-                            <div>
-                              <h4 className="text-xs font-semibold text-red-600 uppercase tracking-wide mb-2 flex items-center gap-1">
-                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                </svg>
-                                Requirements
-                              </h4>
-                              <ul className="space-y-1.5">
-                                {details.requirements.map((req, i) => (
-                                  <li key={i} className="text-xs text-gray-600 flex items-start gap-1.5">
-                                    <span className="text-red-400 mt-0.5">•</span>
-                                    <span>{req}</span>
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-
-                          {/* Responsibilities */}
-                          {details.responsibilities.length > 0 && (
-                            <div>
-                              <h4 className="text-xs font-semibold text-indigo-600 uppercase tracking-wide mb-2 flex items-center gap-1">
-                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                                </svg>
-                                Responsibilities
-                              </h4>
-                              <ul className="space-y-1.5">
-                                {details.responsibilities.map((resp, i) => (
-                                  <li key={i} className="text-xs text-gray-600 flex items-start gap-1.5">
-                                    <span className="text-indigo-400 mt-0.5">•</span>
-                                    <span>{resp}</span>
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-
-                          {/* Qualifications */}
-                          {details.qualifications.length > 0 && (
-                            <div>
-                              <h4 className="text-xs font-semibold text-purple-600 uppercase tracking-wide mb-2 flex items-center gap-1">
-                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-                                </svg>
-                                Qualifications
-                              </h4>
-                              <ul className="space-y-1.5">
-                                {details.qualifications.map((qual, i) => (
-                                  <li key={i} className="text-xs text-gray-600 flex items-start gap-1.5">
-                                    <span className="text-purple-400 mt-0.5">•</span>
-                                    <span>{qual}</span>
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-
-                          {/* Benefits */}
-                          {details.benefits.length > 0 && (
-                            <div>
-                              <h4 className="text-xs font-semibold text-green-600 uppercase tracking-wide mb-2 flex items-center gap-1">
-                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
-                                </svg>
-                                Benefits
-                              </h4>
-                              <ul className="space-y-1.5">
-                                {details.benefits.map((benefit, i) => (
-                                  <li key={i} className="text-xs text-gray-600 flex items-start gap-1.5">
-                                    <span className="text-green-400 mt-0.5">•</span>
-                                    <span>{benefit}</span>
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-                        </>
-                      );
-                    })()}
-
-                    {/* Full Description - Collapsible */}
-                    {selectedJob.job_description && (
-                      <div className="border-t border-gray-200 pt-3 mt-3">
-                        <button
-                          onClick={() => setShowFullDescription(!showFullDescription)}
-                          className="w-full flex items-center justify-between text-xs font-semibold text-gray-500 uppercase tracking-wide hover:text-gray-700 transition-colors"
-                        >
-                          <span className="flex items-center gap-1">
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            Full Description
-                          </span>
-                          <svg
-                            className={`w-4 h-4 transition-transform ${showFullDescription ? "rotate-180" : ""}`}
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                          </svg>
-                        </button>
-                        {showFullDescription && (
-                          <div className="mt-3 p-3 bg-gray-50 rounded-lg max-h-64 overflow-y-auto">
-                            <p className="text-xs text-gray-600 whitespace-pre-wrap leading-relaxed">
-                              {selectedJob.job_description}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
+                <JobDetailsSidebar
+                  jobDetailsParsed={selectedJob.job_details_parsed}
+                  jobDescription={selectedJob.job_description}
+                  showFullDescription={showFullDescription}
+                  onSetShowFullDescription={setShowFullDescription}
+                  onClose={() => setShowJobDetails(false)}
+                />
               )}
 
               {/* Toggle button when sidebar is hidden */}

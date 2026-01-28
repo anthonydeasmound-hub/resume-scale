@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import db from "@/lib/db";
+import { queryOne } from "@/lib/db";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -11,16 +11,14 @@ export async function GET() {
   }
 
   try {
-    const user = db.prepare("SELECT id FROM users WHERE email = ?").get(session.user.email) as { id: number } | undefined;
+    const user = await queryOne<{ id: number }>("SELECT id FROM users WHERE email = $1", [session.user.email]);
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     // Get user's master resume
-    const resume = db.prepare(`
-      SELECT * FROM resumes WHERE user_id = ?
-    `).get(user.id) as {
+    const resume = await queryOne<{
       id: number;
       contact_info: string;
       work_experience: string;
@@ -35,7 +33,7 @@ export async function GET() {
       accent_color: string | null;
       created_at: string;
       updated_at: string;
-    } | undefined;
+    }>("SELECT * FROM resumes WHERE user_id = $1", [user.id]);
 
     if (!resume) {
       return NextResponse.json({ error: "Resume not found" }, { status: 404 });
