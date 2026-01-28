@@ -55,6 +55,10 @@ export function generateCanvasHTML(data: ResumeData, options: TemplateOptions): 
       }).join('')
     : '';
 
+  const languagesHTML = data.languages && data.languages.length > 0
+    ? data.languages.map(lang => `<span class="skill-chip">${lang}</span>`).join('')
+    : '';
+
   const icon = (name: string) => {
     if (!showIcons) return '';
     const icons: Record<string, string> = {
@@ -376,6 +380,13 @@ export function generateCanvasHTML(data: ResumeData, options: TemplateOptions): 
       <div class="sidebar-section">
         <div class="sidebar-title">Expertise</div>
         ${showSkillBars ? skillsHTML : `<div style="display: flex; flex-wrap: wrap;">${skillsHTML}</div>`}
+      </div>
+      ` : ''}
+
+      ${languagesHTML ? `
+      <div class="sidebar-section">
+        <div class="sidebar-title">Languages</div>
+        <div style="display: flex; flex-wrap: wrap;">${languagesHTML}</div>
       </div>
       ` : ''}
 

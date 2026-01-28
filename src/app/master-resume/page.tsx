@@ -97,6 +97,7 @@ export default function MasterResumePage() {
   const [expandedJobs, setExpandedJobs] = useState<Set<number>>(new Set());
   const [newSkill, setNewSkill] = useState("");
   const [newLanguage, setNewLanguage] = useState("");
+  const [includeLanguages, setIncludeLanguages] = useState(true);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   // Template and color state
@@ -159,6 +160,7 @@ export default function MasterResumePage() {
           specialty: edu.field,
         })),
         skills: resumeData.skills,
+        languages: includeLanguages ? resumeData.languages : undefined,
       };
 
       const response = await fetch("/api/resume/preview-html", {
@@ -180,7 +182,7 @@ export default function MasterResumePage() {
     } finally {
       setLoadingPreview(false);
     }
-  }, [resumeData, selectedTemplate, selectedColor]);
+  }, [resumeData, selectedTemplate, selectedColor, includeLanguages]);
 
   useEffect(() => {
     // Debounce preview fetching
@@ -290,6 +292,7 @@ export default function MasterResumePage() {
           specialty: edu.field,
         })),
         skills: resumeData.skills,
+        languages: includeLanguages ? resumeData.languages : undefined,
       };
 
       const response = await fetch("/api/generate-resume-pdf", {
@@ -1077,7 +1080,25 @@ export default function MasterResumePage() {
 
         {/* Languages */}
         <div className="bg-white rounded-xl shadow p-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">Languages</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-800">Languages</h2>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <span className="text-sm text-gray-600">Include in resume</span>
+              <button
+                type="button"
+                onClick={() => { setIncludeLanguages(!includeLanguages); setHasChanges(true); }}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  includeLanguages ? "bg-blue-600" : "bg-gray-300"
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    includeLanguages ? "translate-x-6" : "translate-x-1"
+                  }`}
+                />
+              </button>
+            </label>
+          </div>
 
           <div className="flex gap-2 mb-4">
             <input

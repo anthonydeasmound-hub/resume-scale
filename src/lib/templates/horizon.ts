@@ -55,6 +55,10 @@ export function generateHorizonHTML(data: ResumeData, options: TemplateOptions):
       }).join('')
     : '';
 
+  const languagesHTML = data.languages && data.languages.length > 0
+    ? data.languages.map(lang => `<span class="skill-tag">${lang}</span>`).join('')
+    : '';
+
   const icon = (name: string) => {
     if (!showIcons) return '';
     const icons: Record<string, string> = {
@@ -301,6 +305,13 @@ export function generateHorizonHTML(data: ResumeData, options: TemplateOptions):
       <div class="sidebar-section">
         <div class="sidebar-title">Skills</div>
         ${showSkillBars ? skillsHTML : `<div style="display: flex; flex-wrap: wrap; gap: 4px;">${skillsHTML}</div>`}
+      </div>
+      ` : ''}
+
+      ${languagesHTML ? `
+      <div class="sidebar-section">
+        <div class="sidebar-title">Languages</div>
+        <div style="display: flex; flex-wrap: wrap; gap: 4px;">${languagesHTML}</div>
       </div>
       ` : ''}
 

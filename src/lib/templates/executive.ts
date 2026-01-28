@@ -47,6 +47,10 @@ export function generateExecutiveHTML(data: ResumeData, options: TemplateOptions
     ? data.skills.join(' • ')
     : '';
 
+  const languagesHTML = data.languages && data.languages.length > 0
+    ? data.languages.join(' • ')
+    : '';
+
   const contactParts = [
     data.contactInfo.location,
     data.contactInfo.phone,
@@ -253,6 +257,13 @@ export function generateExecutiveHTML(data: ResumeData, options: TemplateOptions
     <div class="section">
       <div class="section-title">Skills</div>
       <div class="skills-text">${skillsHTML}</div>
+    </div>
+    ` : ''}
+
+    ${languagesHTML ? `
+    <div class="section">
+      <div class="section-title">Languages</div>
+      <div class="skills-text">${languagesHTML}</div>
     </div>
     ` : ''}
 

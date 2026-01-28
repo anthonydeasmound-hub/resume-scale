@@ -4,6 +4,7 @@
  */
 
 import Groq from "groq-sdk";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import {
   buildEnhancementContext,
   formatBulletsForPrompt,
@@ -41,23 +42,37 @@ if (!groqApiKey) {
 }
 const groq = new Groq({ apiKey: groqApiKey || "" });
 
-// Call Groq LLM
+// Initialize Gemini client (fallback)
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+
+// Call AI with Groq primary → Gemini fallback
 async function callAI(prompt: string): Promise<string> {
-  if (!groqApiKey) {
-    throw new Error("GROQ_API_KEY is not configured");
+  // Try Groq first (if key is available)
+  if (groqApiKey) {
+    try {
+      console.log("[callAI] Making Groq API call, prompt length:", prompt.length);
+      const completion = await groq.chat.completions.create({
+        messages: [{ role: "user", content: prompt }],
+        model: "llama-3.3-70b-versatile",
+        temperature: 0.3,
+      });
+      console.log("[callAI] Groq API call successful");
+      return completion.choices[0]?.message?.content || "";
+    } catch (groqError) {
+      console.warn("[callAI] Groq failed, falling back to Gemini:", groqError);
+    }
   }
+
+  // Fallback to Gemini
   try {
-    console.log("[callAI] Making Groq API call, prompt length:", prompt.length);
-    const completion = await groq.chat.completions.create({
-      messages: [{ role: "user", content: prompt }],
-      model: "llama-3.3-70b-versatile",
-      temperature: 0.3,
-    });
-    console.log("[callAI] Groq API call successful");
-    return completion.choices[0]?.message?.content || "";
-  } catch (error) {
-    console.error("[callAI] Groq API error:", error);
-    throw error;
+    console.log("[callAI] Making Gemini API call, prompt length:", prompt.length);
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const result = await model.generateContent(prompt);
+    console.log("[callAI] Gemini API call successful");
+    return result.response.text();
+  } catch (geminiError) {
+    console.error("[callAI] Gemini fallback also failed:", geminiError);
+    throw geminiError;
   }
 }
 

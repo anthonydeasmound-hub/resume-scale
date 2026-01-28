@@ -47,6 +47,10 @@ export function generateSummitHTML(data: ResumeData, options: TemplateOptions): 
     ? `<div class="skills-text">${data.skills.join(' · ')}</div>`
     : '';
 
+  const languagesHTML = data.languages && data.languages.length > 0
+    ? `<div class="skills-text">${data.languages.join(' · ')}</div>`
+    : '';
+
   return `
 <!DOCTYPE html>
 <html>
@@ -284,6 +288,13 @@ export function generateSummitHTML(data: ResumeData, options: TemplateOptions): 
     <div class="section">
       <div class="section-title">Areas of Expertise</div>
       ${skillsHTML}
+    </div>
+    ` : ''}
+
+    ${languagesHTML ? `
+    <div class="section">
+      <div class="section-title">Languages</div>
+      ${languagesHTML}
     </div>
     ` : ''}
 

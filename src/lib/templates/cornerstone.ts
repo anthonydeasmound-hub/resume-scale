@@ -55,6 +55,10 @@ export function generateCornerstoneHTML(data: ResumeData, options: TemplateOptio
       }).join('')
     : '';
 
+  const languagesHTML = data.languages && data.languages.length > 0
+    ? data.languages.map(lang => `<div class="skill-item">${lang}</div>`).join('')
+    : '';
+
   const contactItems = [
     { label: 'Email', value: data.contactInfo.email },
     { label: 'Phone', value: data.contactInfo.phone },
@@ -332,6 +336,13 @@ export function generateCornerstoneHTML(data: ResumeData, options: TemplateOptio
       <div class="sidebar-section">
         <div class="sidebar-section-title">Skills</div>
         ${skillsHTML}
+      </div>
+      ` : ''}
+
+      ${languagesHTML ? `
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Languages</div>
+        ${languagesHTML}
       </div>
       ` : ''}
 

@@ -165,6 +165,8 @@ function OnboardingContent() {
   const [token, setToken] = useState("");
   const [tokenCopied, setTokenCopied] = useState(false);
   const [newSkill, setNewSkill] = useState("");
+  const [resumeText, setResumeText] = useState("");
+  const [parsingResume, setParsingResume] = useState(false);
   const [aiRecommendations, setAiRecommendations] = useState<Record<number, string[]>>({});
   const [loadingRecommendations, setLoadingRecommendations] = useState<Record<number, boolean>>({});
   const [expandedSuggestions, setExpandedSuggestions] = useState<Record<number, boolean>>({});
@@ -979,11 +981,9 @@ function OnboardingContent() {
               <textarea
                 placeholder="Paste your resume text here..."
                 rows={8}
+                value={resumeText}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                onChange={(e) => {
-                  // Store the pasted text for processing
-                  // TODO: Implement text parsing in Phase 2
-                }}
+                onChange={(e) => setResumeText(e.target.value)}
               />
             </div>
 
@@ -995,14 +995,50 @@ function OnboardingContent() {
                 Back
               </button>
               <button
-                onClick={() => {
-                  // TODO: Process the uploaded/pasted resume
-                  // For now, show message that this is in progress
-                  setError("Resume parsing coming soon! Try LinkedIn import or Start Fresh for now.");
+                disabled={parsingResume}
+                onClick={async () => {
+                  if (!resumeText.trim()) {
+                    setError("Please paste your resume text before continuing.");
+                    return;
+                  }
+                  setError("");
+                  setParsingResume(true);
+                  try {
+                    const response = await fetch("/api/resume/parse", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ resumeText }),
+                    });
+
+                    if (response.status === 429) {
+                      setError("AI service is temporarily busy. Please wait a moment and try again.");
+                      return;
+                    }
+
+                    if (!response.ok) {
+                      setError("Failed to parse resume. Please try again.");
+                      return;
+                    }
+
+                    const result = await response.json();
+                    // Process identically to fetchLinkedInData
+                    const processedData = JSON.parse(JSON.stringify(result)) as LinkedInData;
+                    processedData.work_experience = processWorkExperience(processedData.work_experience || []);
+                    processedData.certifications = processedData.certifications || [];
+                    processedData.languages = processedData.languages || [];
+                    processedData.honors = processedData.honors || [];
+                    setEditableData(processedData);
+                    setStep("template");
+                  } catch (err) {
+                    console.error("Failed to parse resume:", err);
+                    setError("Failed to parse resume. Please try again.");
+                  } finally {
+                    setParsingResume(false);
+                  }
                 }}
-                className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Continue
+                {parsingResume ? "Parsing..." : "Continue"}
               </button>
             </div>
           </div>

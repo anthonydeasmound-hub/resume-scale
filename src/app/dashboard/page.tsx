@@ -154,6 +154,7 @@ export default function DashboardPage() {
             specialty: edu.field,
           })),
           skills: resume.skills,
+          languages: resume.languages,
         };
 
         const previewRes = await fetch("/api/resume/preview-html", {

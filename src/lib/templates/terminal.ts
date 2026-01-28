@@ -51,6 +51,10 @@ export function generateTerminalHTML(data: ResumeData, options: TemplateOptions)
       }).join('')
     : '';
 
+  const languagesHTML = data.languages && data.languages.length > 0
+    ? data.languages.map(lang => `<span class="skill-tag">${lang}</span>`).join('')
+    : '';
+
   const icon = (name: string) => {
     if (!showIcons) return '';
     const icons: Record<string, string> = {
@@ -327,6 +331,13 @@ export function generateTerminalHTML(data: ResumeData, options: TemplateOptions)
     <div class="section">
       <div class="section-title">Tech Stack</div>
       <div class="skills-container">${skillsHTML}</div>
+    </div>
+    ` : ''}
+
+    ${languagesHTML ? `
+    <div class="section">
+      <div class="section-title">Languages</div>
+      <div class="skills-container">${languagesHTML}</div>
     </div>
     ` : ''}
 

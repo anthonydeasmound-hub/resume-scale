@@ -72,9 +72,9 @@ export default function TabsNav({ reviewCount = 0 }: { reviewCount?: number }) {
   return (
     <aside className="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 flex flex-col z-40">
       {/* Logo */}
-      <div className="p-6 border-b border-gray-200">
-        <Link href="/dashboard" className="text-xl font-bold text-gray-900">
-          ResumeGenie
+      <div className="px-4 py-5 border-b border-gray-200 flex justify-center">
+        <Link href="/dashboard">
+          <img src="/logo.png" alt="ResumeGenie" className="h-36 object-contain" />
         </Link>
       </div>
 
