@@ -2,7 +2,7 @@
 
 ## Project Overview
 Job application management app with AI-powered resume and cover letter generation.
-Stack: Next.js App Router, TypeScript, SQLite (better-sqlite3), Puppeteer for PDF generation, Gemini/Groq AI
+Stack: Next.js App Router, TypeScript, PostgreSQL (Neon serverless), Puppeteer for PDF generation, Gemini/Groq AI
 
 ## Git Shortcuts
 
