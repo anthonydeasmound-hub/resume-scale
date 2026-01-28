@@ -565,16 +565,16 @@ export default function MasterResumePage() {
     <div className="min-h-screen bg-brand-gray">
       <TabsNav />
 
-      <div className="ml-64 p-8">
+      <div className="pt-14 md:pt-0 md:ml-64 p-4 md:p-8">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Master Resume</h1>
             <p className="text-gray-600 text-sm">
               Edit your profile information. This data is used to generate tailored resumes.
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             {saveMessage && (
               <span className={`text-sm ${saveMessage.includes("success") ? "text-green-600" : "text-red-600"}`}>
                 {saveMessage}

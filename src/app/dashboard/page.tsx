@@ -333,13 +333,13 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-brand-gray">
       <TabsNav reviewCount={stats?.review_count || 0} />
 
-      <div className="ml-64 p-8">
+      <div className="pt-14 md:pt-0 md:ml-64 p-4 md:p-8">
         {/* Promo Banner */}
-        <div className="bg-gray-900 rounded-xl p-5 mb-8 flex items-center justify-between">
+        <div className="bg-gray-900 rounded-xl p-5 mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <p className="text-white font-semibold text-lg">
             Level up your job search with ResumeGenie Pro
           </p>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <span className="inline-flex items-center gap-1.5 bg-gray-800 text-gray-200 text-sm px-3 py-1.5 rounded-full">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -364,9 +364,9 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="flex gap-8">
+        <div className="flex flex-col md:flex-row gap-8">
           {/* Left Column - Resume Preview */}
-          <div className="w-[400px] shrink-0">
+          <div className="w-full md:w-[400px] md:shrink-0">
             {hasResume && resumeData ? (
               <div>
                 <div className="bg-white rounded-xl shadow-lg overflow-hidden">

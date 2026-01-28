@@ -971,7 +971,7 @@ function ReviewContent() {
     <div className="min-h-screen bg-brand-gray">
       <TabsNav reviewCount={jobs.filter((j) => !j.reviewed).length} />
 
-      <div className="ml-64 p-8">
+      <div className="pt-14 md:pt-0 md:ml-64 p-4 md:p-8">
         {!selectedJob ? (
           <>
             <h1 className="text-2xl font-bold text-gray-900 mb-6">
@@ -1006,7 +1006,7 @@ function ReviewContent() {
           </>
         ) : (
           <>
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
               <div>
                 <button
                   onClick={() => {
@@ -1027,7 +1027,7 @@ function ReviewContent() {
                   {selectedJob.job_title} at {selectedJob.company_name}
                 </h1>
               </div>
-              <div className="flex gap-3">
+              <div className="flex flex-wrap gap-3">
                 {hasChanges && (
                   <button
                     onClick={saveChanges}

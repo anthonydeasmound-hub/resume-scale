@@ -44,8 +44,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Generate unique filename
-    const ext = file.name.split(".").pop() || "jpg";
+    // Generate unique filename using validated MIME type
+    const extMap: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
+    const ext = extMap[file.type] || "jpg";
     const filename = `${user.id}_${Date.now()}.${ext}`;
     const filepath = path.join(uploadsDir, filename);
 

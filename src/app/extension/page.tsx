@@ -149,7 +149,7 @@ export default function ExtensionPage() {
     <div className="min-h-screen bg-brand-gray">
       <TabsNav reviewCount={reviewCount} />
 
-      <div className="ml-64 p-8">
+      <div className="pt-14 md:pt-0 md:ml-64 p-4 md:p-8">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Chrome Extension</h1>

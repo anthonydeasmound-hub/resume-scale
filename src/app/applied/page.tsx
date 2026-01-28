@@ -330,7 +330,7 @@ export default function AppliedPage() {
     <div className="min-h-screen bg-brand-gray">
       <TabsNav reviewCount={reviewCount} />
 
-      <div className="ml-64 p-8">
+      <div className="pt-14 md:pt-0 md:ml-64 p-4 md:p-8">
         {/* Week Calendar */}
         <WeekCalendar
           interviews={upcomingInterviews}
@@ -338,12 +338,12 @@ export default function AppliedPage() {
         />
 
         {/* Header with search and sort */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-4">
           <h1 className="text-xl font-semibold text-gray-900">
             Applications ({activeJobs.length})
           </h1>
 
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
             {/* Search */}
             <div className="relative">
               <svg
@@ -364,7 +364,7 @@ export default function AppliedPage() {
                 placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent w-64"
+                className="pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent w-full sm:w-64"
               />
             </div>
 

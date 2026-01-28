@@ -253,7 +253,7 @@ export default function JobDetailPage() {
     <div className="min-h-screen bg-brand-gray">
       <TabsNav reviewCount={0} />
 
-      <div className="ml-64 p-8">
+      <div className="pt-14 md:pt-0 md:ml-64 p-4 md:p-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <button

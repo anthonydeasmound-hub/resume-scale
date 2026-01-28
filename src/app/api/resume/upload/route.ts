@@ -22,6 +22,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Only PDF files are supported" }, { status: 400 });
     }
 
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      return NextResponse.json({ error: "File too large. Max 10MB" }, { status: 400 });
+    }
+
     const arrayBuffer = await file.arrayBuffer();
     const buffer = new Uint8Array(arrayBuffer);
 
