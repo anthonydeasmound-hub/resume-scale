@@ -140,7 +140,7 @@ function OnboardingContent() {
   const [summaryOptions, setSummaryOptions] = useState<string[]>([]);
   const [selectedSummary, setSelectedSummary] = useState("");
   const [loadingSummary, setLoadingSummary] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState("executive");
+  const [selectedTemplate, setSelectedTemplate] = useState("navy-header");
   const [selectedColor, setSelectedColor] = useState("#2563eb");
   const [templateCategory, setTemplateCategory] = useState<string>("all");
   const [templateOptions, setTemplateOptions] = useState({
@@ -411,15 +411,15 @@ function OnboardingContent() {
     jobIdx: number,
     exp: { company: string; title: string; description: string[] }
   ) => {
-    // Skip if company or title is empty
-    if (!exp.company?.trim() || !exp.title?.trim()) {
+    // Skip only if title is empty (company is optional)
+    if (!exp.title?.trim()) {
       return;
     }
 
     setLoadingRecommendations((prev) => ({ ...prev, [jobIdx]: true }));
 
     const requestBody = {
-      role: { company: exp.company.trim(), title: exp.title.trim() },
+      role: { company: exp.company?.trim() || "Unknown Company", title: exp.title.trim() },
       existingBullets: exp.description.filter((b) => b.trim() !== ""),
     };
 
@@ -545,6 +545,12 @@ function OnboardingContent() {
         processedData.languages = processedData.languages || [];
         processedData.honors = processedData.honors || [];
         setEditableData(processedData);
+
+        // Auto-enable photo option if LinkedIn photo was imported
+        if (processedData.profile_picture_url) {
+          setTemplateOptions(prev => ({ ...prev, showPhoto: true }));
+        }
+
         setStep("template");
       } else if (response.status === 404) {
         setError("No imported data found. Please try importing again.");

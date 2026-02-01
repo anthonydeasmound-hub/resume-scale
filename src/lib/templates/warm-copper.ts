@@ -14,6 +14,7 @@ export const warmCopperMetadata: TemplateMetadata = {
 
 export function generateWarmCopperHTML(data: ResumeData, options: TemplateOptions): string {
   const { accentColor, showPhoto, showIcons, showLanguages } = options;
+  const photoUrl = data.profilePhotoUrl;
 
   const experienceHTML = data.experience.map(exp => {
     const bullets = Array.isArray(exp.description) ? exp.description : [exp.description];
@@ -95,6 +96,12 @@ export function generateWarmCopperHTML(data: ResumeData, options: TemplateOption
       background: #e5e7eb;
       margin-bottom: 20px;
       overflow: hidden;
+    }
+
+    .photo-container img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
 
     .sidebar-section {
@@ -264,7 +271,7 @@ export function generateWarmCopperHTML(data: ResumeData, options: TemplateOption
 <body>
   <div class="page">
     <div class="sidebar">
-      ${showPhoto ? '<div class="photo-container"></div>' : ''}
+      ${showPhoto ? `<div class="photo-container">${photoUrl ? `<img src="${photoUrl}" alt="Profile photo" />` : ''}</div>` : ''}
 
       <div class="sidebar-section">
         <div class="sidebar-title">Contact</div>

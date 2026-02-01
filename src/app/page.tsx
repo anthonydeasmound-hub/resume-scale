@@ -185,12 +185,12 @@ const colorMap: Record<string, { bg: string; text: string; bgLight: string }> = 
 };
 
 const templates = [
-  { name: "Executive", style: "Classic serif layout", accent: "border-gray-800" },
-  { name: "Horizon", style: "Modern sidebar design", accent: "border-brand-blue" },
-  { name: "Canvas", style: "Creative two-column", accent: "border-brand-cyan" },
-  { name: "Terminal", style: "Minimal monospace", accent: "border-gray-600" },
-  { name: "Summit", style: "Bold header layout", accent: "border-brand-gold" },
-  { name: "Cornerstone", style: "Clean professional", accent: "border-green-600" },
+  { name: "Navy Header", style: "Professional with photo", accent: "border-blue-900", layout: "header-photo", color: "bg-blue-900" },
+  { name: "Blush Sidebar", style: "Elegant script headings", accent: "border-pink-400", layout: "sidebar-left", color: "bg-pink-100" },
+  { name: "Teal Split", style: "Modern header design", accent: "border-teal-500", layout: "header-split", color: "bg-teal-500" },
+  { name: "Navy Initials", style: "Bold sidebar layout", accent: "border-blue-800", layout: "sidebar-dark", color: "bg-blue-800" },
+  { name: "Minimalist Bars", style: "Clean section blocks", accent: "border-gray-700", layout: "single-bars", color: "bg-gray-700" },
+  { name: "Lavender Right", style: "Creative right sidebar", accent: "border-purple-300", layout: "sidebar-right", color: "bg-purple-100" },
 ];
 
 const testimonials = [
@@ -208,7 +208,7 @@ const faqs = [
   { q: "What is an ATS score?", a: "An ATS (Applicant Tracking System) score indicates how well your resume matches a job description. Many companies use ATS software to filter resumes before a human ever sees them. Our score checker helps you optimize for these systems." },
   { q: "Is Resume Genie free to use?", a: "Yes! Our free plan includes essential features like resume building, ATS scoring, and application tracking. Premium unlocks unlimited AI generations, all templates, and priority support." },
   { q: "How does the Chrome extension work?", a: "Install the extension, and it opens as a side panel when you visit LinkedIn, Indeed, or Glassdoor. It auto-detects job listings and lets you save them to Resume Genie with one click \u2014 no copy-pasting needed." },
-  { q: "Can I customize the resume templates?", a: "Each template can be customized with your own content, and the AI handles formatting and optimization. Choose from 6 professionally designed templates suited for different industries." },
+  { q: "Can I customize the resume templates?", a: "Each template can be customized with your own content, and the AI handles formatting and optimization. Choose from 12 professionally designed templates suited for different industries." },
   { q: "How does Gmail integration work?", a: "After connecting your Gmail, Resume Genie automatically detects application responses, interview invitations, and rejection emails. Your application status updates automatically." },
   { q: "Is my data secure?", a: "Absolutely. We use industry-standard encryption, never share your data with third parties, and you can delete your account and all associated data at any time." },
   { q: "What job boards are supported?", a: "Currently, our Chrome extension supports LinkedIn, Indeed, and Glassdoor. You can also manually add jobs from any source." },
@@ -316,18 +316,35 @@ export default function LandingPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [checkingSetup, setCheckingSetup] = useState(false);
 
   useEffect(() => {
     document.title = "ResumeGenie - AI-Powered Job Applications";
   }, []);
 
   useEffect(() => {
-    if (session) {
-      router.push("/dashboard");
+    if (session && !checkingSetup) {
+      setCheckingSetup(true);
+      // Check if user has any activity (resume data)
+      fetch("/api/setup-status")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.hasResume) {
+            // User has activity, go to dashboard
+            router.push("/dashboard");
+          } else {
+            // New user with no activity, go to onboarding
+            router.push("/onboarding");
+          }
+        })
+        .catch(() => {
+          // If check fails, default to onboarding for new users
+          router.push("/onboarding");
+        });
     }
-  }, [session, router]);
+  }, [session, router, checkingSetup]);
 
-  if (status === "loading") {
+  if (status === "loading" || checkingSetup) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="text-lg text-gray-500">Loading...</div>
@@ -565,31 +582,105 @@ export default function LandingPage() {
               Professionally designed templates
             </h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Choose from 6 ATS-friendly templates designed for different industries and roles.
+              Choose from 12 ATS-friendly templates designed for different industries and roles.
             </p>
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {templates.map((t) => (
               <div key={t.name} className={`bg-white border-2 ${t.accent} rounded-xl p-6 hover:shadow-lg transition-shadow`}>
-                {/* CSS mockup of a resume */}
-                <div className="bg-gray-50 rounded-lg p-4 mb-4 aspect-[8.5/11]">
-                  <div className="h-4 bg-gray-300 rounded w-1/2 mb-3"></div>
-                  <div className="h-2 bg-gray-200 rounded w-3/4 mb-1"></div>
-                  <div className="h-2 bg-gray-200 rounded w-2/3 mb-4"></div>
-                  <div className="h-3 bg-gray-300 rounded w-1/3 mb-2"></div>
-                  <div className="space-y-1.5">
-                    <div className="h-1.5 bg-gray-200 rounded w-full"></div>
-                    <div className="h-1.5 bg-gray-200 rounded w-5/6"></div>
-                    <div className="h-1.5 bg-gray-200 rounded w-full"></div>
-                  </div>
-                  <div className="mt-3 h-3 bg-gray-300 rounded w-1/3 mb-2"></div>
-                  <div className="space-y-1.5">
-                    <div className="h-1.5 bg-gray-200 rounded w-full"></div>
-                    <div className="h-1.5 bg-gray-200 rounded w-4/5"></div>
-                    <div className="h-1.5 bg-gray-200 rounded w-full"></div>
-                    <div className="h-1.5 bg-gray-200 rounded w-3/4"></div>
-                  </div>
+                {/* CSS mockup of a resume - different layouts */}
+                <div className="bg-gray-50 rounded-lg overflow-hidden mb-4 aspect-[8.5/11]">
+                  {t.layout === "header-photo" && (
+                    <div className="h-full flex flex-col">
+                      <div className={`${t.color} p-3 flex items-center justify-between`}>
+                        <div className="space-y-1">
+                          <div className="h-1.5 bg-white/60 rounded w-12"></div>
+                          <div className="h-1 bg-white/40 rounded w-16"></div>
+                        </div>
+                        <div className="w-8 h-8 rounded-full bg-white border-2 border-white/50"></div>
+                        <div className="text-right space-y-1">
+                          <div className="h-2.5 bg-white rounded w-16"></div>
+                          <div className="h-1.5 bg-white/60 rounded w-12 ml-auto"></div>
+                        </div>
+                      </div>
+                      <div className="p-3 flex-1 space-y-3">
+                        <div><div className="h-2 bg-blue-900/20 rounded w-1/4 mb-1.5"></div><div className="h-1 bg-gray-200 rounded w-full"></div><div className="h-1 bg-gray-200 rounded w-5/6 mt-1"></div></div>
+                        <div><div className="h-2 bg-blue-900/20 rounded w-1/3 mb-1.5"></div><div className="space-y-1"><div className="h-1 bg-gray-200 rounded w-full"></div><div className="h-1 bg-gray-200 rounded w-4/5"></div><div className="h-1 bg-gray-200 rounded w-full"></div></div></div>
+                        <div><div className="h-2 bg-blue-900/20 rounded w-1/4 mb-1.5"></div><div className="h-1 bg-gray-200 rounded w-3/4"></div></div>
+                      </div>
+                    </div>
+                  )}
+                  {t.layout === "sidebar-left" && (
+                    <div className="h-full flex">
+                      <div className={`${t.color} w-1/3 p-2 space-y-2`}>
+                        <div className="w-6 h-6 rounded-full bg-pink-300 mx-auto border-2 border-pink-400/50"></div>
+                        <div className="h-1.5 bg-pink-400/40 rounded w-3/4 mx-auto"></div>
+                        <div className="h-1 bg-pink-400/30 rounded w-1/2 mx-auto"></div>
+                        <div className="pt-2 space-y-1.5"><div className="h-1 bg-pink-400/30 rounded w-full"></div><div className="h-1 bg-pink-400/20 rounded w-5/6"></div><div className="h-1 bg-pink-400/20 rounded w-full"></div></div>
+                        <div className="pt-2 space-y-1"><div className="h-1 bg-pink-400/30 rounded w-2/3"></div><div className="h-1 bg-pink-400/20 rounded w-full"></div></div>
+                      </div>
+                      <div className="flex-1 p-2 space-y-2">
+                        <div><div className="h-1.5 bg-pink-400/40 rounded w-1/3 mb-1"></div><div className="h-1 bg-gray-200 rounded w-full"></div><div className="h-1 bg-gray-200 rounded w-5/6 mt-0.5"></div></div>
+                        <div><div className="h-1.5 bg-pink-400/40 rounded w-1/4 mb-1"></div><div className="space-y-0.5"><div className="h-1 bg-gray-200 rounded w-full"></div><div className="h-1 bg-gray-200 rounded w-4/5"></div><div className="h-1 bg-gray-200 rounded w-full"></div></div></div>
+                      </div>
+                    </div>
+                  )}
+                  {t.layout === "header-split" && (
+                    <div className="h-full flex flex-col">
+                      <div className={`${t.color} p-2 flex items-center gap-2`}>
+                        <div className="w-7 h-7 rounded-full bg-white"></div>
+                        <div className="flex-1 space-y-1"><div className="h-2 bg-white rounded w-1/2"></div><div className="h-1 bg-white/70 rounded w-1/3"></div></div>
+                      </div>
+                      <div className="flex-1 flex p-2 gap-2">
+                        <div className="flex-1 space-y-2">
+                          <div><div className="h-1.5 bg-teal-500/30 rounded w-1/3 mb-1"></div><div className="h-1 bg-gray-200 rounded w-full"></div><div className="h-1 bg-gray-200 rounded w-5/6 mt-0.5"></div></div>
+                          <div><div className="h-1.5 bg-teal-500/30 rounded w-1/4 mb-1"></div><div className="space-y-0.5"><div className="h-1 bg-gray-200 rounded w-full"></div><div className="h-1 bg-gray-200 rounded w-4/5"></div></div></div>
+                        </div>
+                        <div className="w-1/3 space-y-2">
+                          <div><div className="h-1.5 bg-teal-500/30 rounded w-2/3 mb-1"></div><div className="h-1 bg-gray-200 rounded w-full"></div></div>
+                          <div><div className="h-1.5 bg-teal-500/30 rounded w-1/2 mb-1"></div><div className="flex flex-wrap gap-0.5"><div className="h-2 bg-teal-100 rounded w-8"></div><div className="h-2 bg-teal-100 rounded w-6"></div><div className="h-2 bg-teal-100 rounded w-7"></div></div></div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {t.layout === "sidebar-dark" && (
+                    <div className="h-full flex">
+                      <div className={`${t.color} w-1/3 p-2 space-y-2`}>
+                        <div className="w-7 h-7 rounded-full bg-white mx-auto flex items-center justify-center text-blue-800 text-[8px] font-bold">AB</div>
+                        <div className="h-1.5 bg-white/60 rounded w-3/4 mx-auto"></div>
+                        <div className="h-1 bg-white/40 rounded w-1/2 mx-auto"></div>
+                        <div className="pt-2 space-y-1"><div className="h-1 bg-white/30 rounded w-full"></div><div className="h-1 bg-white/20 rounded w-5/6"></div><div className="h-1 bg-white/20 rounded w-full"></div></div>
+                        <div className="pt-2 space-y-1"><div className="h-1 bg-white/30 rounded w-2/3"></div><div className="h-1 bg-white/20 rounded w-full"></div></div>
+                      </div>
+                      <div className="flex-1 p-2 space-y-2">
+                        <div><div className="h-1.5 bg-blue-800 rounded w-1/3 mb-1"></div><div className="h-1 bg-gray-200 rounded w-full"></div><div className="h-1 bg-gray-200 rounded w-5/6 mt-0.5"></div></div>
+                        <div><div className="h-1.5 bg-blue-800 rounded w-1/4 mb-1"></div><div className="space-y-0.5"><div className="h-1 bg-gray-200 rounded w-full"></div><div className="h-1 bg-gray-200 rounded w-4/5"></div><div className="h-1 bg-gray-200 rounded w-full"></div></div></div>
+                      </div>
+                    </div>
+                  )}
+                  {t.layout === "single-bars" && (
+                    <div className="h-full p-3 space-y-2">
+                      <div className="text-center space-y-1 pb-2 border-b-2 border-gray-700"><div className="h-3 bg-gray-300 rounded w-1/3 mx-auto"></div><div className="h-1.5 bg-gray-700/30 rounded w-1/4 mx-auto"></div><div className="h-1 bg-gray-200 rounded w-1/2 mx-auto"></div></div>
+                      <div><div className={`${t.color} h-2.5 rounded-sm w-1/4 mb-1 flex items-center`}><span className="text-white text-[5px] ml-1">SUMMARY</span></div><div className="h-1 bg-gray-200 rounded w-full"></div><div className="h-1 bg-gray-200 rounded w-5/6 mt-0.5"></div></div>
+                      <div><div className={`${t.color} h-2.5 rounded-sm w-1/4 mb-1 flex items-center`}><span className="text-white text-[5px] ml-1">EXPERIENCE</span></div><div className="space-y-0.5"><div className="h-1 bg-gray-200 rounded w-full"></div><div className="h-1 bg-gray-200 rounded w-4/5"></div><div className="h-1 bg-gray-200 rounded w-full"></div></div></div>
+                      <div><div className={`${t.color} h-2.5 rounded-sm w-1/4 mb-1 flex items-center`}><span className="text-white text-[5px] ml-1">SKILLS</span></div><div className="h-1 bg-gray-200 rounded w-3/4"></div></div>
+                    </div>
+                  )}
+                  {t.layout === "sidebar-right" && (
+                    <div className="h-full flex">
+                      <div className="flex-1 p-2 space-y-2">
+                        <div className="pb-2 border-b border-purple-200"><div className="h-2.5 bg-gray-300 rounded w-1/2 mb-1"></div><div className="h-1.5 bg-purple-400/40 rounded w-1/3"></div></div>
+                        <div><div className="h-1.5 bg-purple-400/30 rounded w-1/4 mb-1"></div><div className="h-1 bg-gray-200 rounded w-full"></div><div className="h-1 bg-gray-200 rounded w-5/6 mt-0.5"></div></div>
+                        <div><div className="h-1.5 bg-purple-400/30 rounded w-1/3 mb-1"></div><div className="space-y-0.5"><div className="h-1 bg-gray-200 rounded w-full"></div><div className="h-1 bg-gray-200 rounded w-4/5"></div></div></div>
+                      </div>
+                      <div className={`${t.color} w-1/3 p-2 space-y-2 border-l-2 border-purple-300`}>
+                        <div className="w-6 h-6 rounded-full bg-white mx-auto border-2 border-purple-300/50"></div>
+                        <div className="space-y-1"><div className="h-1 bg-purple-400/40 rounded w-2/3"></div><div className="h-1 bg-purple-400/20 rounded w-full"></div><div className="h-1 bg-purple-400/20 rounded w-5/6"></div></div>
+                        <div className="space-y-1"><div className="h-1 bg-purple-400/40 rounded w-1/2"></div><div className="h-1 bg-purple-400/20 rounded w-full"></div></div>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div className="font-semibold text-gray-900">{t.name}</div>
                 <div className="text-sm text-gray-500">{t.style}</div>
@@ -689,7 +780,7 @@ export default function LandingPage() {
               <ul className="space-y-3 mb-8">
                 {[
                   "Unlimited AI resume generations",
-                  "All 6 resume templates",
+                  "All 12 resume templates",
                   "AI cover letter generation",
                   "Interview prep questions",
                   "Priority support",

@@ -14,6 +14,7 @@ export const classicPhotoMetadata: TemplateMetadata = {
 
 export function generateClassicPhotoHTML(data: ResumeData, options: TemplateOptions): string {
   const { accentColor, showPhoto, showLanguages } = options;
+  const photoUrl = data.profilePhotoUrl;
 
   const experienceHTML = data.experience.map(exp => {
     const bullets = Array.isArray(exp.description) ? exp.description : [exp.description];
@@ -94,6 +95,12 @@ export function generateClassicPhotoHTML(data: ResumeData, options: TemplateOpti
       background: #e5e7eb;
       flex-shrink: 0;
       overflow: hidden;
+    }
+
+    .photo-container img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
 
     .header-content {
@@ -229,7 +236,7 @@ export function generateClassicPhotoHTML(data: ResumeData, options: TemplateOpti
 <body>
   <div class="page">
     <div class="header">
-      ${showPhoto ? '<div class="photo-container"></div>' : ''}
+      ${showPhoto ? `<div class="photo-container">${photoUrl ? `<img src="${photoUrl}" alt="Profile photo" />` : ''}</div>` : ''}
       <div class="header-content">
         <div class="name">${data.contactInfo.name}</div>
         ${data.jobTitle ? `<div class="job-title">${data.jobTitle}</div>` : ''}

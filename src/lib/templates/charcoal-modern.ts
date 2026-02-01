@@ -14,6 +14,7 @@ export const charcoalModernMetadata: TemplateMetadata = {
 
 export function generateCharcoalModernHTML(data: ResumeData, options: TemplateOptions): string {
   const { accentColor, showPhoto, showSkillBars, showIcons, showLanguages } = options;
+  const photoUrl = data.profilePhotoUrl;
   const sidebarColor = '#2d3748';
 
   const experienceHTML = data.experience.map(exp => {
@@ -197,6 +198,12 @@ export function generateCharcoalModernHTML(data: ResumeData, options: TemplateOp
       overflow: hidden;
     }
 
+    .photo-container img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
     .sidebar-section {
       margin-bottom: 20px;
     }
@@ -317,7 +324,7 @@ export function generateCharcoalModernHTML(data: ResumeData, options: TemplateOp
     </div>
 
     <div class="sidebar">
-      ${showPhoto ? '<div class="photo-container"></div>' : ''}
+      ${showPhoto ? `<div class="photo-container">${photoUrl ? `<img src="${photoUrl}" alt="Profile photo" />` : ''}</div>` : ''}
 
       <div class="sidebar-section">
         <div class="sidebar-title">Contact</div>

@@ -51,51 +51,19 @@ export interface Template {
 }
 
 export const TEMPLATES: Template[] = [
-  // Original templates
-  { id: "executive", name: "Executive", category: "professional", description: "Traditional corporate style", layout: "single" },
-  { id: "horizon", name: "Horizon", category: "modern", description: "Clean, contemporary design", layout: "two-column-left" },
-  { id: "canvas", name: "Canvas", category: "creative", description: "Bold and artistic", layout: "two-column-right" },
-  { id: "terminal", name: "Terminal", category: "technical", description: "Developer-focused minimal", layout: "single" },
-  { id: "summit", name: "Summit", category: "executive", description: "C-suite elegance", layout: "single" },
-  { id: "cornerstone", name: "Cornerstone", category: "professional", description: "Balanced two-column", layout: "two-column-left" },
-
-  // Two-column left with photo
-  { id: "navy-curve", name: "Navy Curve", category: "professional", description: "Curved navy header with photo", layout: "two-column-left" },
-  { id: "warm-copper", name: "Warm Copper", category: "creative", description: "Warm copper accents with photo", layout: "two-column-left" },
-  { id: "sage-blocks", name: "Sage Blocks", category: "modern", description: "Decorative block accents", layout: "two-column-left" },
-  { id: "burgundy-classic", name: "Burgundy Classic", category: "executive", description: "Elegant serif with burgundy", layout: "two-column-left" },
-  { id: "forest-green", name: "Forest Green", category: "professional", description: "Nature-inspired green sidebar", layout: "two-column-left" },
-  { id: "ocean-blue", name: "Ocean Blue", category: "modern", description: "Wave-inspired blue design", layout: "two-column-left" },
-  { id: "metro-split", name: "Metro Split", category: "modern", description: "Metro-style colored header", layout: "two-column-left" },
-  { id: "divide-column", name: "Divide Column", category: "professional", description: "Clean vertical divider", layout: "two-column-left" },
-  { id: "column-focus", name: "Column Focus", category: "modern", description: "Focus-driven sidebar design", layout: "two-column-left" },
-
-  // Two-column right with photo
-  { id: "slate-right", name: "Slate Right", category: "professional", description: "Slate sidebar on right", layout: "two-column-right" },
-  { id: "charcoal-modern", name: "Charcoal Modern", category: "modern", description: "Dark charcoal sidebar", layout: "two-column-right" },
-  { id: "plum-elegant", name: "Plum Elegant", category: "executive", description: "Elegant plum accents", layout: "two-column-right" },
-  { id: "coral-fresh", name: "Coral Fresh", category: "creative", description: "Fresh coral color scheme", layout: "two-column-right" },
-  { id: "panel-grid", name: "Panel Grid", category: "modern", description: "Card-based panel layout", layout: "two-column-right" },
-  { id: "grid-modern", name: "Grid Modern", category: "modern", description: "Modern grid with dark sidebar", layout: "two-column-right" },
-
-  // Single column with photo
-  { id: "corporate-clean", name: "Corporate Clean", category: "professional", description: "Clean corporate with photo", layout: "single" },
-  { id: "classic-photo", name: "Classic Photo", category: "professional", description: "Classic layout with header photo", layout: "single" },
-  { id: "bold-header", name: "Bold Header", category: "creative", description: "Bold colored header band", layout: "single" },
-
-  // Single column without photo
-  { id: "minimal-tech", name: "Minimal Tech", category: "technical", description: "Ultra-minimal tech style", layout: "single" },
-  { id: "modern-minimal", name: "Modern Minimal", category: "modern", description: "Clean minimalist design", layout: "single" },
-  { id: "executive-modern", name: "Executive Modern", category: "executive", description: "Modern executive centered", layout: "single" },
-  { id: "ats-classic", name: "ATS Classic", category: "professional", description: "ATS-optimized classic", layout: "single" },
-  { id: "clean-lines", name: "Clean Lines", category: "professional", description: "Elegant line dividers", layout: "single" },
-  { id: "accent-sidebar", name: "Accent Sidebar", category: "modern", description: "Thin accent bar design", layout: "single" },
-  { id: "simple-professional", name: "Simple Professional", category: "professional", description: "Simple and professional", layout: "single" },
-  { id: "bold-centered", name: "Bold Centered", category: "creative", description: "Bold centered header", layout: "single" },
-  { id: "minimalist-one", name: "Minimalist One", category: "modern", description: "Ultra-minimalist single page", layout: "single" },
-  { id: "swiss-design", name: "Swiss Design", category: "modern", description: "Swiss typography layout", layout: "single" },
-  { id: "professional-serif", name: "Professional Serif", category: "professional", description: "Traditional serif style", layout: "single" },
-  { id: "two-tone", name: "Two Tone", category: "modern", description: "Two-tone header design", layout: "single" },
+  // Canva templates - 12 designs
+  { id: "navy-header", name: "Navy Header", category: "professional", description: "Navy header with centered photo", layout: "single" },
+  { id: "blush-sidebar", name: "Blush Sidebar", category: "creative", description: "Elegant script headings", layout: "two-column-left" },
+  { id: "navy-initials", name: "Navy Initials", category: "professional", description: "Bold sidebar with initials", layout: "two-column-left" },
+  { id: "teal-header-split", name: "Teal Split", category: "modern", description: "Modern header design", layout: "single" },
+  { id: "coral-sidebar", name: "Coral Sidebar", category: "creative", description: "Warm coral accents", layout: "two-column-left" },
+  { id: "lavender-right", name: "Lavender Right", category: "creative", description: "Elegant right sidebar", layout: "two-column-right" },
+  { id: "teal-contact", name: "Teal Contact", category: "professional", description: "Prominent contact icons", layout: "two-column-left" },
+  { id: "dusty-blue", name: "Dusty Blue", category: "professional", description: "Soft blue accents", layout: "two-column-left" },
+  { id: "minimalist-bars", name: "Minimalist Bars", category: "modern", description: "Clean section blocks", layout: "single" },
+  { id: "clean-dividers", name: "Clean Dividers", category: "professional", description: "Thin line dividers", layout: "single" },
+  { id: "block-accent", name: "Block Accent", category: "modern", description: "Colored accent blocks", layout: "two-column-left" },
+  { id: "minimal-photo", name: "Minimal Photo", category: "modern", description: "Clean minimal with photo", layout: "single" },
 ];
 
 export const COLORS = [

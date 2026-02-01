@@ -39,26 +39,34 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Job not found" }, { status: 404 });
     }
 
-    // Build the prompt
+    // Build the prompt with strict length constraint
+    const originalLength = bullet.length;
+    const maxLength = Math.max(originalLength, 150); // At least 150 chars, but match original if longer
+
     const prompt = `You are an expert resume writer who helps optimize bullet points for ATS (Applicant Tracking System) compatibility.
 
 The user is applying for: ${job.job_title} at ${job.company_name}
 
-Current bullet point:
+Current bullet point (${originalLength} characters):
 "${bullet}"
 
-${missingKeywords?.length > 0 ? `Missing keywords from job description that could be incorporated: ${missingKeywords.slice(0, 5).join(', ')}` : ''}
-${missingSkills?.length > 0 ? `Missing skills that could be incorporated if relevant: ${missingSkills.slice(0, 5).join(', ')}` : ''}
+${missingKeywords?.length > 0 ? `Missing keywords that could be incorporated: ${missingKeywords.slice(0, 3).join(', ')}` : ''}
+${missingSkills?.length > 0 ? `Missing skills that could be incorporated: ${missingSkills.slice(0, 3).join(', ')}` : ''}
+
+CRITICAL LENGTH REQUIREMENT:
+- The original bullet is ${originalLength} characters
+- Your improved version MUST be ${maxLength} characters or fewer
+- Staying within this length limit is MORE IMPORTANT than adding keywords
+- Only add a keyword if it fits naturally without exceeding the length
 
 Instructions:
-1. Rewrite this bullet point to be more ATS-friendly while keeping it truthful and professional
-2. Try to naturally incorporate 1-2 of the missing keywords/skills IF they are genuinely relevant to the accomplishment
-3. Keep the same level of specificity (numbers, percentages, outcomes)
-4. Maintain professional tone and avoid buzzwords
-5. Keep it concise (similar length to original, max 2 lines)
-6. Do NOT add skills or accomplishments that weren't implied in the original
+1. Rewrite to be more ATS-friendly while staying WITHIN ${maxLength} characters
+2. Only incorporate 1 keyword IF it fits naturally and doesn't make the bullet longer than the original
+3. Keep the same specificity (numbers, percentages, outcomes)
+4. If you cannot improve it without making it longer, return the original text unchanged
+5. Do NOT add skills or accomplishments that weren't implied in the original
 
-Return ONLY the improved bullet point text, nothing else. No quotes, no explanation, just the bullet text.`;
+Return ONLY the improved bullet point text. No quotes, no explanation, just the bullet text.`;
 
     const improved = await callAI(prompt);
 
@@ -67,6 +75,14 @@ Return ONLY the improved bullet point text, nothing else. No quotes, no explanat
       .replace(/^["']|["']$/g, '') // Remove surrounding quotes
       .replace(/^[-•]\s*/, '') // Remove bullet markers
       .trim();
+
+    // Enforce length constraint - if AI exceeded limit, return original
+    // Allow 10% tolerance for minor variations
+    const lengthTolerance = Math.ceil(maxLength * 1.1);
+    if (cleanedBullet.length > lengthTolerance) {
+      // AI didn't respect the length limit, return original
+      return NextResponse.json({ improved: bullet });
+    }
 
     return NextResponse.json({ improved: cleanedBullet });
   } catch (error) {

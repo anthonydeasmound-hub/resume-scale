@@ -14,6 +14,7 @@ export const boldHeaderMetadata: TemplateMetadata = {
 
 export function generateBoldHeaderHTML(data: ResumeData, options: TemplateOptions): string {
   const { accentColor, showPhoto, showLanguages } = options;
+  const photoUrl = data.profilePhotoUrl;
 
   const experienceHTML = data.experience.map(exp => {
     const bullets = Array.isArray(exp.description) ? exp.description : [exp.description];
@@ -117,6 +118,12 @@ export function generateBoldHeaderHTML(data: ResumeData, options: TemplateOption
       margin-left: 20px;
       overflow: hidden;
       border: 3px solid white;
+    }
+
+    .photo-container img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
 
     .content {
@@ -242,7 +249,7 @@ export function generateBoldHeaderHTML(data: ResumeData, options: TemplateOption
         ${data.jobTitle ? `<div class="job-title">${data.jobTitle}</div>` : ''}
         <div class="contact-line">${contactParts.join(' • ')}</div>
       </div>
-      ${showPhoto ? '<div class="photo-container"></div>' : ''}
+      ${showPhoto ? `<div class="photo-container">${photoUrl ? `<img src="${photoUrl}" alt="Profile photo" />` : ''}</div>` : ''}
     </div>
 
     <div class="content">

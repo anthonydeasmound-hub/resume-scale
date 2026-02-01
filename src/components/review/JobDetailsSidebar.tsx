@@ -17,7 +17,13 @@ export default function JobDetailsSidebar({
   onSetShowFullDescription,
   onClose,
 }: JobDetailsSidebarProps) {
-  const details: JobDetailsParsed = JSON.parse(jobDetailsParsed);
+  // Safely parse job details with fallback to empty object
+  let details: JobDetailsParsed;
+  try {
+    details = jobDetailsParsed ? JSON.parse(jobDetailsParsed) : {};
+  } catch {
+    details = {} as JobDetailsParsed;
+  }
 
   return (
     <div className="bg-white rounded-xl shadow-lg overflow-hidden sticky top-8" style={{ height: "fit-content" }}>
@@ -66,7 +72,7 @@ export default function JobDetailsSidebar({
         )}
 
         {/* Requirements */}
-        {details.requirements.length > 0 && (
+        {details.requirements?.length > 0 && (
           <div>
             <h4 className="text-xs font-semibold text-red-600 uppercase tracking-wide mb-2 flex items-center gap-1">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -86,7 +92,7 @@ export default function JobDetailsSidebar({
         )}
 
         {/* Responsibilities */}
-        {details.responsibilities.length > 0 && (
+        {details.responsibilities?.length > 0 && (
           <div>
             <h4 className="text-xs font-semibold text-indigo-600 uppercase tracking-wide mb-2 flex items-center gap-1">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -106,7 +112,7 @@ export default function JobDetailsSidebar({
         )}
 
         {/* Qualifications */}
-        {details.qualifications.length > 0 && (
+        {details.qualifications?.length > 0 && (
           <div>
             <h4 className="text-xs font-semibold text-purple-600 uppercase tracking-wide mb-2 flex items-center gap-1">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -126,7 +132,7 @@ export default function JobDetailsSidebar({
         )}
 
         {/* Benefits */}
-        {details.benefits.length > 0 && (
+        {details.benefits?.length > 0 && (
           <div>
             <h4 className="text-xs font-semibold text-green-600 uppercase tracking-wide mb-2 flex items-center gap-1">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

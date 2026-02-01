@@ -24,96 +24,37 @@ export interface TemplateMetadata {
 // Template generator function type
 export type TemplateGenerator = (data: ResumeData, options: TemplateOptions) => string;
 
-// Import all templates
-import { generateExecutiveHTML, executiveMetadata } from './executive';
-import { generateHorizonHTML, horizonMetadata } from './horizon';
-import { generateCanvasHTML, canvasMetadata } from './canvas';
-import { generateTerminalHTML, terminalMetadata } from './terminal';
-import { generateSummitHTML, summitMetadata } from './summit';
-import { generateCornerstoneHTML, cornerstoneMetadata } from './cornerstone';
+// Import Canva templates
+import { generateNavyHeaderHTML, navyHeaderMetadata } from './navy-header';
+import { generateBlushSidebarHTML, blushSidebarMetadata } from './blush-sidebar';
+import { generateNavyInitialsHTML, navyInitialsMetadata } from './navy-initials';
+import { generateTealHeaderSplitHTML, tealHeaderSplitMetadata } from './teal-header-split';
+import { generateCoralSidebarHTML, coralSidebarMetadata } from './coral-sidebar';
+import { generateLavenderRightHTML, lavenderRightMetadata } from './lavender-right';
+import { generateTealContactHTML, tealContactMetadata } from './teal-contact';
+import { generateDustyBlueHTML, dustyBlueMetadata } from './dusty-blue';
+import { generateMinimalistBarsHTML, minimalistBarsMetadata } from './minimalist-bars';
+import { generateCleanDividersHTML, cleanDividersMetadata } from './clean-dividers';
+import { generateBlockAccentHTML, blockAccentMetadata } from './block-accent';
+import { generateMinimalPhotoHTML, minimalPhotoMetadata } from './minimal-photo';
 
-// Import new templates
-import { generateNavyCurveHTML, navyCurveMetadata } from './navy-curve';
-import { generateWarmCopperHTML, warmCopperMetadata } from './warm-copper';
-import { generateSageBlocksHTML, sageBlocksMetadata } from './sage-blocks';
-import { generateCorporateCleanHTML, corporateCleanMetadata } from './corporate-clean';
-import { generateMinimalTechHTML, minimalTechMetadata } from './minimal-tech';
-import { generateBurgundyClassicHTML, burgundyClassicMetadata } from './burgundy-classic';
-import { generateForestGreenHTML, forestGreenMetadata } from './forest-green';
-import { generateOceanBlueHTML, oceanBlueMetadata } from './ocean-blue';
-import { generateSlateRightHTML, slateRightMetadata } from './slate-right';
-import { generateCharcoalModernHTML, charcoalModernMetadata } from './charcoal-modern';
-import { generatePlumElegantHTML, plumElegantMetadata } from './plum-elegant';
-import { generateCoralFreshHTML, coralFreshMetadata } from './coral-fresh';
-import { generateClassicPhotoHTML, classicPhotoMetadata } from './classic-photo';
-import { generateBoldHeaderHTML, boldHeaderMetadata } from './bold-header';
-import { generateModernMinimalHTML, modernMinimalMetadata } from './modern-minimal';
-import { generateExecutiveModernHTML, executiveModernMetadata } from './executive-modern';
-import { generateAtsClassicHTML, atsClassicMetadata } from './ats-classic';
-import { generateCleanLinesHTML, cleanLinesMetadata } from './clean-lines';
-import { generateAccentSidebarHTML, accentSidebarMetadata } from './accent-sidebar';
-import { generateSimpleProfessionalHTML, simpleProfessionalMetadata } from './simple-professional';
-import { generateBoldCenteredHTML, boldCenteredMetadata } from './bold-centered';
-import { generateMetroSplitHTML, metroSplitMetadata } from './metro-split';
-import { generateDivideColumnHTML, divideColumnMetadata } from './divide-column';
-import { generatePanelGridHTML, panelGridMetadata } from './panel-grid';
-import { generateColumnFocusHTML, columnFocusMetadata } from './column-focus';
-import { generateGridModernHTML, gridModernMetadata } from './grid-modern';
-import { generateMinimalistOneHTML, minimalistOneMetadata } from './minimalist-one';
-import { generateSwissDesignHTML, swissDesignMetadata } from './swiss-design';
-import { generateProfessionalSerifHTML, professionalSerifMetadata } from './professional-serif';
-import { generateTwoToneHTML, twoToneMetadata } from './two-tone';
-
-// Template registry
+// Template registry - 12 Canva templates
 export const TEMPLATE_REGISTRY: Record<string, {
   metadata: TemplateMetadata;
   generate: TemplateGenerator;
 }> = {
-  // Original templates
-  executive: { metadata: executiveMetadata, generate: generateExecutiveHTML },
-  horizon: { metadata: horizonMetadata, generate: generateHorizonHTML },
-  canvas: { metadata: canvasMetadata, generate: generateCanvasHTML },
-  terminal: { metadata: terminalMetadata, generate: generateTerminalHTML },
-  summit: { metadata: summitMetadata, generate: generateSummitHTML },
-  cornerstone: { metadata: cornerstoneMetadata, generate: generateCornerstoneHTML },
-
-  // Two-column left with photo
-  'navy-curve': { metadata: navyCurveMetadata, generate: generateNavyCurveHTML },
-  'warm-copper': { metadata: warmCopperMetadata, generate: generateWarmCopperHTML },
-  'sage-blocks': { metadata: sageBlocksMetadata, generate: generateSageBlocksHTML },
-  'burgundy-classic': { metadata: burgundyClassicMetadata, generate: generateBurgundyClassicHTML },
-  'forest-green': { metadata: forestGreenMetadata, generate: generateForestGreenHTML },
-  'ocean-blue': { metadata: oceanBlueMetadata, generate: generateOceanBlueHTML },
-  'metro-split': { metadata: metroSplitMetadata, generate: generateMetroSplitHTML },
-  'divide-column': { metadata: divideColumnMetadata, generate: generateDivideColumnHTML },
-  'column-focus': { metadata: columnFocusMetadata, generate: generateColumnFocusHTML },
-
-  // Two-column right with photo
-  'slate-right': { metadata: slateRightMetadata, generate: generateSlateRightHTML },
-  'charcoal-modern': { metadata: charcoalModernMetadata, generate: generateCharcoalModernHTML },
-  'plum-elegant': { metadata: plumElegantMetadata, generate: generatePlumElegantHTML },
-  'coral-fresh': { metadata: coralFreshMetadata, generate: generateCoralFreshHTML },
-  'panel-grid': { metadata: panelGridMetadata, generate: generatePanelGridHTML },
-  'grid-modern': { metadata: gridModernMetadata, generate: generateGridModernHTML },
-
-  // Single column with photo
-  'corporate-clean': { metadata: corporateCleanMetadata, generate: generateCorporateCleanHTML },
-  'classic-photo': { metadata: classicPhotoMetadata, generate: generateClassicPhotoHTML },
-  'bold-header': { metadata: boldHeaderMetadata, generate: generateBoldHeaderHTML },
-
-  // Single column without photo
-  'minimal-tech': { metadata: minimalTechMetadata, generate: generateMinimalTechHTML },
-  'modern-minimal': { metadata: modernMinimalMetadata, generate: generateModernMinimalHTML },
-  'executive-modern': { metadata: executiveModernMetadata, generate: generateExecutiveModernHTML },
-  'ats-classic': { metadata: atsClassicMetadata, generate: generateAtsClassicHTML },
-  'clean-lines': { metadata: cleanLinesMetadata, generate: generateCleanLinesHTML },
-  'accent-sidebar': { metadata: accentSidebarMetadata, generate: generateAccentSidebarHTML },
-  'simple-professional': { metadata: simpleProfessionalMetadata, generate: generateSimpleProfessionalHTML },
-  'bold-centered': { metadata: boldCenteredMetadata, generate: generateBoldCenteredHTML },
-  'minimalist-one': { metadata: minimalistOneMetadata, generate: generateMinimalistOneHTML },
-  'swiss-design': { metadata: swissDesignMetadata, generate: generateSwissDesignHTML },
-  'professional-serif': { metadata: professionalSerifMetadata, generate: generateProfessionalSerifHTML },
-  'two-tone': { metadata: twoToneMetadata, generate: generateTwoToneHTML },
+  'navy-header': { metadata: navyHeaderMetadata, generate: generateNavyHeaderHTML },
+  'blush-sidebar': { metadata: blushSidebarMetadata, generate: generateBlushSidebarHTML },
+  'navy-initials': { metadata: navyInitialsMetadata, generate: generateNavyInitialsHTML },
+  'teal-header-split': { metadata: tealHeaderSplitMetadata, generate: generateTealHeaderSplitHTML },
+  'coral-sidebar': { metadata: coralSidebarMetadata, generate: generateCoralSidebarHTML },
+  'lavender-right': { metadata: lavenderRightMetadata, generate: generateLavenderRightHTML },
+  'teal-contact': { metadata: tealContactMetadata, generate: generateTealContactHTML },
+  'dusty-blue': { metadata: dustyBlueMetadata, generate: generateDustyBlueHTML },
+  'minimalist-bars': { metadata: minimalistBarsMetadata, generate: generateMinimalistBarsHTML },
+  'clean-dividers': { metadata: cleanDividersMetadata, generate: generateCleanDividersHTML },
+  'block-accent': { metadata: blockAccentMetadata, generate: generateBlockAccentHTML },
+  'minimal-photo': { metadata: minimalPhotoMetadata, generate: generateMinimalPhotoHTML },
 };
 
 // Get all template metadata for display
@@ -129,13 +70,6 @@ export function getTemplatesByCategory(category: string): TemplateMetadata[] {
 
 // ---------------------------------------------------------------------------
 // Density tier CSS overrides — injected after each template's own styles.
-//
-// Normal: the template's default values (no overrides needed).
-// Compact: reduces padding, margins, line-heights, and font sizes moderately.
-// Dense: reduces more aggressively while keeping body text >= 8pt.
-//
-// Covers both single-column (.page > .header/.section) and two-column
-// (.page > .sidebar + .main) layouts used across all 6 templates.
 // ---------------------------------------------------------------------------
 const DENSITY_TIER_CSS = `
     /* ===== Compact tier ===== */
@@ -307,7 +241,8 @@ export function generateTemplateHTML(
   const template = TEMPLATE_REGISTRY[templateId];
   let html: string;
   if (!template) {
-    html = TEMPLATE_REGISTRY.executive.generate(data, options);
+    // Default to navy-header if template not found
+    html = TEMPLATE_REGISTRY['navy-header'].generate(data, options);
   } else {
     html = template.generate(data, options);
   }

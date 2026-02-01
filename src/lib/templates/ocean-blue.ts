@@ -14,6 +14,7 @@ export const oceanBlueMetadata: TemplateMetadata = {
 
 export function generateOceanBlueHTML(data: ResumeData, options: TemplateOptions): string {
   const { accentColor, showPhoto, showSkillBars, showIcons, showLanguages } = options;
+  const photoUrl = data.profilePhotoUrl;
 
   const experienceHTML = data.experience.map(exp => {
     const bullets = Array.isArray(exp.description) ? exp.description : [exp.description];
@@ -121,6 +122,12 @@ export function generateOceanBlueHTML(data: ResumeData, options: TemplateOptions
       margin: 0 auto 20px;
       border: 4px solid white;
       overflow: hidden;
+    }
+
+    .photo-container img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
 
     .sidebar-section {
@@ -306,7 +313,7 @@ export function generateOceanBlueHTML(data: ResumeData, options: TemplateOptions
   <div class="page">
     <div class="sidebar">
       <div class="sidebar-content">
-        ${showPhoto ? '<div class="photo-container"></div>' : ''}
+        ${showPhoto ? `<div class="photo-container">${photoUrl ? `<img src="${photoUrl}" alt="Profile photo" />` : ''}</div>` : ''}
 
         <div class="sidebar-section">
           <div class="sidebar-title">Contact</div>

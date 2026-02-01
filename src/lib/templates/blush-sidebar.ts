@@ -1,18 +1,18 @@
 import { ResumeData } from '@/types/resume';
 import { TemplateMetadata, TemplateOptions } from './index';
 
-export const plumElegantMetadata: TemplateMetadata = {
-  id: 'plum-elegant',
-  name: 'Plum Elegant',
+export const blushSidebarMetadata: TemplateMetadata = {
+  id: 'blush-sidebar',
+  name: 'Blush Sidebar',
   category: 'creative',
-  layout: 'two-column-right',
-  description: 'Elegant design with plum accent tones',
+  layout: 'two-column-left',
+  description: 'Elegant blush sidebar with script-style headings',
   supportsPhoto: true,
   supportsSkillBars: false,
   supportsIcons: true,
 };
 
-export function generatePlumElegantHTML(data: ResumeData, options: TemplateOptions): string {
+export function generateBlushSidebarHTML(data: ResumeData, options: TemplateOptions): string {
   const { accentColor, showPhoto, showIcons, showLanguages } = options;
   const photoUrl = data.profilePhotoUrl;
 
@@ -22,8 +22,8 @@ export function generatePlumElegantHTML(data: ResumeData, options: TemplateOptio
     return `
     <div class="experience-item">
       <div class="exp-header">
-        <span class="exp-title">${exp.title}</span>
-        <span class="exp-dates">${exp.dates}</span>
+        <div class="exp-title">${exp.title}</div>
+        <div class="exp-dates">${exp.dates}</div>
       </div>
       <div class="exp-company">${exp.company}</div>
       <ul class="bullet-list">${bulletHTML}</ul>
@@ -41,7 +41,7 @@ export function generatePlumElegantHTML(data: ResumeData, options: TemplateOptio
   `).join('');
 
   const skillsHTML = data.skills && data.skills.length > 0
-    ? data.skills.map(skill => `<span class="skill-pill">${skill}</span>`).join('')
+    ? data.skills.map(skill => `<div class="skill-tag">${skill}</div>`).join('')
     : '';
 
   const icon = (name: string) => {
@@ -60,13 +60,13 @@ export function generatePlumElegantHTML(data: ResumeData, options: TemplateOptio
 <html>
 <head>
   <meta charset="UTF-8">
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Mulish:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Lato:wght@400;600&display=swap" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     @page { size: Letter; margin: 0; }
 
     body {
-      font-family: 'Mulish', sans-serif;
+      font-family: 'Lato', sans-serif;
       font-size: 9.5pt;
       line-height: 1.5;
       color: #333;
@@ -80,32 +80,119 @@ export function generatePlumElegantHTML(data: ResumeData, options: TemplateOptio
       display: flex;
     }
 
+    .sidebar {
+      width: 2.5in;
+      background: ${accentColor}15;
+      padding: 0.5in 0.3in;
+      border-right: 2px solid ${accentColor}40;
+    }
+
+    .photo-container {
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      background: #ddd;
+      margin: 0 auto 20px;
+      border: 4px solid ${accentColor}60;
+      overflow: hidden;
+    }
+
+    .photo-container img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .sidebar-name {
+      font-family: 'Playfair Display', serif;
+      font-size: 16pt;
+      font-weight: 600;
+      color: #1a1a1a;
+      text-align: center;
+      margin-bottom: 4px;
+    }
+
+    .sidebar-title {
+      font-size: 9pt;
+      color: ${accentColor};
+      text-align: center;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+
+    .sidebar-section {
+      margin-bottom: 18px;
+    }
+
+    .sidebar-section-title {
+      font-family: 'Playfair Display', serif;
+      font-style: italic;
+      font-size: 11pt;
+      color: ${accentColor};
+      margin-bottom: 8px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid ${accentColor}40;
+    }
+
+    .contact-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 8pt;
+      margin-bottom: 6px;
+      color: #444;
+    }
+
+    .icon {
+      width: 12px;
+      height: 12px;
+      color: ${accentColor};
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .edu-item {
+      margin-bottom: 10px;
+    }
+
+    .edu-degree {
+      font-weight: 600;
+      font-size: 8.5pt;
+      color: #1a1a1a;
+    }
+
+    .edu-field {
+      font-size: 8pt;
+      color: #555;
+      font-style: italic;
+    }
+
+    .edu-school {
+      font-size: 8pt;
+      color: #666;
+    }
+
+    .edu-dates {
+      font-size: 7.5pt;
+      color: #888;
+    }
+
+    .skill-tag {
+      display: inline-block;
+      font-size: 7.5pt;
+      color: #444;
+      background: white;
+      padding: 3px 10px;
+      border-radius: 12px;
+      margin: 2px;
+      border: 1px solid ${accentColor}60;
+    }
+
     .main {
       flex: 1;
-      padding: 0.5in 0.4in 0.4in 0.5in;
-    }
-
-    .main-header {
-      margin-bottom: 20px;
-      padding-bottom: 16px;
-      border-bottom: 1px solid #e5e7eb;
-    }
-
-    .name {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 32pt;
-      font-weight: 600;
-      color: ${accentColor};
-      line-height: 1.1;
-    }
-
-    .job-title {
-      font-size: 11pt;
-      font-weight: 400;
-      color: #666;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      margin-top: 6px;
+      padding: 0.5in 0.5in 0.4in 0.4in;
     }
 
     .section {
@@ -113,9 +200,9 @@ export function generatePlumElegantHTML(data: ResumeData, options: TemplateOptio
     }
 
     .section-title {
-      font-family: 'Cormorant Garamond', serif;
+      font-family: 'Playfair Display', serif;
+      font-style: italic;
       font-size: 13pt;
-      font-weight: 600;
       color: ${accentColor};
       margin-bottom: 10px;
       padding-bottom: 4px;
@@ -125,7 +212,7 @@ export function generatePlumElegantHTML(data: ResumeData, options: TemplateOptio
     .summary-text {
       font-size: 9pt;
       color: #444;
-      line-height: 1.7;
+      line-height: 1.6;
     }
 
     .experience-item {
@@ -139,7 +226,7 @@ export function generatePlumElegantHTML(data: ResumeData, options: TemplateOptio
     }
 
     .exp-title {
-      font-weight: 700;
+      font-weight: 600;
       font-size: 10pt;
       color: #1a1a1a;
     }
@@ -170,117 +257,60 @@ export function generatePlumElegantHTML(data: ResumeData, options: TemplateOptio
     }
 
     .bullet-list li::before {
-      content: "◆";
+      content: "●";
       position: absolute;
       left: 0;
       color: ${accentColor};
-      font-size: 5pt;
-      top: 4px;
+      font-size: 6pt;
+      line-height: 2;
     }
 
-    .sidebar {
-      width: 2.4in;
-      background: ${accentColor}08;
-      padding: 0.5in 0.3in;
-      border-left: 1px solid ${accentColor}30;
-    }
-
-    .photo-container {
-      width: 100px;
-      height: 100px;
-      border-radius: 50%;
-      background: #e5e7eb;
-      margin: 0 auto 20px;
-      border: 2px solid ${accentColor};
-      overflow: hidden;
-    }
-
-    .photo-container img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .sidebar-section {
-      margin-bottom: 20px;
-    }
-
-    .sidebar-title {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 11pt;
-      font-weight: 600;
-      color: ${accentColor};
-      margin-bottom: 10px;
-      padding-bottom: 4px;
-      border-bottom: 1px solid ${accentColor}40;
-    }
-
-    .contact-item {
-      display: flex;
-      align-items: flex-start;
-      gap: 8px;
+    .languages-text {
       font-size: 8pt;
-      margin-bottom: 8px;
       color: #444;
-    }
-
-    .icon {
-      width: 12px;
-      height: 12px;
-      color: ${accentColor};
-      flex-shrink: 0;
-      margin-top: 2px;
-    }
-
-    .edu-item {
-      margin-bottom: 12px;
-    }
-
-    .edu-degree {
-      font-weight: 600;
-      font-size: 9pt;
-      color: #1a1a1a;
-    }
-
-    .edu-field {
-      font-size: 8pt;
-      color: #555;
-      font-style: italic;
-    }
-
-    .edu-school {
-      font-size: 8pt;
-      color: #666;
-    }
-
-    .edu-dates {
-      font-size: 7.5pt;
-      color: #888;
-    }
-
-    .skill-pill {
-      display: inline-block;
-      font-size: 7.5pt;
-      color: ${accentColor};
-      background: white;
-      padding: 3px 10px;
-      border-radius: 15px;
-      margin: 2px;
-      border: 1px solid ${accentColor}50;
     }
   </style>
 </head>
 <body>
   <div class="page">
-    <div class="main">
-      <div class="main-header">
-        <div class="name">${data.contactInfo.name}</div>
-        ${data.jobTitle ? `<div class="job-title">${data.jobTitle}</div>` : ''}
+    <div class="sidebar">
+      ${showPhoto ? `<div class="photo-container">${photoUrl ? `<img src="${photoUrl}" alt="Profile photo" />` : ''}</div>` : ''}
+
+      <div class="sidebar-name">${data.contactInfo.name}</div>
+      ${data.jobTitle ? `<div class="sidebar-title">${data.jobTitle}</div>` : ''}
+
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Contact</div>
+        ${data.contactInfo.email ? `<div class="contact-item">${icon('email')}${data.contactInfo.email}</div>` : ''}
+        ${data.contactInfo.phone ? `<div class="contact-item">${icon('phone')}${data.contactInfo.phone}</div>` : ''}
+        ${data.contactInfo.location ? `<div class="contact-item">${icon('location')}${data.contactInfo.location}</div>` : ''}
+        ${data.contactInfo.linkedin ? `<div class="contact-item">${icon('linkedin')}${data.contactInfo.linkedin}</div>` : ''}
       </div>
 
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Education</div>
+        ${educationHTML}
+      </div>
+
+      ${skillsHTML ? `
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Skills</div>
+        <div style="display: flex; flex-wrap: wrap;">${skillsHTML}</div>
+      </div>
+      ` : ''}
+
+      ${showLanguages && data.languages && data.languages.length > 0 ? `
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Languages</div>
+        <div class="languages-text">${data.languages.join(' • ')}</div>
+      </div>
+      ` : ''}
+    </div>
+
+    <div class="main">
       ${data.summary ? `
       <div class="section">
-        <div class="section-title">About</div>
+        <div class="section-title">Profile</div>
         <div class="summary-text">${data.summary}</div>
       </div>
       ` : ''}
@@ -296,40 +326,9 @@ export function generatePlumElegantHTML(data: ResumeData, options: TemplateOptio
         ${data.certifications.map(cert => `
           <div style="margin-bottom: 6px;">
             <span style="font-weight: 600; font-size: 9pt;">${cert.name}</span>
-            ${cert.issuer ? `<span style="font-size: 8pt; color: #666;"> — ${cert.issuer}</span>` : ''}
+            ${cert.issuer ? `<span style="font-size: 8pt; color: #666;"> - ${cert.issuer}</span>` : ''}
           </div>
         `).join('')}
-      </div>
-      ` : ''}
-    </div>
-
-    <div class="sidebar">
-      ${showPhoto ? `<div class="photo-container">${photoUrl ? `<img src="${photoUrl}" alt="Profile photo" />` : ''}</div>` : ''}
-
-      <div class="sidebar-section">
-        <div class="sidebar-title">Contact</div>
-        ${data.contactInfo.email ? `<div class="contact-item">${icon('email')}${data.contactInfo.email}</div>` : ''}
-        ${data.contactInfo.phone ? `<div class="contact-item">${icon('phone')}${data.contactInfo.phone}</div>` : ''}
-        ${data.contactInfo.location ? `<div class="contact-item">${icon('location')}${data.contactInfo.location}</div>` : ''}
-        ${data.contactInfo.linkedin ? `<div class="contact-item">${icon('linkedin')}${data.contactInfo.linkedin}</div>` : ''}
-      </div>
-
-      <div class="sidebar-section">
-        <div class="sidebar-title">Education</div>
-        ${educationHTML}
-      </div>
-
-      ${skillsHTML ? `
-      <div class="sidebar-section">
-        <div class="sidebar-title">Skills</div>
-        <div style="display: flex; flex-wrap: wrap; gap: 4px;">${skillsHTML}</div>
-      </div>
-      ` : ''}
-
-      ${showLanguages && data.languages && data.languages.length > 0 ? `
-      <div class="sidebar-section">
-        <div class="sidebar-title">Languages</div>
-        <div style="font-size: 8pt; color: #444;">${data.languages.join(' • ')}</div>
       </div>
       ` : ''}
     </div>

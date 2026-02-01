@@ -161,7 +161,7 @@ export default function WorkExperienceSection({
                                           <textarea
                                             value={editingBulletText}
                                             onChange={(e) => onSetEditingBulletText(e.target.value)}
-                                            className="w-full p-2 border rounded text-sm resize-none"
+                                            className="w-full p-2 border rounded text-sm resize-none bg-white text-gray-900"
                                             rows={3}
                                             autoFocus
                                           />

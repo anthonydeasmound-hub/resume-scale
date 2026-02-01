@@ -14,6 +14,7 @@ export const burgundyClassicMetadata: TemplateMetadata = {
 
 export function generateBurgundyClassicHTML(data: ResumeData, options: TemplateOptions): string {
   const { accentColor, showPhoto, showSkillBars, showIcons, showLanguages } = options;
+  const photoUrl = data.profilePhotoUrl;
 
   const experienceHTML = data.experience.map(exp => {
     const bullets = Array.isArray(exp.description) ? exp.description : [exp.description];
@@ -104,6 +105,12 @@ export function generateBurgundyClassicHTML(data: ResumeData, options: TemplateO
       margin: 0 auto 20px;
       border: 3px solid ${accentColor};
       overflow: hidden;
+    }
+
+    .photo-container img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
 
     .sidebar-section {
@@ -293,7 +300,7 @@ export function generateBurgundyClassicHTML(data: ResumeData, options: TemplateO
 <body>
   <div class="page">
     <div class="sidebar">
-      ${showPhoto ? '<div class="photo-container"></div>' : ''}
+      ${showPhoto ? `<div class="photo-container">${photoUrl ? `<img src="${photoUrl}" alt="Profile photo" />` : ''}</div>` : ''}
 
       <div class="sidebar-section">
         <div class="sidebar-title">Contact</div>

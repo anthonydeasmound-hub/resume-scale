@@ -601,7 +601,7 @@ export async function generateEnhancedOnboardingBullets(
                           seniority === 'senior' ? 'senior' : 'mid-level';
 
 
-  const prompt = `You are a ${role.title} at ${role.company}. Write 8 resume bullet points describing your SPECIFIC work at this company.
+  const prompt = `You are a ${role.title} at ${role.company}. Write 5 resume bullet points describing your SPECIFIC work at this company.
 
 ABOUT ${role.company.toUpperCase()}:
 ${companyContext}
@@ -633,7 +633,7 @@ ${exampleBulletsText || "Use general best practices"}
 METRIC FORMAT: Always use numbers (25%, $1.2M, 50+) - never write them out
 
 RESPOND WITH ONLY A JSON ARRAY:
-["Bullet 1", "Bullet 2", "Bullet 3", "Bullet 4", "Bullet 5", "Bullet 6", "Bullet 7", "Bullet 8"]`;
+["Bullet 1", "Bullet 2", "Bullet 3", "Bullet 4", "Bullet 5"]`;
 
   const response = await callAI(prompt);
 

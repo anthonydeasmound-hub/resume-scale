@@ -1,18 +1,18 @@
 import { ResumeData } from '@/types/resume';
 import { TemplateMetadata, TemplateOptions } from './index';
 
-export const forestGreenMetadata: TemplateMetadata = {
-  id: 'forest-green',
-  name: 'Forest Green',
-  category: 'professional',
+export const blockAccentMetadata: TemplateMetadata = {
+  id: 'block-accent',
+  name: 'Block Accent',
+  category: 'modern',
   layout: 'two-column-left',
-  description: 'Natural tones with forest green sidebar',
+  description: 'Two-column with colored accent blocks and badges',
   supportsPhoto: true,
   supportsSkillBars: false,
   supportsIcons: true,
 };
 
-export function generateForestGreenHTML(data: ResumeData, options: TemplateOptions): string {
+export function generateBlockAccentHTML(data: ResumeData, options: TemplateOptions): string {
   const { accentColor, showPhoto, showIcons, showLanguages } = options;
   const photoUrl = data.profilePhotoUrl;
 
@@ -21,11 +21,11 @@ export function generateForestGreenHTML(data: ResumeData, options: TemplateOptio
     const bulletHTML = bullets.filter(b => b).map(bullet => `<li>${bullet}</li>`).join('');
     return `
     <div class="experience-item">
-      <div class="exp-title">${exp.title}</div>
-      <div class="exp-meta">
-        <span class="exp-company">${exp.company}</span>
-        <span class="exp-dates">${exp.dates}</span>
+      <div class="exp-header">
+        <div class="exp-title">${exp.title}</div>
+        <div class="exp-badge">${exp.dates}</div>
       </div>
+      <div class="exp-company">${exp.company}</div>
       <ul class="bullet-list">${bulletHTML}</ul>
     </div>
   `;
@@ -41,16 +41,15 @@ export function generateForestGreenHTML(data: ResumeData, options: TemplateOptio
   `).join('');
 
   const skillsHTML = data.skills && data.skills.length > 0
-    ? data.skills.map(skill => `<span class="skill-chip">${skill}</span>`).join('')
+    ? data.skills.map(skill => `<div class="skill-block">${skill}</div>`).join('')
     : '';
 
   const icon = (name: string) => {
     if (!showIcons) return '';
     const icons: Record<string, string> = {
-      email: '<svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>',
-      phone: '<svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>',
-      location: '<svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>',
-      linkedin: '<svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>',
+      email: '<svg class="icon" viewBox="0 0 24 24" fill="currentColor"><rect x="2" y="4" width="20" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M22 6l-10 7L2 6" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
+      phone: '<svg class="icon" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="2" width="14" height="20" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><line x1="12" y1="18" x2="12" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+      location: '<svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="9" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
     };
     return icons[name] || '';
   };
@@ -60,13 +59,13 @@ export function generateForestGreenHTML(data: ResumeData, options: TemplateOptio
 <html>
 <head>
   <meta charset="UTF-8">
-  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     @page { size: Letter; margin: 0; }
 
     body {
-      font-family: 'Lato', sans-serif;
+      font-family: 'Work Sans', sans-serif;
       font-size: 9.5pt;
       line-height: 1.5;
       color: #333;
@@ -82,18 +81,16 @@ export function generateForestGreenHTML(data: ResumeData, options: TemplateOptio
 
     .sidebar {
       width: 2.5in;
-      background: ${accentColor};
+      background: #f8f8f8;
       padding: 0.5in 0.3in;
-      color: white;
+      border-right: 4px solid ${accentColor};
     }
 
     .photo-container {
       width: 100px;
       height: 100px;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.2);
-      margin: 0 auto 20px;
-      border: 3px solid white;
+      background: ${accentColor};
+      margin: 0 auto 16px;
       overflow: hidden;
     }
 
@@ -105,16 +102,17 @@ export function generateForestGreenHTML(data: ResumeData, options: TemplateOptio
 
     .sidebar-name {
       font-size: 14pt;
-      font-weight: 900;
+      font-weight: 700;
+      color: #1a1a1a;
       text-align: center;
       margin-bottom: 4px;
-      text-transform: uppercase;
     }
 
     .sidebar-title {
       font-size: 9pt;
+      color: ${accentColor};
       text-align: center;
-      opacity: 0.9;
+      font-weight: 600;
       margin-bottom: 20px;
     }
 
@@ -123,88 +121,73 @@ export function generateForestGreenHTML(data: ResumeData, options: TemplateOptio
     }
 
     .sidebar-section-title {
-      font-size: 10pt;
+      font-size: 9pt;
       font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1px;
+      color: white;
+      background: ${accentColor};
+      padding: 4px 10px;
       margin-bottom: 10px;
-      padding-bottom: 4px;
-      border-bottom: 1px solid rgba(255,255,255,0.3);
+      margin-left: -0.3in;
+      margin-right: -0.3in;
+      padding-left: 0.3in;
     }
 
     .contact-item {
       display: flex;
       align-items: flex-start;
-      gap: 8px;
+      gap: 10px;
       font-size: 8pt;
       margin-bottom: 8px;
-      opacity: 0.95;
+      color: #444;
     }
 
     .icon {
-      width: 12px;
-      height: 12px;
+      width: 14px;
+      height: 14px;
+      color: ${accentColor};
       flex-shrink: 0;
-      margin-top: 2px;
-      fill: white;
+      margin-top: 1px;
     }
 
     .edu-item {
-      margin-bottom: 12px;
+      margin-bottom: 10px;
     }
 
     .edu-degree {
-      font-weight: 700;
-      font-size: 9pt;
+      font-weight: 600;
+      font-size: 8.5pt;
+      color: #1a1a1a;
     }
 
     .edu-field {
       font-size: 8pt;
-      opacity: 0.9;
+      color: #555;
     }
 
     .edu-school {
       font-size: 8pt;
-      opacity: 0.85;
+      color: #666;
     }
 
     .edu-dates {
       font-size: 7.5pt;
-      opacity: 0.7;
+      color: ${accentColor};
     }
 
-    .skill-chip {
+    .skill-block {
       display: inline-block;
       font-size: 7.5pt;
-      background: rgba(255,255,255,0.2);
-      padding: 3px 8px;
-      border-radius: 12px;
+      font-weight: 500;
+      color: #1a1a1a;
+      background: white;
+      padding: 4px 10px;
       margin: 2px;
+      border-left: 3px solid ${accentColor};
     }
 
     .main {
       flex: 1;
       padding: 0.5in 0.5in 0.4in 0.4in;
-    }
-
-    .main-header {
-      margin-bottom: 20px;
-      padding-bottom: 16px;
-      border-bottom: 2px solid ${accentColor};
-    }
-
-    .name {
-      font-size: 28pt;
-      font-weight: 900;
-      color: #1a1a1a;
-      text-transform: uppercase;
-      line-height: 1.1;
-    }
-
-    .job-title {
-      font-size: 11pt;
-      color: ${accentColor};
-      margin-top: 4px;
     }
 
     .section {
@@ -214,12 +197,13 @@ export function generateForestGreenHTML(data: ResumeData, options: TemplateOptio
     .section-title {
       font-size: 11pt;
       font-weight: 700;
-      color: ${accentColor};
+      color: #1a1a1a;
       text-transform: uppercase;
       letter-spacing: 1px;
-      margin-bottom: 10px;
-      padding-bottom: 4px;
-      border-bottom: 2px solid ${accentColor};
+      margin-bottom: 12px;
+      padding-bottom: 6px;
+      border-bottom: 3px solid ${accentColor};
+      display: inline-block;
     }
 
     .summary-text {
@@ -232,26 +216,32 @@ export function generateForestGreenHTML(data: ResumeData, options: TemplateOptio
       margin-bottom: 14px;
     }
 
+    .exp-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2px;
+    }
+
     .exp-title {
-      font-weight: 700;
+      font-weight: 600;
       font-size: 10pt;
       color: #1a1a1a;
     }
 
-    .exp-meta {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 4px;
+    .exp-badge {
+      font-size: 7pt;
+      font-weight: 600;
+      color: white;
+      background: ${accentColor};
+      padding: 2px 8px;
+      border-radius: 2px;
     }
 
     .exp-company {
       font-size: 9pt;
       color: #555;
-    }
-
-    .exp-dates {
-      font-size: 8pt;
-      color: ${accentColor};
+      margin-bottom: 4px;
     }
 
     .bullet-list {
@@ -265,30 +255,22 @@ export function generateForestGreenHTML(data: ResumeData, options: TemplateOptio
       margin-bottom: 2px;
       padding-left: 14px;
       position: relative;
+      color: #444;
     }
 
     .bullet-list li::before {
-      content: "●";
+      content: "";
       position: absolute;
       left: 0;
-      color: ${accentColor};
-      font-size: 6pt;
-      top: 3px;
+      top: 6px;
+      width: 6px;
+      height: 6px;
+      background: ${accentColor};
     }
 
-    .cert-item {
-      margin-bottom: 6px;
-    }
-
-    .cert-name {
-      font-weight: 700;
-      font-size: 9pt;
-      color: #1a1a1a;
-    }
-
-    .cert-issuer {
+    .languages-text {
       font-size: 8pt;
-      color: #666;
+      color: #444;
     }
   </style>
 </head>
@@ -296,6 +278,7 @@ export function generateForestGreenHTML(data: ResumeData, options: TemplateOptio
   <div class="page">
     <div class="sidebar">
       ${showPhoto ? `<div class="photo-container">${photoUrl ? `<img src="${photoUrl}" alt="Profile photo" />` : ''}</div>` : ''}
+
       <div class="sidebar-name">${data.contactInfo.name}</div>
       ${data.jobTitle ? `<div class="sidebar-title">${data.jobTitle}</div>` : ''}
 
@@ -304,7 +287,6 @@ export function generateForestGreenHTML(data: ResumeData, options: TemplateOptio
         ${data.contactInfo.email ? `<div class="contact-item">${icon('email')}${data.contactInfo.email}</div>` : ''}
         ${data.contactInfo.phone ? `<div class="contact-item">${icon('phone')}${data.contactInfo.phone}</div>` : ''}
         ${data.contactInfo.location ? `<div class="contact-item">${icon('location')}${data.contactInfo.location}</div>` : ''}
-        ${data.contactInfo.linkedin ? `<div class="contact-item">${icon('linkedin')}${data.contactInfo.linkedin}</div>` : ''}
       </div>
 
       <div class="sidebar-section">
@@ -315,27 +297,22 @@ export function generateForestGreenHTML(data: ResumeData, options: TemplateOptio
       ${skillsHTML ? `
       <div class="sidebar-section">
         <div class="sidebar-section-title">Skills</div>
-        <div style="display: flex; flex-wrap: wrap; gap: 4px;">${skillsHTML}</div>
+        <div style="display: flex; flex-wrap: wrap; margin: -2px;">${skillsHTML}</div>
       </div>
       ` : ''}
 
       ${showLanguages && data.languages && data.languages.length > 0 ? `
       <div class="sidebar-section">
         <div class="sidebar-section-title">Languages</div>
-        <div style="font-size: 8pt; opacity: 0.9;">${data.languages.join(' • ')}</div>
+        <div class="languages-text">${data.languages.join(' • ')}</div>
       </div>
       ` : ''}
     </div>
 
     <div class="main">
-      <div class="main-header">
-        <div class="name">${data.contactInfo.name}</div>
-        ${data.jobTitle ? `<div class="job-title">${data.jobTitle}</div>` : ''}
-      </div>
-
       ${data.summary ? `
       <div class="section">
-        <div class="section-title">Profile</div>
+        <div class="section-title">About</div>
         <div class="summary-text">${data.summary}</div>
       </div>
       ` : ''}
@@ -349,9 +326,9 @@ export function generateForestGreenHTML(data: ResumeData, options: TemplateOptio
       <div class="section">
         <div class="section-title">Certifications</div>
         ${data.certifications.map(cert => `
-          <div class="cert-item">
-            <span class="cert-name">${cert.name}</span>
-            ${cert.issuer ? `<span class="cert-issuer"> - ${cert.issuer}</span>` : ''}
+          <div style="margin-bottom: 6px;">
+            <span style="font-weight: 600; font-size: 9pt;">${cert.name}</span>
+            ${cert.issuer ? `<span style="font-size: 8pt; color: #666;"> - ${cert.issuer}</span>` : ''}
           </div>
         `).join('')}
       </div>

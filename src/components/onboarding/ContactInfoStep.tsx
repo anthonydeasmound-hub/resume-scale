@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { LinkedInData, Step } from "./types";
+import { formatPhoneNumber } from "@/lib/utils";
 
 interface ContactInfoStepProps {
   editableData: LinkedInData;
@@ -97,7 +98,7 @@ export default function ContactInfoStep({
               value={editableData.contact_info.phone}
               onChange={(e) => {
                 const updated = { ...editableData };
-                updated.contact_info.phone = e.target.value;
+                updated.contact_info.phone = formatPhoneNumber(e.target.value);
                 setEditableData(updated);
               }}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-brand-blue focus:border-transparent"

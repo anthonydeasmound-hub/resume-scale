@@ -14,6 +14,7 @@ export const slateRightMetadata: TemplateMetadata = {
 
 export function generateSlateRightHTML(data: ResumeData, options: TemplateOptions): string {
   const { accentColor, showPhoto, showIcons, showLanguages } = options;
+  const photoUrl = data.profilePhotoUrl;
 
   const experienceHTML = data.experience.map(exp => {
     const bullets = Array.isArray(exp.description) ? exp.description : [exp.description];
@@ -188,6 +189,12 @@ export function generateSlateRightHTML(data: ResumeData, options: TemplateOption
       overflow: hidden;
     }
 
+    .photo-container img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
     .sidebar-section {
       margin-bottom: 18px;
     }
@@ -291,7 +298,7 @@ export function generateSlateRightHTML(data: ResumeData, options: TemplateOption
     </div>
 
     <div class="sidebar">
-      ${showPhoto ? '<div class="photo-container"></div>' : ''}
+      ${showPhoto ? `<div class="photo-container">${photoUrl ? `<img src="${photoUrl}" alt="Profile photo" />` : ''}</div>` : ''}
 
       <div class="sidebar-section">
         <div class="sidebar-title">Contact</div>

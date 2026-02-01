@@ -14,6 +14,7 @@ export const executiveModernMetadata: TemplateMetadata = {
 
 export function generateExecutiveModernHTML(data: ResumeData, options: TemplateOptions): string {
   const { accentColor, showPhoto, showLanguages } = options;
+  const photoUrl = data.profilePhotoUrl;
 
   const experienceHTML = data.experience.map(exp => {
     const bullets = Array.isArray(exp.description) ? exp.description : [exp.description];
@@ -83,6 +84,12 @@ export function generateExecutiveModernHTML(data: ResumeData, options: TemplateO
       background: #e5e7eb;
       margin: 0 auto 12px;
       overflow: hidden;
+    }
+
+    .photo-container img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
 
     .name {
@@ -224,7 +231,7 @@ export function generateExecutiveModernHTML(data: ResumeData, options: TemplateO
 <body>
   <div class="page">
     <div class="header">
-      ${showPhoto ? '<div class="photo-container"></div>' : ''}
+      ${showPhoto ? `<div class="photo-container">${photoUrl ? `<img src="${photoUrl}" alt="Profile photo" />` : ''}</div>` : ''}
       <div class="name">${data.contactInfo.name}</div>
       ${data.jobTitle ? `<div class="job-title">${data.jobTitle}</div>` : ''}
       <div class="contact-line">${[data.contactInfo.email, data.contactInfo.phone, data.contactInfo.location].filter(Boolean).join(' | ')}</div>

@@ -14,6 +14,7 @@ export const corporateCleanMetadata: TemplateMetadata = {
 
 export function generateCorporateCleanHTML(data: ResumeData, options: TemplateOptions): string {
   const { accentColor, showPhoto, showLanguages } = options;
+  const photoUrl = data.profilePhotoUrl;
 
   const experienceHTML = data.experience.map(exp => {
     const bullets = Array.isArray(exp.description) ? exp.description : [exp.description];
@@ -128,6 +129,12 @@ export function generateCorporateCleanHTML(data: ResumeData, options: TemplateOp
       overflow: hidden;
       flex-shrink: 0;
       margin-left: 20px;
+    }
+
+    .photo-container img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
 
     .section {
@@ -249,7 +256,7 @@ export function generateCorporateCleanHTML(data: ResumeData, options: TemplateOp
           ${data.contactInfo.linkedin ? `<tr><td>Website:</td><td>${data.contactInfo.linkedin}</td></tr>` : ''}
         </table>
       </div>
-      ${showPhoto ? '<div class="photo-container"></div>' : ''}
+      ${showPhoto ? `<div class="photo-container">${photoUrl ? `<img src="${photoUrl}" alt="Profile photo" />` : ''}</div>` : ''}
     </div>
 
     ${data.summary ? `

@@ -2,6 +2,82 @@
 
 import React from "react";
 import { LinkedInData, Step } from "./types";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+
+// Sortable bullet item component
+interface SortableBulletProps {
+  id: string;
+  bullet: string;
+  bulletIdx: number;
+  jobIdx: number;
+  onUpdate: (value: string) => void;
+  onRemove: () => void;
+}
+
+function SortableBullet({ id, bullet, bulletIdx, jobIdx, onUpdate, onRemove }: SortableBulletProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="flex gap-2 items-center">
+      {/* Drag handle */}
+      <button
+        {...attributes}
+        {...listeners}
+        className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 touch-none"
+        title="Drag to reorder"
+      >
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+        </svg>
+      </button>
+      <span className="text-gray-400">&#8226;</span>
+      <input
+        type="text"
+        value={bullet}
+        onChange={(e) => onUpdate(e.target.value)}
+        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-brand-blue focus:border-transparent"
+      />
+      <button
+        onClick={onRemove}
+        className="text-gray-400 hover:text-red-500 transition-colors"
+        title="Remove bullet"
+      >
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+  );
+}
 
 interface AchievementsStepProps {
   editableData: LinkedInData;
@@ -38,6 +114,34 @@ export default function AchievementsStep({
   MAX_BULLETS_PER_ROLE,
   INITIAL_SUGGESTIONS_SHOWN,
 }: AchievementsStepProps) {
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = (jobIdx: number) => (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = editableData.work_experience[jobIdx].description.findIndex(
+        (_, i) => `bullet-${jobIdx}-${i}` === active.id
+      );
+      const newIndex = editableData.work_experience[jobIdx].description.findIndex(
+        (_, i) => `bullet-${jobIdx}-${i}` === over.id
+      );
+
+      const updated = { ...editableData };
+      updated.work_experience[jobIdx].description = arrayMove(
+        updated.work_experience[jobIdx].description,
+        oldIndex,
+        newIndex
+      );
+      setEditableData(updated);
+    }
+  };
+
   return (
     <div className="bg-white rounded-xl shadow-lg p-6">
       <div className="flex items-center gap-3 mb-6">
@@ -56,7 +160,7 @@ export default function AchievementsStep({
         {editableData.work_experience.map((exp, jobIdx) => (
           <div key={jobIdx} className="p-4 bg-brand-gray rounded-lg">
             <h3 className="font-medium text-gray-800 mb-3">
-              {exp.title} at {exp.company}
+              {exp.title}{exp.company ? ` at ${exp.company}` : ''}
             </h3>
             <div className="space-y-2">
               <div className="flex items-center justify-between mb-1">
@@ -67,34 +171,36 @@ export default function AchievementsStep({
                   <span className="text-xs text-amber-600">Maximum reached</span>
                 )}
               </div>
-              {exp.description.map((bullet, bulletIdx) => (
-                <div key={bulletIdx} className="flex gap-2">
-                  <span className="text-gray-400 mt-2">&#8226;</span>
-                  <input
-                    type="text"
-                    value={bullet}
-                    onChange={(e) => {
-                      const updated = { ...editableData };
-                      updated.work_experience[jobIdx].description[bulletIdx] = e.target.value;
-                      setEditableData(updated);
-                    }}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-brand-blue focus:border-transparent"
-                  />
-                  <button
-                    onClick={() => {
-                      const updated = { ...editableData };
-                      updated.work_experience[jobIdx].description = updated.work_experience[jobIdx].description.filter((_, i) => i !== bulletIdx);
-                      setEditableData(updated);
-                    }}
-                    className="text-gray-400 hover:text-red-500 transition-colors"
-                    title="Remove bullet"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-              ))}
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd(jobIdx)}
+              >
+                <SortableContext
+                  items={exp.description.map((_, i) => `bullet-${jobIdx}-${i}`)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {exp.description.map((bullet, bulletIdx) => (
+                    <SortableBullet
+                      key={`bullet-${jobIdx}-${bulletIdx}`}
+                      id={`bullet-${jobIdx}-${bulletIdx}`}
+                      bullet={bullet}
+                      bulletIdx={bulletIdx}
+                      jobIdx={jobIdx}
+                      onUpdate={(value) => {
+                        const updated = { ...editableData };
+                        updated.work_experience[jobIdx].description[bulletIdx] = value;
+                        setEditableData(updated);
+                      }}
+                      onRemove={() => {
+                        const updated = { ...editableData };
+                        updated.work_experience[jobIdx].description = updated.work_experience[jobIdx].description.filter((_, i) => i !== bulletIdx);
+                        setEditableData(updated);
+                      }}
+                    />
+                  ))}
+                </SortableContext>
+              </DndContext>
               {exp.description.filter(b => b.trim() !== "").length < MAX_BULLETS_PER_ROLE && (
                 <button
                   onClick={() => {
@@ -169,7 +275,7 @@ export default function AchievementsStep({
                                 </span>
                                 {!isRegenerating && (
                                   <div className="flex items-center gap-1 shrink-0">
-                                    {/* Thumbs up - accept */}
+                                    {/* Plus - accept */}
                                     <button
                                       disabled={isAtLimit}
                                       onClick={() => handleBulletFeedback(jobIdx, recIdx, rec, 'up', exp)}
@@ -181,17 +287,17 @@ export default function AchievementsStep({
                                       title={isAtLimit ? "Remove a bullet first" : "Add this bullet"}
                                     >
                                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                                       </svg>
                                     </button>
-                                    {/* Thumbs down - regenerate */}
+                                    {/* Minus - regenerate */}
                                     <button
                                       onClick={() => handleBulletFeedback(jobIdx, recIdx, rec, 'down', exp)}
                                       className="p-1.5 rounded-full text-red-400 hover:bg-red-100 hover:text-red-500 transition-colors"
                                       title="Generate a different suggestion"
                                     >
                                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.096c.5 0 .905-.405.905-.904 0-.715.211-1.413.608-2.008L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
                                       </svg>
                                     </button>
                                   </div>

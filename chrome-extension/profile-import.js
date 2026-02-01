@@ -166,6 +166,100 @@
 
       console.log('[ResumeGenie] Captured HTML length:', pageHtml.length);
 
+      // Capture profile photo as base64 (since server can't download from LinkedIn)
+      let profilePhotoBase64 = '';
+      try {
+        updateStatus('Capturing profile photo...');
+
+        // Find profile photo - LinkedIn uses various selectors
+        const photoSelectors = [
+          '.pv-top-card-profile-picture__image',
+          '.profile-photo-edit__preview',
+          'img.pv-top-card__photo',
+          'img[class*="profile-photo"]',
+          'img[class*="pv-top-card"]',
+          '.pv-top-card__photo-wrapper img',
+          'button[aria-label*="photo"] img',
+          'img[alt*="profile photo"]',
+        ];
+
+        let photoImg = null;
+        for (const selector of photoSelectors) {
+          photoImg = document.querySelector(selector);
+          if (photoImg && photoImg.src && photoImg.complete) {
+            console.log('[ResumeGenie] Found profile photo with selector:', selector);
+            break;
+          }
+          photoImg = null;
+        }
+
+        // Fallback: find any LinkedIn CDN image that looks like a profile photo
+        if (!photoImg) {
+          const allImages = document.querySelectorAll('img[src*="licdn.com"]');
+          for (const img of allImages) {
+            if (img.src.includes('profile') || img.src.includes('shrink_400') || img.src.includes('shrink_800')) {
+              if (img.complete && img.naturalWidth > 50) {
+                photoImg = img;
+                console.log('[ResumeGenie] Found profile photo via CDN pattern');
+                break;
+              }
+            }
+          }
+        }
+
+        if (photoImg && photoImg.complete && photoImg.naturalWidth > 0) {
+          // Create canvas and draw image
+          const canvas = document.createElement('canvas');
+          canvas.width = photoImg.naturalWidth;
+          canvas.height = photoImg.naturalHeight;
+          const ctx = canvas.getContext('2d');
+
+          // Handle CORS by creating a new image with crossorigin
+          const tempImg = new Image();
+          tempImg.crossOrigin = 'anonymous';
+
+          await new Promise((resolve, reject) => {
+            tempImg.onload = () => {
+              ctx.drawImage(tempImg, 0, 0);
+              try {
+                profilePhotoBase64 = canvas.toDataURL('image/jpeg', 0.9);
+                console.log('[ResumeGenie] Captured profile photo, size:', profilePhotoBase64.length);
+              } catch (e) {
+                console.log('[ResumeGenie] Canvas toDataURL failed (CORS):', e.message);
+                // Try with original image anyway
+                try {
+                  ctx.drawImage(photoImg, 0, 0);
+                  profilePhotoBase64 = canvas.toDataURL('image/jpeg', 0.9);
+                  console.log('[ResumeGenie] Captured profile photo (direct), size:', profilePhotoBase64.length);
+                } catch (e2) {
+                  console.log('[ResumeGenie] Direct capture also failed:', e2.message);
+                }
+              }
+              resolve();
+            };
+            tempImg.onerror = () => {
+              // Try direct capture
+              try {
+                ctx.drawImage(photoImg, 0, 0);
+                profilePhotoBase64 = canvas.toDataURL('image/jpeg', 0.9);
+                console.log('[ResumeGenie] Captured profile photo (fallback), size:', profilePhotoBase64.length);
+              } catch (e) {
+                console.log('[ResumeGenie] Fallback capture failed:', e.message);
+              }
+              resolve();
+            };
+            tempImg.src = photoImg.src;
+
+            // Timeout after 3 seconds
+            setTimeout(resolve, 3000);
+          });
+        } else {
+          console.log('[ResumeGenie] No profile photo found or not loaded');
+        }
+      } catch (photoError) {
+        console.error('[ResumeGenie] Error capturing profile photo:', photoError);
+      }
+
       // Try to get the actual profile URL (not /in/me/)
       let profileUrl = window.location.href.split('?')[0];
 
@@ -195,7 +289,8 @@
         },
         body: JSON.stringify({
           html: pageHtml,
-          profile_url: profileUrl
+          profile_url: profileUrl,
+          profile_photo_base64: profilePhotoBase64
         })
       });
 

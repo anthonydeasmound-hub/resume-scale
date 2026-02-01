@@ -1,6 +1,7 @@
 "use client";
 
 import { ContactInfo } from "./types";
+import { formatPhoneNumber } from "@/lib/utils";
 
 interface ContactInfoSectionProps {
   contactInfo: ContactInfo;
@@ -37,7 +38,7 @@ export default function ContactInfoSection({ contactInfo, onUpdate }: ContactInf
           <input
             type="tel"
             value={contactInfo.phone}
-            onChange={(e) => onUpdate("phone", e.target.value)}
+            onChange={(e) => onUpdate("phone", formatPhoneNumber(e.target.value))}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue text-gray-900"
             placeholder="(555) 123-4567"
           />

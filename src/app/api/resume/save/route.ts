@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { queryOne, execute } from "@/lib/db";
+import { put } from "@vercel/blob";
 import { z } from "zod";
 
 const contactInfoSchema = z.object({
@@ -39,6 +40,106 @@ const honorSchema = z.array(z.object({
   date: z.string().max(50),
 })).max(50);
 
+// Helper function to process base64 data URL and upload to Vercel Blob
+async function processBase64Photo(dataUrl: string, identifier: string): Promise<string | null> {
+  try {
+    console.log("[resume/save] Processing base64 photo, length:", dataUrl.length);
+
+    // Parse the data URL
+    const matches = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+    if (!matches) {
+      console.error("[resume/save] Invalid base64 data URL format");
+      return null;
+    }
+
+    const contentType = matches[1];
+    const base64Data = matches[2];
+    const buffer = Buffer.from(base64Data, 'base64');
+
+    // Validate it's actually an image
+    if (!contentType.startsWith('image/')) {
+      console.error("[resume/save] Base64 content is not an image:", contentType);
+      return null;
+    }
+
+    // Determine file extension
+    const extMap: Record<string, string> = {
+      'image/jpeg': 'jpg',
+      'image/png': 'png',
+      'image/webp': 'webp',
+      'image/gif': 'gif',
+    };
+    const ext = extMap[contentType] || 'jpg';
+
+    // Upload to Vercel Blob
+    const blob = await put(`photos/${identifier}_${Date.now()}.${ext}`, buffer, {
+      access: 'public',
+      contentType,
+    });
+
+    console.log("[resume/save] Uploaded base64 photo to Vercel Blob:", blob.url);
+    return blob.url;
+  } catch (error) {
+    console.error("[resume/save] Error processing base64 photo:", error);
+    return null;
+  }
+}
+
+// Helper function to download LinkedIn photo and upload to Vercel Blob
+async function processLinkedInPhoto(photoUrl: string, userId: number): Promise<string | null> {
+  // Check if it's a LinkedIn CDN URL
+  if (!photoUrl.includes('licdn.com') && !photoUrl.includes('linkedin.com')) {
+    return photoUrl; // Not a LinkedIn URL, return as-is
+  }
+
+  try {
+    console.log("[resume/save] Downloading LinkedIn photo:", photoUrl.substring(0, 100));
+
+    // Download the image
+    const response = await fetch(photoUrl, {
+      headers: {
+        // Some LinkedIn URLs need a user-agent
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+      },
+    });
+
+    if (!response.ok) {
+      console.error("[resume/save] Failed to download LinkedIn photo:", response.status);
+      return null;
+    }
+
+    const contentType = response.headers.get('content-type') || 'image/jpeg';
+    const buffer = Buffer.from(await response.arrayBuffer());
+
+    // Validate it's actually an image
+    if (!contentType.startsWith('image/')) {
+      console.error("[resume/save] Downloaded content is not an image:", contentType);
+      return null;
+    }
+
+    // Determine file extension
+    const extMap: Record<string, string> = {
+      'image/jpeg': 'jpg',
+      'image/png': 'png',
+      'image/webp': 'webp',
+      'image/gif': 'gif',
+    };
+    const ext = extMap[contentType] || 'jpg';
+
+    // Upload to Vercel Blob
+    const blob = await put(`photos/${userId}_${Date.now()}.${ext}`, buffer, {
+      access: 'public',
+      contentType,
+    });
+
+    console.log("[resume/save] Uploaded LinkedIn photo to Vercel Blob:", blob.url);
+    return blob.url;
+  } catch (error) {
+    console.error("[resume/save] Error processing LinkedIn photo:", error);
+    return null;
+  }
+}
+
 const inputSchema = z.object({
   profile_id: z.number().optional(),
   contact_info: contactInfoSchema,
@@ -64,7 +165,21 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    console.log("Resume save request body:", JSON.stringify(body, null, 2));
+
+    // Process base64 photo BEFORE validation (base64 strings are too long for validation)
+    if (body.profile_photo_path && typeof body.profile_photo_path === 'string') {
+      if (body.profile_photo_path.startsWith('data:image/')) {
+        console.log("[resume/save] Detected base64 photo, processing before validation...");
+        const processedUrl = await processBase64Photo(body.profile_photo_path, session.user.email.replace(/[^a-zA-Z0-9]/g, '_'));
+        body.profile_photo_path = processedUrl;
+      }
+    }
+
+    console.log("Resume save request body (photo processed):", JSON.stringify({
+      ...body,
+      profile_photo_path: body.profile_photo_path ? body.profile_photo_path.substring(0, 100) + '...' : null
+    }, null, 2));
+
     const parsed = inputSchema.safeParse(body);
     if (!parsed.success) {
       console.error("Validation errors:", parsed.error.flatten());
@@ -72,7 +187,7 @@ export async function POST(request: NextRequest) {
     }
     const { profile_id, contact_info, work_experience, skills, education, certifications, languages, honors, profile_photo_path, raw_text, summary, resume_style, accent_color } = parsed.data;
 
-    // Get or create user
+    // Get or create user first (needed for photo processing)
     let user = await queryOne<{ id: number }>("SELECT id FROM users WHERE email = $1", [session.user.email]);
 
     if (!user) {
@@ -81,6 +196,13 @@ export async function POST(request: NextRequest) {
         [session.user.email, session.user.name, session.user.image]
       );
       user = { id: result.rows[0].id as number };
+    }
+
+    // Process LinkedIn photo if provided - download and upload to Vercel Blob
+    let finalPhotoPath = profile_photo_path || null;
+    if (profile_photo_path && (profile_photo_path.includes('licdn.com') || profile_photo_path.includes('linkedin.com'))) {
+      const processedUrl = await processLinkedInPhoto(profile_photo_path, user.id);
+      finalPhotoPath = processedUrl;
     }
 
     // Check if resume exists - either by profile_id or primary profile
@@ -124,7 +246,7 @@ export async function POST(request: NextRequest) {
         certifications ? JSON.stringify(certifications) : null,
         languages ? JSON.stringify(languages) : null,
         honors ? JSON.stringify(honors) : null,
-        profile_photo_path || null,
+        finalPhotoPath,
         raw_text || null,
         summary || null,
         resume_style || 'basic',
@@ -147,7 +269,7 @@ export async function POST(request: NextRequest) {
         certifications ? JSON.stringify(certifications) : null,
         languages ? JSON.stringify(languages) : null,
         honors ? JSON.stringify(honors) : null,
-        profile_photo_path || null,
+        finalPhotoPath,
         raw_text || null,
         summary || null,
         resume_style || 'basic',

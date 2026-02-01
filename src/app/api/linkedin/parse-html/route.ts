@@ -19,10 +19,69 @@ const inputSchema = z.object({
   // Allow up to 5MB of raw HTML - we clean and truncate it to 50KB before sending to AI
   html: z.string().min(1).max(5000000),
   profile_url: z.string().max(2000).optional(),
+  // Profile photo captured from browser as base64 (bypasses LinkedIn auth requirements)
+  profile_photo_base64: z.string().max(2000000).optional(),
 });
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || "" });
 const openRouterApiKey = process.env.OPENROUTER_API_KEY;
+
+// Filter out invalid skills that are LinkedIn navigation/section items, not actual skills
+function filterValidSkills(skills: string[]): string[] {
+  const invalidSkillPatterns = [
+    // LinkedIn section names and navigation
+    /^schools?$/i,
+    /^companies$/i,
+    /^groups?$/i,
+    /^interests?$/i,
+    /^newsletters?$/i,
+    /^top voices?$/i,
+    /^followers?$/i,
+    /^following$/i,
+    /^connections?$/i,
+    /^posts?$/i,
+    /^articles?$/i,
+    /^activity$/i,
+    /^experience$/i,
+    /^education$/i,
+    /^licenses?$/i,
+    /^certifications?$/i,
+    /^volunteer/i,
+    /^publications?$/i,
+    /^patents?$/i,
+    /^courses?$/i,
+    /^projects?$/i,
+    /^honors?$/i,
+    /^awards?$/i,
+    /^languages?$/i,
+    /^organizations?$/i,
+    // Job titles with "at" (these are work experience, not skills)
+    / at /i,
+    // LinkedIn badge patterns
+    /and \+\d+ skills?$/i,
+    /^\+\d+ skills?$/i,
+    // Too short to be a real skill
+    /^.{1,2}$/,
+    // Contains only special characters or numbers
+    /^[\d\s\W]+$/,
+  ];
+
+  return skills.filter(skill => {
+    if (!skill || typeof skill !== 'string') return false;
+    const trimmed = skill.trim();
+    if (!trimmed) return false;
+
+    // Check against invalid patterns
+    for (const pattern of invalidSkillPatterns) {
+      if (pattern.test(trimmed)) {
+        console.log(`[parse-html] Filtered out invalid skill: "${trimmed}"`);
+        return false;
+      }
+    }
+
+    return true;
+  });
+}
 
 // CORS headers for Chrome extension
 const corsHeaders = {
@@ -85,8 +144,11 @@ export async function POST(request: NextRequest) {
     if (!parsed.success) {
       return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten().fieldErrors }, { status: 400, headers: corsHeaders });
     }
-    const { html } = parsed.data;
+    const { html, profile_photo_base64 } = parsed.data;
     let { profile_url } = parsed.data;
+
+    // Use photo from extension if provided (most reliable since it's captured from the browser)
+    console.log("[parse-html] Profile photo from extension:", profile_photo_base64 ? `${profile_photo_base64.length} chars` : "NOT PROVIDED");
 
     // If URL is /in/me/, try to extract the real profile URL from the HTML
     if (!profile_url || profile_url.includes("/in/me")) {
@@ -114,6 +176,87 @@ export async function POST(request: NextRequest) {
       if (linkedinMatch) {
         profile_url = linkedinMatch[1] + "/";
         console.log("[parse-html] Cleaned LinkedIn URL:", profile_url);
+      }
+    }
+
+    // Extract profile photo URL before stripping HTML
+    let profilePhotoUrl = "";
+
+    // Method 1: Look for profile photo in URL (most reliable - contains "profile-displayphoto")
+    const profilePhotoMatch = html.match(/https:\/\/media\.licdn\.com\/dms\/image\/[^"'\s]*profile-displayphoto[^"'\s]*/i);
+    if (profilePhotoMatch) {
+      profilePhotoUrl = profilePhotoMatch[0].replace(/&amp;/g, '&');
+      console.log("[parse-html] Found profile photo via displayphoto pattern:", profilePhotoUrl.substring(0, 100));
+    }
+
+    // Method 2: Try og:image meta tag (often contains profile photo)
+    if (!profilePhotoUrl) {
+      const ogImageMatch = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i)
+        || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
+      if (ogImageMatch && ogImageMatch[1] && ogImageMatch[1].includes("licdn.com")) {
+        profilePhotoUrl = ogImageMatch[1].replace(/&amp;/g, '&');
+        console.log("[parse-html] Found profile photo via og:image:", profilePhotoUrl.substring(0, 100));
+      }
+    }
+
+    // Method 3: Look for any LinkedIn profile image URL patterns
+    if (!profilePhotoUrl) {
+      // Try various LinkedIn image URL patterns
+      const patterns = [
+        /https:\/\/media\.licdn\.com\/dms\/image\/[A-Za-z0-9_-]+\/[^"'\s]+/i,
+        /https:\/\/media\.licdn\.com\/dms\/image\/v2\/[^"'\s]+/i,
+        /https:\/\/media-exp\d*\.licdn\.com\/dms\/image\/[^"'\s]+/i,
+      ];
+
+      for (const pattern of patterns) {
+        const match = html.match(pattern);
+        if (match) {
+          // Prefer larger images (profile photos are usually 400x400 or 800x800)
+          const url = match[0].replace(/&amp;/g, '&');
+          if (url.includes('400') || url.includes('800') || url.includes('profile')) {
+            profilePhotoUrl = url;
+            console.log("[parse-html] Found profile photo via pattern match:", profilePhotoUrl.substring(0, 100));
+            break;
+          }
+        }
+      }
+    }
+
+    // Method 4: Last resort - find any licdn.com image
+    if (!profilePhotoUrl) {
+      const anyLinkedInImg = html.match(/https:\/\/media\.licdn\.com\/dms\/image\/[^"'\s]+/i);
+      if (anyLinkedInImg) {
+        profilePhotoUrl = anyLinkedInImg[0].replace(/&amp;/g, '&');
+        console.log("[parse-html] Found profile photo via fallback:", profilePhotoUrl.substring(0, 100));
+      }
+    }
+
+    console.log("[parse-html] Final profile photo URL:", profilePhotoUrl ? profilePhotoUrl.substring(0, 100) : "NONE FOUND");
+
+    // Try to download the photo and convert to base64 (LinkedIn URLs often expire or require auth)
+    let profilePhotoBase64 = "";
+    if (profilePhotoUrl) {
+      try {
+        console.log("[parse-html] Attempting to download profile photo...");
+        const photoResponse = await fetch(profilePhotoUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+            'Referer': 'https://www.linkedin.com/',
+          },
+        });
+
+        if (photoResponse.ok) {
+          const contentType = photoResponse.headers.get('content-type') || 'image/jpeg';
+          const buffer = await photoResponse.arrayBuffer();
+          const base64 = Buffer.from(buffer).toString('base64');
+          profilePhotoBase64 = `data:${contentType};base64,${base64}`;
+          console.log("[parse-html] Successfully downloaded profile photo, size:", buffer.byteLength);
+        } else {
+          console.log("[parse-html] Failed to download photo, status:", photoResponse.status);
+        }
+      } catch (photoError) {
+        console.error("[parse-html] Error downloading profile photo:", photoError);
       }
     }
 
@@ -501,7 +644,7 @@ ${textContent}`;
         field: edu.field || "",
         graduation_date: edu.graduation_date || "",
       })),
-      skills: profile.skills || [],
+      skills: filterValidSkills(profile.skills || []),
       certifications: (profile.certifications || []).map((cert: ParsedCertification) => ({
         name: cert.name || "",
         issuer: cert.issuer || "",
@@ -513,9 +656,16 @@ ${textContent}`;
         issuer: honor.issuer || "",
         date: honor.date || "",
       })),
-      profile_picture_url: "",
+      // Prefer extension-captured photo (most reliable), then server-downloaded, then URL
+      profile_picture_url: profile_photo_base64 || profilePhotoBase64 || profilePhotoUrl,
       about: profile.about || "",
     };
+
+    console.log("[parse-html] Profile photo source:",
+      profile_photo_base64 ? "EXTENSION" :
+      profilePhotoBase64 ? "SERVER_DOWNLOAD" :
+      profilePhotoUrl ? "URL_ONLY" : "NONE");
+    console.log("[parse-html] Profile photo in transformed data:", transformedData.profile_picture_url ? transformedData.profile_picture_url.substring(0, 50) + "..." : "NONE");
 
     // Get or create user
     let user = await queryOne<{ id: number }>("SELECT * FROM users WHERE email = $1", [userEmail]);
