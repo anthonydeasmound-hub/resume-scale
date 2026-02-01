@@ -436,8 +436,12 @@ function OnboardingContent() {
       } else {
         // Mark as null to show "unavailable" message instead of loading forever
         setAiRecommendations((prev) => ({ ...prev, [jobIdx]: null as unknown as string[] }));
-        const errorData = await response.json().catch(() => ({}));
+        const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
         console.error("API error:", response.status, errorData);
+        // Show user-friendly error for rate limits
+        if (response.status === 429 || errorData.error?.includes("busy")) {
+          setError("AI service is temporarily busy. The suggestions will load when available, or you can proceed without them.");
+        }
       }
     } catch (err) {
       console.error("Failed to fetch AI recommendations:", err);

@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { queryOne, execute, JobApplication, Resume, JobAnalysis } from "@/lib/db";
-import { analyzeJobDescription, ParsedResume, JobDetailsParsed } from "@/lib/gemini";
+import { analyzeJobDescription, extractJobDetails, ParsedResume, JobDetailsParsed } from "@/lib/gemini";
 import { parseIdParam } from "@/lib/params";
 
 // GET /api/jobs/[id]/analyze - Get cached analysis or generate new one
@@ -184,17 +184,10 @@ export async function POST(
     return NextResponse.json({ error: "Failed to parse resume data" }, { status: 500 });
   }
 
-  // Parse job details if available
-  let jobDetails: JobDetailsParsed | undefined;
-  if (job.job_details_parsed) {
-    try {
-      jobDetails = JSON.parse(job.job_details_parsed);
-    } catch {
-      // Ignore parsing errors
-    }
-  }
-
   try {
+    // Re-parse job details with updated extraction (gets new fields like about_company, role_summary)
+    const jobDetails = await extractJobDetails(job.job_description);
+
     // Generate fresh analysis
     const analysis = await analyzeJobDescription(
       job.job_description,
@@ -204,14 +197,14 @@ export async function POST(
       jobDetails
     );
 
-    // Cache the analysis
+    // Cache both the analysis and updated job details
     await execute(`
       UPDATE job_applications
-      SET job_analysis = $1, updated_at = NOW()
-      WHERE id = $2
-    `, [JSON.stringify(analysis), jobId]);
+      SET job_analysis = $1, job_details_parsed = $2, updated_at = NOW()
+      WHERE id = $3
+    `, [JSON.stringify(analysis), JSON.stringify(jobDetails), jobId]);
 
-    return NextResponse.json({ analysis, cached: false });
+    return NextResponse.json({ analysis, jobDetails, cached: false });
   } catch (error) {
     console.error("Analyze job error:", error);
     return NextResponse.json({ error: "Failed to analyze job" }, { status: 500 });

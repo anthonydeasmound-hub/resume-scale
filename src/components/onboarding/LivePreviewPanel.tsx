@@ -9,6 +9,7 @@ interface LivePreviewPanelProps {
   setPreviewScale: (scale: number) => void;
   selectedTemplate: string;
   selectedColor: string;
+  embedded?: boolean;
 }
 
 export default function LivePreviewPanel({
@@ -18,7 +19,77 @@ export default function LivePreviewPanel({
   setPreviewScale,
   selectedTemplate,
   selectedColor,
+  embedded = false,
 }: LivePreviewPanelProps) {
+  const previewContent = (
+    <div
+      className="bg-gray-100 rounded-lg overflow-hidden"
+      style={{
+        height: embedded ? `${11 * 96 * previewScale + 32}px` : `${11 * 96 * previewScale + 32}px`,
+      }}
+    >
+      {loadingPreview && !previewHtml ? (
+        <div className="flex items-center justify-center h-full">
+          <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full" />
+        </div>
+      ) : previewHtml ? (
+        <div className="flex justify-center">
+          <div
+            className="bg-white shadow-lg"
+            style={{
+              width: `${8.5 * 96 * previewScale}px`,
+              height: `${11 * 96 * previewScale}px`,
+              overflow: 'hidden',
+            }}
+          >
+            <iframe
+              srcDoc={previewHtml}
+              title="Resume Preview"
+              style={{
+                width: `${8.5 * 96}px`,
+                height: `${11 * 96}px`,
+                transform: `scale(${previewScale})`,
+                transformOrigin: 'top left',
+                border: 'none',
+              }}
+            />
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center h-full text-gray-400 p-4 text-center">
+          <svg className="w-12 h-12 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          <p className="text-sm">Your resume preview will appear here</p>
+          <p className="text-xs mt-1">Add some content to see it</p>
+        </div>
+      )}
+    </div>
+  );
+
+  // When embedded, just return the preview content without wrapper
+  if (embedded) {
+    return (
+      <div>
+        {previewContent}
+        {/* Template info */}
+        <div className="mt-4 pt-4 border-t border-gray-200">
+          <div className="flex items-center justify-between text-xs text-gray-500">
+            <span>Template: {TEMPLATES.find(t => t.id === selectedTemplate)?.name || selectedTemplate}</span>
+            <div className="flex items-center gap-2">
+              <span>Color:</span>
+              <div
+                className="w-4 h-4 rounded-full border border-gray-200"
+                style={{ backgroundColor: selectedColor }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Original standalone version with container
   return (
     <div className="hidden lg:block">
       <div className="sticky top-8">
@@ -48,49 +119,7 @@ export default function LivePreviewPanel({
             </div>
           </div>
 
-          <div
-            className="bg-gray-100 rounded-lg overflow-hidden"
-            style={{
-              height: `${11 * 96 * previewScale + 32}px`,
-            }}
-          >
-            {loadingPreview && !previewHtml ? (
-              <div className="flex items-center justify-center h-full">
-                <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full" />
-              </div>
-            ) : previewHtml ? (
-              <div className="flex justify-center">
-                <div
-                  className="bg-white shadow-lg"
-                  style={{
-                    width: `${8.5 * 96 * previewScale}px`,
-                    height: `${11 * 96 * previewScale}px`,
-                    overflow: 'hidden',
-                  }}
-                >
-                  <iframe
-                    srcDoc={previewHtml}
-                    title="Resume Preview"
-                    style={{
-                      width: `${8.5 * 96}px`,
-                      height: `${11 * 96}px`,
-                      transform: `scale(${previewScale})`,
-                      transformOrigin: 'top left',
-                      border: 'none',
-                    }}
-                  />
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-full text-gray-400 p-4 text-center">
-                <svg className="w-12 h-12 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                <p className="text-sm">Your resume preview will appear here</p>
-                <p className="text-xs mt-1">Add some content to see it</p>
-              </div>
-            )}
-          </div>
+          {previewContent}
 
           {/* Template info */}
           <div className="mt-4 pt-4 border-t border-gray-100">

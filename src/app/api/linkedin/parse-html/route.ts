@@ -22,6 +22,7 @@ const inputSchema = z.object({
 });
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || "" });
+const openRouterApiKey = process.env.OPENROUTER_API_KEY;
 
 // CORS headers for Chrome extension
 const corsHeaders = {
@@ -71,9 +72,9 @@ export async function POST(request: NextRequest) {
   const rateLimited = await checkRateLimit(userEmail);
   if (rateLimited) return rateLimited;
 
-  if (!process.env.GROQ_API_KEY) {
+  if (!process.env.GROQ_API_KEY && !process.env.OPENROUTER_API_KEY) {
     return NextResponse.json(
-      { error: "Groq API key not configured" },
+      { error: "No AI API keys configured" },
       { status: 500, headers: corsHeaders }
     );
   }
@@ -244,12 +245,51 @@ CRITICAL RULES:
 LinkedIn Profile Text Content:
 ${textContent}`;
 
-    // Helper function to call GROQ and get response with rate limit retry
+    // Helper function to call OpenRouter API (fallback)
+    async function callOpenRouter(): Promise<string> {
+      if (!openRouterApiKey) {
+        throw new Error("OPENROUTER_API_KEY is not configured");
+      }
+      console.log("[parse-html] Using OpenRouter fallback (Kimi K2)");
+
+      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${openRouterApiKey}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": process.env.NEXTAUTH_URL || "http://localhost:3000",
+          "X-Title": "ResumeGenie",
+        },
+        body: JSON.stringify({
+          model: "moonshotai/kimi-k2",
+          messages: [
+            {
+              role: "system",
+              content: "You extract LinkedIn profile data into valid JSON. Output ONLY a JSON object, no other text. Keep skills list to max 20 items. Be concise."
+            },
+            { role: "user", content: prompt }
+          ],
+          temperature: 0,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error("[parse-html] OpenRouter error:", response.status, errorData);
+        throw new Error(`OpenRouter API error: ${response.status} - ${errorData}`);
+      }
+
+      const data = await response.json();
+      console.log("[parse-html] OpenRouter API call successful");
+      return data.choices?.[0]?.message?.content || "";
+    }
+
+    // Helper function to call GROQ with OpenRouter fallback
     async function callGroq(): Promise<string> {
-      const maxRetries = 3;
-      for (let retry = 0; retry < maxRetries; retry++) {
+      // Try GROQ first if available
+      if (process.env.GROQ_API_KEY) {
         try {
-          console.log("[parse-html] Calling GROQ with model: llama-3.1-8b-instant" + (retry > 0 ? ` (retry ${retry})` : ""));
+          console.log("[parse-html] Calling GROQ with model: llama-3.1-8b-instant");
           const completion = await groq.chat.completions.create({
             messages: [
               {
@@ -266,17 +306,21 @@ ${textContent}`;
           return completion.choices[0]?.message?.content || "";
         } catch (error: unknown) {
           const err = error as { status?: number; message?: string };
-          if (err.status === 429 && retry < maxRetries - 1) {
-            // Rate limited - wait and retry
-            const waitTime = 15 + (retry * 5); // 15s, 20s, 25s
-            console.log(`[parse-html] Rate limited, waiting ${waitTime}s before retry...`);
-            await new Promise(resolve => setTimeout(resolve, waitTime * 1000));
-          } else {
-            throw error;
+          // Rate limited - fall back to OpenRouter instead of retrying
+          if (err.status === 429 && openRouterApiKey) {
+            console.log("[parse-html] GROQ rate limited, falling back to OpenRouter");
+            return await callOpenRouter();
           }
+          throw error;
         }
       }
-      throw new Error("Max retries exceeded");
+
+      // No GROQ key, try OpenRouter
+      if (openRouterApiKey) {
+        return await callOpenRouter();
+      }
+
+      throw new Error("No AI API keys configured");
     }
 
     // Try up to 2 attempts to get valid JSON

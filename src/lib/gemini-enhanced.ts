@@ -41,22 +41,85 @@ if (!groqApiKey) {
 }
 const groq = new Groq({ apiKey: groqApiKey || "" });
 
-// Call Groq LLM
-async function callAI(prompt: string): Promise<string> {
-  if (!groqApiKey) {
-    throw new Error("GROQ_API_KEY is not configured");
+// OpenRouter API key for fallback
+const openRouterApiKey = process.env.OPENROUTER_API_KEY;
+
+// Check if error is a rate limit error
+function isRateLimitError(error: unknown): boolean {
+  if (error instanceof Error) {
+    const message = error.message.toLowerCase();
+    return message.includes("rate") || message.includes("429") || message.includes("quota") || message.includes("limit");
   }
-  try {
-    const completion = await groq.chat.completions.create({
+  if (typeof error === "object" && error !== null) {
+    const err = error as { status?: number; statusCode?: number };
+    return err.status === 429 || err.statusCode === 429;
+  }
+  return false;
+}
+
+// Call OpenRouter API (fallback)
+async function callOpenRouter(prompt: string): Promise<string> {
+  if (!openRouterApiKey) {
+    throw new Error("OPENROUTER_API_KEY is not configured");
+  }
+
+  console.log("[callOpenRouter] Using OpenRouter fallback (Kimi K2)");
+
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${openRouterApiKey}`,
+      "Content-Type": "application/json",
+      "HTTP-Referer": process.env.NEXTAUTH_URL || "http://localhost:3000",
+      "X-Title": "ResumeGenie",
+    },
+    body: JSON.stringify({
+      model: "moonshotai/kimi-k2",
       messages: [{ role: "user", content: prompt }],
-      model: "llama-3.1-8b-instant",
       temperature: 0.3,
-    });
-    return completion.choices[0]?.message?.content || "";
-  } catch (error) {
-    console.error("[callAI] Groq API error:", error);
-    throw error;
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("[callOpenRouter] Error:", response.status, errorText);
+    throw new Error(`OpenRouter API error: ${response.status} - ${errorText}`);
   }
+
+  const data = await response.json();
+  return data.choices?.[0]?.message?.content || "";
+}
+
+// Call Groq LLM with OpenRouter fallback
+async function callAI(prompt: string): Promise<string> {
+  // Try Groq first
+  if (groqApiKey) {
+    try {
+      const completion = await groq.chat.completions.create({
+        messages: [{ role: "user", content: prompt }],
+        model: "llama-3.1-8b-instant",
+        temperature: 0.3,
+      });
+      return completion.choices[0]?.message?.content || "";
+    } catch (error) {
+      console.error("[callAI] Groq API error:", error);
+
+      // If rate limited and OpenRouter is available, try fallback
+      if (isRateLimitError(error) && openRouterApiKey) {
+        console.log("[callAI] Groq rate limited, falling back to OpenRouter");
+        return await callOpenRouter(prompt);
+      }
+
+      throw error;
+    }
+  }
+
+  // If no Groq key, try OpenRouter directly
+  if (openRouterApiKey) {
+    return await callOpenRouter(prompt);
+  }
+
+  throw new Error("No AI API keys configured (GROQ_API_KEY or OPENROUTER_API_KEY)");
 }
 
 // Get company context - what does this company do?

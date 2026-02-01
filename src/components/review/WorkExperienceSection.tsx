@@ -1,7 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { MasterResume, SelectedRole } from "./types";
+import { ATSScore } from "@/lib/ats-scorer";
 
 interface WorkExperienceSectionProps {
   expandedSection: "summary" | "experience" | "skills" | null;
@@ -29,6 +30,10 @@ interface WorkExperienceSectionProps {
   onDragLeave: () => void;
   onDrop: (e: React.DragEvent, roleIndex: number, targetIndex: number) => void;
   onDragEnd: () => void;
+  // ATS improvement props
+  jobId?: number;
+  atsScore?: ATSScore | null;
+  onApplyImprovedBullet?: (roleIndex: number, bulletIndex: number, improvedText: string) => void;
 }
 
 export default function WorkExperienceSection({
@@ -57,7 +62,71 @@ export default function WorkExperienceSection({
   onDragLeave,
   onDrop,
   onDragEnd,
+  jobId,
+  atsScore,
+  onApplyImprovedBullet,
 }: WorkExperienceSectionProps) {
+  // Track which bullet is being improved
+  const [improvingBulletKey, setImprovingBulletKey] = useState<string | null>(null);
+  // Track suggested improvement for review
+  const [suggestedImprovement, setSuggestedImprovement] = useState<{
+    key: string;
+    original: string;
+    improved: string;
+    roleIndex: number;
+    bulletIndex: number;
+  } | null>(null);
+
+  const handleImproveBullet = async (roleIndex: number, bulletIndex: number, currentText: string) => {
+    if (!jobId || !onApplyImprovedBullet) return;
+
+    const key = `${roleIndex}-${bulletIndex}`;
+    setImprovingBulletKey(key);
+
+    try {
+      const response = await fetch("/api/ai/improve-bullet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jobId,
+          bullet: currentText,
+          missingKeywords: atsScore?.breakdown.keywords.missing || [],
+          missingSkills: atsScore?.breakdown.hardSkills.missing || [],
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setSuggestedImprovement({
+          key,
+          original: currentText,
+          improved: data.improved,
+          roleIndex,
+          bulletIndex,
+        });
+      }
+    } catch (error) {
+      console.error("Failed to improve bullet:", error);
+    } finally {
+      setImprovingBulletKey(null);
+    }
+  };
+
+  const acceptImprovement = () => {
+    if (suggestedImprovement && onApplyImprovedBullet) {
+      onApplyImprovedBullet(
+        suggestedImprovement.roleIndex,
+        suggestedImprovement.bulletIndex,
+        suggestedImprovement.improved
+      );
+      setSuggestedImprovement(null);
+    }
+  };
+
+  const rejectImprovement = () => {
+    setSuggestedImprovement(null);
+  };
+
   return (
     <div className="bg-white rounded-xl shadow overflow-hidden">
       <button
@@ -206,7 +275,7 @@ export default function WorkExperienceSection({
                                           </div>
                                           {/* Bullet text */}
                                           <span className="text-gray-700 flex-1">{bulletText}</span>
-                                          {/* Labels and edit button */}
+                                          {/* Labels and action buttons */}
                                           <div className="flex items-center gap-1 flex-shrink-0">
                                             {isEdited && (
                                               <span className="text-xs px-1.5 py-0.5 rounded bg-green-100 text-green-600">
@@ -216,6 +285,29 @@ export default function WorkExperienceSection({
                                             <span className={`text-xs px-1.5 py-0.5 rounded ${isFromMaster ? "bg-blue-100 text-brand-blue" : "bg-purple-100 text-purple-600"}`}>
                                               {isFromMaster ? "Resume" : "AI"}
                                             </span>
+                                            {/* Improve for ATS button */}
+                                            {jobId && onApplyImprovedBullet && atsScore && (
+                                              <button
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  handleImproveBullet(selectedRole.roleIndex, bulletIdx, bulletText);
+                                                }}
+                                                disabled={improvingBulletKey === editKey}
+                                                className="p-1 text-amber-600 hover:text-amber-700 hover:bg-amber-50 rounded disabled:opacity-50"
+                                                title="Improve for ATS"
+                                              >
+                                                {improvingBulletKey === editKey ? (
+                                                  <svg className="w-3.5 h-3.5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                  </svg>
+                                                ) : (
+                                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                                  </svg>
+                                                )}
+                                              </button>
+                                            )}
                                             <button
                                               onClick={(e) => { e.stopPropagation(); onStartEditingBullet(selectedRole.roleIndex, bulletIdx, bulletText); }}
                                               className="p-1 text-gray-500 hover:text-brand-blue hover:bg-brand-blue-light rounded"
@@ -234,6 +326,44 @@ export default function WorkExperienceSection({
                               )}
                             </div>
                           </div>
+
+                          {/* Improvement suggestion modal */}
+                          {suggestedImprovement && suggestedImprovement.roleIndex === selectedRole.roleIndex && (
+                            <div className="mb-3 p-3 rounded-lg border-2 border-amber-400 bg-amber-50">
+                              <div className="flex items-center gap-2 mb-2">
+                                <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                </svg>
+                                <span className="text-sm font-medium text-amber-800">ATS-Optimized Suggestion</span>
+                              </div>
+
+                              <div className="space-y-2 text-sm">
+                                <div>
+                                  <p className="text-xs text-gray-500 mb-1">Original:</p>
+                                  <p className="text-gray-600 line-through">{suggestedImprovement.original}</p>
+                                </div>
+                                <div>
+                                  <p className="text-xs text-green-600 mb-1">Suggested:</p>
+                                  <p className="text-gray-800 font-medium">{suggestedImprovement.improved}</p>
+                                </div>
+                              </div>
+
+                              <div className="flex justify-end gap-2 mt-3">
+                                <button
+                                  onClick={rejectImprovement}
+                                  className="px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-200 rounded"
+                                >
+                                  Keep Original
+                                </button>
+                                <button
+                                  onClick={acceptImprovement}
+                                  className="px-3 py-1.5 text-xs bg-amber-500 text-white rounded hover:bg-amber-600"
+                                >
+                                  Use Suggestion
+                                </button>
+                              </div>
+                            </div>
+                          )}
 
                           {/* Unselected bullets below */}
                           {unselectedBullets.length > 0 && (

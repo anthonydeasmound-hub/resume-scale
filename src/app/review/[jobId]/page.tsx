@@ -10,13 +10,12 @@ import ATSScoreCard from "@/components/review/ATSScoreCard";
 import { ATSScore } from "@/lib/ats-scorer";
 import { ReviewSkeleton } from "@/components/Skeleton";
 import { showToast } from "@/components/Toast";
-import { Job, MasterResume, TailoredResume, SelectedRole, ResumeReviewResult } from "@/components/review/types";
+import { Job, MasterResume, TailoredResume, SelectedRole } from "@/components/review/types";
 import { Profile } from "@/components/master-resume/types";
 import ProfileSelector from "@/components/review/ProfileSelector";
 import SummarySection from "@/components/review/SummarySection";
 import WorkExperienceSection from "@/components/review/WorkExperienceSection";
 import SkillsSection from "@/components/review/SkillsSection";
-import ResumeQualityPanel from "@/components/review/ResumeQualityPanel";
 import JobDetailsSidebar from "@/components/review/JobDetailsSidebar";
 import CoverLetterPreview from "@/components/review/CoverLetterPreview";
 import ResumePreviewPane from "@/components/review/ResumePreviewPane";
@@ -87,10 +86,6 @@ export default function JobReviewPage() {
   const [previewHtml, setPreviewHtml] = useState<string>("");
   const [loadingPreview, setLoadingPreview] = useState(false);
 
-  // Resume Review Score
-  const [reviewScore, setReviewScore] = useState<ResumeReviewResult | null>(null);
-  const [loadingReview, setLoadingReview] = useState(false);
-  const [showReviewPanel, setShowReviewPanel] = useState(false);
 
   // Job details sidebar
   const [showJobDetails, setShowJobDetails] = useState(true);
@@ -99,6 +94,9 @@ export default function JobReviewPage() {
   // ATS Score
   const [atsScore, setAtsScore] = useState<ATSScore | null>(null);
   const [loadingAts, setLoadingAts] = useState(false);
+
+  // Consolidated content loading (single LLM call for summaries, bullets, and skills)
+  const [loadingAllContent, setLoadingAllContent] = useState(false);
 
   useEffect(() => {
     document.title = "ResumeGenie - Review";
@@ -206,7 +204,6 @@ export default function JobReviewPage() {
     setRecommendedSkills([]);
     setSelectedSkills([]);
     setAtsScore(null);
-    setReviewScore(null);
 
     setSelectedProfileId(profileId);
     setHasChanges(true);
@@ -245,23 +242,100 @@ export default function JobReviewPage() {
     }
   }, [job, masterResume]);
 
-  // Auto-load all AI content when job is selected
+  // Consolidated content loading - single LLM call for summaries, bullets, and skills
+  const loadAllContent = async () => {
+    if (!job || !masterResume || loadingAllContent) return;
+
+    setLoadingAllContent(true);
+    setLoadingSummaries(true);
+    setLoadingSkills(true);
+
+    // Initialize roles with master bullets while loading
+    const topRoles = masterResume.work_experience.slice(0, 3);
+    const initialRoles: SelectedRole[] = topRoles.map((role, idx) => {
+      const masterBullets = role.description.slice(0, 8);
+      const initialSelected = Math.min(3, masterBullets.length);
+      return {
+        roleIndex: idx,
+        masterBullets,
+        aiBullets: [],
+        bulletOptions: masterBullets,
+        selectedBullets: Array.from({ length: initialSelected }, (_, i) => i),
+        loadingBullets: true,
+      };
+    });
+    setSelectedRoles(initialRoles);
+
+    try {
+      const response = await fetch("/api/ai/generate-all-content", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jobId: job.id,
+          profileId: selectedProfileId,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+
+        // Set summaries
+        if (data.summaries?.length > 0) {
+          setSummaryOptions(data.summaries);
+          setSelectedSummaryIndex(0);
+        }
+
+        // Set skills
+        if (data.skills) {
+          setSkillsFromResume(data.skills.fromResume || []);
+          setSkillsFromJobDescription(data.skills.fromJobDescription || []);
+          setRecommendedSkills(data.skills.recommended || []);
+          setSelectedSkills(data.skills.fromResume || []);
+        }
+
+        // Set bullets for each role
+        if (data.rolesBullets?.length > 0) {
+          setSelectedRoles((prev) =>
+            prev.map((r) => {
+              const roleBullets = data.rolesBullets.find(
+                (rb: { roleIndex: number; bullets: string[] }) => rb.roleIndex === r.roleIndex
+              );
+              if (roleBullets?.bullets) {
+                const combined = [...r.masterBullets, ...roleBullets.bullets];
+                return {
+                  ...r,
+                  aiBullets: roleBullets.bullets,
+                  bulletOptions: combined,
+                  loadingBullets: false,
+                  selectedBullets: r.masterBullets.map((_, i) => i),
+                };
+              }
+              return { ...r, loadingBullets: false };
+            })
+          );
+        } else {
+          // No bullets returned, just stop loading
+          setSelectedRoles((prev) => prev.map((r) => ({ ...r, loadingBullets: false })));
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load all content:", error);
+      // Stop loading states on error
+      setSelectedRoles((prev) => prev.map((r) => ({ ...r, loadingBullets: false })));
+    } finally {
+      setLoadingAllContent(false);
+      setLoadingSummaries(false);
+      setLoadingSkills(false);
+    }
+  };
+
+  // Auto-load all AI content when job is selected (using consolidated endpoint)
   useEffect(() => {
     if (job && masterResume && !job.tailored_resume) {
-      // Only auto-load if no saved tailored resume exists
-      const autoLoadContent = async () => {
-        // Load all content in parallel
-        if (summaryOptions.length === 0 && !loadingSummaries) {
-          loadSummaryOptions();
-        }
-        if (selectedRoles.length === 0) {
-          loadAllBulletOptions();
-        }
-        if (skillsFromResume.length === 0 && !loadingSkills) {
-          loadSkillRecommendations();
-        }
-      };
-      autoLoadContent();
+      // Only auto-load if no saved tailored resume exists and not already loading
+      if (summaryOptions.length === 0 && selectedRoles.length === 0 && !loadingAllContent) {
+        loadAllContent();
+      }
     }
   }, [job, masterResume]);
 
@@ -519,6 +593,16 @@ export default function JobReviewPage() {
     setHasChanges(true);
   };
 
+  // Apply improved bullet from ATS optimization
+  const applyImprovedBullet = (roleIndex: number, bulletIndex: number, improvedText: string) => {
+    const key = `${roleIndex}-${bulletIndex}`;
+    setEditedBullets((prev) => ({
+      ...prev,
+      [key]: improvedText,
+    }));
+    setHasChanges(true);
+  };
+
   // Cancel editing
   const cancelEditingBullet = () => {
     setEditingBulletKey(null);
@@ -605,13 +689,20 @@ export default function JobReviewPage() {
       const response = await fetch(`/api/jobs/${job.id}/generate`, {
         method: "POST",
       });
-      if (response.ok) {
-        const data = await response.json();
+
+      const data = await response.json();
+
+      if (response.ok && data.cover_letter) {
         setCoverLetter(data.cover_letter);
         setHasChanges(true);
+        showToast("success", "Cover letter generated!");
+      } else {
+        console.error("Cover letter generation failed:", data);
+        showToast("error", data.error || "Failed to generate cover letter. Please try again.");
       }
     } catch (err) {
       console.error("Failed to generate cover letter:", err);
+      showToast("error", "Failed to generate cover letter. Please try again.");
     } finally {
       setGeneratingCoverLetter(false);
     }
@@ -662,42 +753,17 @@ export default function JobReviewPage() {
     }
   };
 
-  const reviewResumeQuality = async () => {
-    if (!job || selectedRoles.length === 0) return;
-    setLoadingReview(true);
-    setShowReviewPanel(true);
+  // Auto-recalculate ATS score when resume content changes
+  useEffect(() => {
+    // Only auto-calculate if we have an existing score (user has clicked calculate at least once)
+    if (!atsScore || !job || !masterResume || selectedRoles.length === 0) return;
 
-    try {
-      // Collect all selected bullets from all roles
-      const allBullets: string[] = [];
-      const role = selectedRoles[0]; // Use first role for context
-      const masterRole = masterResume?.work_experience[role.roleIndex];
+    const timeoutId = setTimeout(() => {
+      calculateAtsScore();
+    }, 1000); // 1 second debounce
 
-      selectedRoles.forEach((r) => {
-        r.selectedBullets.forEach((idx) => {
-          allBullets.push(r.bulletOptions[idx]);
-        });
-      });
-
-      const response = await fetch("/api/review-resume", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          bullets: allBullets,
-          role: masterRole ? { title: masterRole.title, company: masterRole.company } : { title: job.job_title, company: job.company_name },
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setReviewScore(data);
-      }
-    } catch (err) {
-      console.error("Failed to review resume:", err);
-    } finally {
-      setLoadingReview(false);
-    }
-  };
+    return () => clearTimeout(timeoutId);
+  }, [selectedRoles, selectedSummaryIndex, summaryOptions, selectedSkills, editedBullets]);
 
   const buildTailoredResume = (): TailoredResume | null => {
     if (!masterResume) return null;
@@ -1087,6 +1153,9 @@ export default function JobReviewPage() {
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
                     onDragEnd={handleDragEnd}
+                    jobId={job?.id}
+                    atsScore={atsScore}
+                    onApplyImprovedBullet={applyImprovedBullet}
                   />
                 )}
 
@@ -1129,14 +1198,6 @@ export default function JobReviewPage() {
                   disabled={selectedRoles.length === 0 || !job}
                 />
 
-                <ResumeQualityPanel
-                  reviewScore={reviewScore}
-                  loadingReview={loadingReview}
-                  showReviewPanel={showReviewPanel}
-                  selectedRolesCount={selectedRoles.length}
-                  onTogglePanel={() => showReviewPanel ? setShowReviewPanel(false) : reviewResumeQuality()}
-                  onReviewResumeQuality={reviewResumeQuality}
-                />
 
                 {/* Download Buttons */}
                 <div className="bg-white rounded-xl shadow p-4">
@@ -1182,26 +1243,6 @@ export default function JobReviewPage() {
                     rows={16}
                     placeholder="Write or generate your cover letter..."
                   />
-                </div>
-
-                {/* Color Selection */}
-                <div className="bg-white rounded-xl shadow p-4">
-                  <h3 className="font-medium text-gray-900 mb-3">Accent Color</h3>
-                  <div className="grid grid-cols-6 gap-2">
-                    {COLOR_OPTIONS.map((c) => (
-                      <button
-                        key={c.id}
-                        onClick={() => updateColor(c.hex)}
-                        title={c.name}
-                        className={`w-8 h-8 rounded-full transition-all ${
-                          accentColor === c.hex
-                            ? "ring-2 ring-offset-2 ring-gray-400 scale-110"
-                            : "hover:scale-105"
-                        }`}
-                        style={{ backgroundColor: c.hex }}
-                      />
-                    ))}
-                  </div>
                 </div>
 
                 {/* Download Button */}

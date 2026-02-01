@@ -52,7 +52,8 @@ export async function POST() {
     for (const email of emails) {
       const classification = await classifyEmailEnhanced(email, companyNames);
 
-      if (classification.type === "unrelated" || !classification.company || classification.confidence < 0.7) {
+      // Higher confidence threshold (0.85) to reduce false positives
+      if (classification.type === "unrelated" || !classification.company || classification.confidence < 0.85) {
         continue;
       }
 
@@ -62,6 +63,28 @@ export async function POST() {
       );
 
       if (!matchingJob) continue;
+
+      // Validate sender domain matches the company
+      // Extract domain from email "From" field (e.g., "John <john@company.com>" -> "company.com")
+      const fromLower = email.from.toLowerCase();
+      const domainMatch = fromLower.match(/@([a-z0-9.-]+\.[a-z]+)/);
+      const senderDomain = domainMatch ? domainMatch[1] : "";
+
+      // Check if sender domain contains company name (e.g., "google.com" contains "google")
+      const companyLower = matchingJob.company_name.toLowerCase().replace(/[^a-z0-9]/g, "");
+      const domainWithoutTld = senderDomain.replace(/\.(com|org|net|io|co|ai|app|dev)$/, "").replace(/\./g, "");
+
+      // Skip if sender domain doesn't appear related to the company
+      // Allow if: domain contains company name OR company name contains domain
+      const isDomainRelated =
+        domainWithoutTld.includes(companyLower) ||
+        companyLower.includes(domainWithoutTld) ||
+        senderDomain.includes(companyLower);
+
+      if (!isDomainRelated && senderDomain) {
+        console.log(`[Gmail Check] Skipping email - sender domain "${senderDomain}" doesn't match company "${matchingJob.company_name}"`);
+        continue;
+      }
 
       // Check if we've already processed this email (by gmail_message_id if available)
       // For now, use subject + company as a simple dedup

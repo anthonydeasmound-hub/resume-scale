@@ -24,14 +24,14 @@ export default function CoverLetterPreview({
           <p>{contactInfo.phone}</p>
         </div>
       </div>
-      <p style={{ fontSize: "8pt", marginBottom: "12px" }}>
+      <p style={{ fontSize: "8pt", marginBottom: "12px", color: "#444" }}>
         {new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
       </p>
-      <p style={{ fontSize: "8pt", marginBottom: "8px" }}>Dear Hiring Manager,</p>
+      <p style={{ fontSize: "8pt", marginBottom: "8px", color: "#444" }}>Dear Hiring Manager,</p>
       <div style={{ fontSize: "8pt", color: "#444", lineHeight: "1.5", whiteSpace: "pre-wrap" }}>
         {coverLetter || "Your cover letter will appear here..."}
       </div>
-      <div style={{ marginTop: "16px", fontSize: "8pt" }}>
+      <div style={{ marginTop: "16px", fontSize: "8pt", color: "#444" }}>
         <p>Sincerely,</p>
         <p style={{ marginTop: "16px", fontWeight: 600 }}>{contactInfo.name}</p>
       </div>

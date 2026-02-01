@@ -50,9 +50,18 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Error generating onboarding bullets:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    const errorStack = error instanceof Error ? error.stack : undefined;
+
+    // Check for rate limit errors
+    const isRateLimit = errorMessage.includes("rate") || errorMessage.includes("429") || errorMessage.includes("quota");
+
     return NextResponse.json(
-      { error: "Failed to generate bullet suggestions", details: errorMessage },
-      { status: 500 }
+      {
+        error: isRateLimit ? "AI service is busy. Please wait a moment and try again." : "Failed to generate bullet suggestions",
+        details: errorMessage,
+        stack: process.env.NODE_ENV === "development" ? errorStack : undefined
+      },
+      { status: isRateLimit ? 429 : 500 }
     );
   }
 }

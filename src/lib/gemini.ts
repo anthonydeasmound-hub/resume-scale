@@ -2,15 +2,81 @@ import Groq from "groq-sdk";
 
 // Initialize Groq client
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || "" });
+const openRouterApiKey = process.env.OPENROUTER_API_KEY;
 
-// Call Groq LLM
-async function callAI(prompt: string): Promise<string> {
-  const completion = await groq.chat.completions.create({
-    messages: [{ role: "user", content: prompt }],
-    model: "llama-3.1-8b-instant",
-    temperature: 0.3,
+// Check if error is a rate limit error
+function isRateLimitError(error: unknown): boolean {
+  if (error instanceof Error) {
+    const message = error.message.toLowerCase();
+    return message.includes("rate") || message.includes("429") || message.includes("quota") || message.includes("limit");
+  }
+  if (typeof error === "object" && error !== null) {
+    const err = error as { status?: number; statusCode?: number };
+    return err.status === 429 || err.statusCode === 429;
+  }
+  return false;
+}
+
+// Call OpenRouter API (fallback)
+async function callOpenRouter(prompt: string): Promise<string> {
+  if (!openRouterApiKey) {
+    throw new Error("OPENROUTER_API_KEY is not configured");
+  }
+  console.log("[callOpenRouter] Using OpenRouter fallback (Kimi K2)");
+
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${openRouterApiKey}`,
+      "Content-Type": "application/json",
+      "HTTP-Referer": process.env.NEXTAUTH_URL || "http://localhost:3000",
+      "X-Title": "ResumeGenie",
+    },
+    body: JSON.stringify({
+      model: "moonshotai/kimi-k2",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.3,
+    }),
   });
-  return completion.choices[0]?.message?.content || "";
+
+  if (!response.ok) {
+    const errorData = await response.text();
+    console.error("[callOpenRouter] Error:", response.status, errorData);
+    throw new Error(`OpenRouter API error: ${response.status} - ${errorData}`);
+  }
+
+  const data = await response.json();
+  console.log("[callOpenRouter] Success");
+  return data.choices?.[0]?.message?.content || "";
+}
+
+// Call Groq LLM with OpenRouter fallback
+export async function callAI(prompt: string): Promise<string> {
+  // Try GROQ first if available
+  if (process.env.GROQ_API_KEY) {
+    try {
+      const completion = await groq.chat.completions.create({
+        messages: [{ role: "user", content: prompt }],
+        model: "llama-3.1-8b-instant",
+        temperature: 0.3,
+      });
+      return completion.choices[0]?.message?.content || "";
+    } catch (error) {
+      // Rate limited - fall back to OpenRouter
+      if (isRateLimitError(error) && openRouterApiKey) {
+        console.log("[callAI] Groq rate limited, falling back to OpenRouter");
+        return await callOpenRouter(prompt);
+      }
+      throw error;
+    }
+  }
+
+  // No GROQ key, try OpenRouter
+  if (openRouterApiKey) {
+    return await callOpenRouter(prompt);
+  }
+
+  throw new Error("No AI API keys configured");
 }
 
 // Get company context - what does this company do?
@@ -235,13 +301,17 @@ If the company name or job title is not clear, make your best guess based on the
 
 // Extract detailed job sections from description
 export interface JobDetailsParsed {
+  about_company: string | null;
+  role_summary: string | null;
   responsibilities: string[];
   requirements: string[];
-  qualifications: string[];
+  nice_to_haves: string[];
   benefits: string[];
   salary_range: string | null;
   location: string | null;
   work_type: string | null; // remote, hybrid, on-site
+  // Legacy field - keep for backwards compatibility
+  qualifications?: string[];
 }
 
 export async function extractJobDetails(jobDescription: string): Promise<JobDetailsParsed> {
@@ -251,21 +321,38 @@ Job Description:
 ${jobDescription.slice(0, 4000)}
 
 Extract and categorize the information into these sections:
-- responsibilities: What the person will do day-to-day (list of bullet points)
-- requirements: Required skills, experience, education (list of bullet points)
-- qualifications: Nice-to-have or preferred qualifications (list of bullet points)
-- benefits: Perks, benefits, compensation mentions (list of bullet points)
-- salary_range: If mentioned, extract the salary range as a string (e.g., "$80,000 - $120,000")
-- location: Where the job is located
-- work_type: "remote", "hybrid", "on-site", or null if not specified
 
-Keep each bullet point concise (1 sentence max). Extract 3-8 items per section where available.
+1. about_company: A brief paragraph about the company - their mission, what they do, culture (2-4 sentences). If not mentioned, use null.
+
+2. role_summary: A brief overview of the role and its purpose (2-3 sentences). What is the main goal of this position?
+
+3. responsibilities: What the person will do day-to-day (list of bullet points, 4-8 items)
+
+4. requirements: REQUIRED/MUST-HAVE skills, experience, education - things explicitly marked as required or essential (list of bullet points, 3-8 items)
+
+5. nice_to_haves: PREFERRED/NICE-TO-HAVE qualifications - things marked as "preferred", "bonus", "plus", or "nice to have" (list of bullet points, 0-6 items)
+
+6. benefits: Perks, benefits, what the company offers employees (list of bullet points, 0-8 items)
+
+7. salary_range: If mentioned, extract the salary/compensation range as a string (e.g., "$80,000 - $120,000/year")
+
+8. location: Where the job is located (city, state/country)
+
+9. work_type: "remote", "hybrid", or "on-site" based on the job description. Use null if not specified.
+
+IMPORTANT:
+- Keep each bullet point concise (1 sentence max)
+- Only include sections that have actual content in the job description
+- Distinguish between REQUIRED requirements and NICE-TO-HAVE/preferred qualifications
+- If a section has no content, use null for strings or empty array [] for lists
 
 Return ONLY valid JSON:
 {
+  "about_company": "Company description..." or null,
+  "role_summary": "Role overview..." or null,
   "responsibilities": ["responsibility 1", "responsibility 2"],
-  "requirements": ["requirement 1", "requirement 2"],
-  "qualifications": ["qualification 1", "qualification 2"],
+  "requirements": ["required item 1", "required item 2"],
+  "nice_to_haves": ["preferred item 1", "preferred item 2"],
   "benefits": ["benefit 1", "benefit 2"],
   "salary_range": "$X - $Y" or null,
   "location": "City, State" or null,
@@ -280,18 +367,28 @@ Return ONLY valid JSON:
       .trim();
 
     const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
+    let parsed: JobDetailsParsed;
     if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
+      parsed = JSON.parse(jsonMatch[0]);
+    } else {
+      parsed = JSON.parse(cleanedResponse);
     }
 
-    return JSON.parse(cleanedResponse);
+    // Handle legacy 'qualifications' field - merge into nice_to_haves if present
+    if (parsed.qualifications && parsed.qualifications.length > 0 && (!parsed.nice_to_haves || parsed.nice_to_haves.length === 0)) {
+      parsed.nice_to_haves = parsed.qualifications;
+    }
+
+    return parsed;
   } catch (error) {
     console.error("Failed to extract job details:", error);
     // Return empty structure on failure
     return {
+      about_company: null,
+      role_summary: null,
       responsibilities: [],
       requirements: [],
-      qualifications: [],
+      nice_to_haves: [],
       benefits: [],
       salary_range: null,
       location: null,
@@ -1041,6 +1138,143 @@ RESPOND WITH ONLY THIS JSON FORMAT, NO OTHER TEXT:
   return JSON.parse(cleanedResponse);
 }
 
+// Consolidated function to generate all job content in a single LLM call
+// This replaces 9+ separate LLM calls with just 1
+export interface ConsolidatedJobContent {
+  summaries: string[];
+  rolesBullets: { roleIndex: number; bullets: string[] }[];
+  skills: {
+    fromResume: string[];
+    fromJobDescription: string[];
+    recommended: string[];
+  };
+}
+
+export async function generateAllJobContent(
+  resume: ParsedResume,
+  roles: { index: number; company: string; title: string; description: string[] }[],
+  jobDescription: string,
+  jobTitle: string,
+  companyName: string
+): Promise<ConsolidatedJobContent> {
+  // Extract all metrics from ALL work experience bullets
+  const allBullets = resume.work_experience.flatMap(exp => exp.description || []);
+  const allMetrics = extractMetrics(allBullets);
+
+  // Calculate years of experience
+  const mostRecent = resume.work_experience[0];
+  const totalYears = calculateYearsOfExperience(resume.work_experience);
+
+  // Get role-specific data
+  const roleSummaryExamples = getRoleSummaries(jobTitle).slice(0, 2);
+
+  // Get curated skills for this role type
+  const matchedRole = findSimilarRole(jobTitle);
+  const curatedSkills = matchedRole ? getSkillsForRole(matchedRole) : null;
+
+  // Build metrics section
+  const metricsSection = allMetrics.length > 0
+    ? `CANDIDATE'S ACTUAL METRICS (USE ONLY THESE - DO NOT INVENT):\n${allMetrics.map(m => `• ${m}`).join("\n")}`
+    : "(No specific metrics found - do not invent metrics, focus on qualitative strengths)";
+
+  // Build roles section for bullets
+  const rolesSection = roles.map((role, idx) => {
+    const roleMetrics = extractMetrics(role.description);
+    const roleTasks = getRoleTasks(role.title);
+    return `
+ROLE ${idx + 1}: ${role.title} at ${role.company}
+Original bullets:
+${role.description.map((d, i) => `  ${i + 1}. ${d}`).join("\n")}
+${roleMetrics.length > 0 ? `Role-specific metrics: ${roleMetrics.join(", ")}` : "(No metrics in original bullets)"}
+${roleTasks.length > 0 ? `Typical activities: ${roleTasks.slice(0, 3).join("; ")}` : ""}`;
+  }).join("\n");
+
+  // Build curated skills reference
+  let curatedSkillsText = "";
+  if (curatedSkills) {
+    curatedSkillsText = `
+CURATED SKILLS FOR ${matchedRole?.toUpperCase()} ROLES (use as reference):
+Technical: ${curatedSkills.hardSkills.slice(0, 10).join(", ")}
+Tools: ${curatedSkills.tools.slice(0, 8).join(", ")}`;
+  }
+
+  const prompt = `You are an expert resume writer. Generate ALL content for tailoring a resume to a specific job in ONE response.
+
+=== TARGET JOB ===
+Position: ${jobTitle} at ${companyName}
+Description: ${jobDescription.slice(0, 1500)}
+
+=== CANDIDATE BACKGROUND ===
+Experience: ${totalYears}+ years, most recently as ${mostRecent?.title || 'N/A'} at ${mostRecent?.company || 'N/A'}
+Skills: ${resume.skills.slice(0, 12).join(", ")}
+${metricsSection}
+
+=== WORK HISTORY FOR BULLETS ===
+${rolesSection}
+${curatedSkillsText}
+
+=== GENERATE ALL OF THE FOLLOWING ===
+
+**SECTION 1: PROFESSIONAL SUMMARIES**
+Create 3 different summary options (3-4 sentences each, ~60 words):
+- Lead with professional identity and years of experience
+- Include 3-4 skills matching the job description
+- Use ONLY metrics from the provided list (or none if unavailable)
+- Tailor to the target role's keywords
+
+**SECTION 2: BULLET POINTS FOR EACH ROLE**
+For each role listed above, generate 8 tailored bullet points:
+- 1-2 lines each (15-30 words)
+- Describe specific activities and achievements
+- Use ONLY metrics from the original role bullets (DO NOT INVENT)
+- Match keywords from the target job description
+
+**SECTION 3: SKILL RECOMMENDATIONS**
+Provide three skill lists:
+- fromResume: Candidate's most relevant skills for this job (max 12)
+- fromJobDescription: Skills required in job description that candidate doesn't have (max 10)
+- recommended: Additional suggested skills for this role type (max 6)
+
+=== RESPONSE FORMAT ===
+Respond with ONLY this JSON structure, no other text:
+{
+  "summaries": ["Summary 1...", "Summary 2...", "Summary 3..."],
+  "rolesBullets": [
+    {"roleIndex": 0, "bullets": ["bullet 1", "bullet 2", "bullet 3", "bullet 4", "bullet 5", "bullet 6", "bullet 7", "bullet 8"]},
+    {"roleIndex": 1, "bullets": ["bullet 1", "bullet 2", "bullet 3", "bullet 4", "bullet 5", "bullet 6", "bullet 7", "bullet 8"]},
+    {"roleIndex": 2, "bullets": ["bullet 1", "bullet 2", "bullet 3", "bullet 4", "bullet 5", "bullet 6", "bullet 7", "bullet 8"]}
+  ],
+  "skills": {
+    "fromResume": ["skill1", "skill2"],
+    "fromJobDescription": ["skill1", "skill2"],
+    "recommended": ["skill1", "skill2"]
+  }
+}`;
+
+  const response = await callAI(prompt);
+  const cleanedResponse = response
+    .replace(/```json\n?/g, "")
+    .replace(/```\n?/g, "")
+    .trim();
+
+  // Extract JSON from response
+  const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
+  if (jsonMatch) {
+    const result = JSON.parse(jsonMatch[0]);
+    return {
+      summaries: result.summaries || [],
+      rolesBullets: result.rolesBullets || [],
+      skills: {
+        fromResume: result.skills?.fromResume || [],
+        fromJobDescription: result.skills?.fromJobDescription || [],
+        recommended: result.skills?.recommended || [],
+      },
+    };
+  }
+
+  return JSON.parse(cleanedResponse);
+}
+
 export interface CalendarEventClassification {
   type: "interview" | "deadline" | "reminder" | "unrelated";
   company: string | null;
@@ -1182,14 +1416,29 @@ Body: ${email.snippet} ${email.body.slice(0, 2000)}
 COMPANIES THE USER HAS APPLIED TO:
 ${knownCompanies.join(", ")}
 
-Classify this email and extract information:
+CRITICAL RULES - CLASSIFY AS "unrelated" IF ANY OF THESE APPLY:
+- Marketing emails, newsletters, or promotional content
+- Job board notifications (e.g., "new jobs for you", "jobs you may be interested in")
+- Career coaching, resume services, or interview prep services
+- Mass emails not addressed specifically to the candidate
+- Emails from third-party recruiters not representing a company from the list
+- Generic job alerts or recommendations
+- Emails about job searching tips, career advice, or industry news
+- The sender domain does NOT match any company the user applied to
+- The email is selling a service or product
+
+ONLY classify as NOT "unrelated" if:
+- The email is a DIRECT response to a specific job application
+- The sender is FROM the actual company (not a job board or third party)
+- The email mentions the specific role the user applied for
+- It's a genuine application confirmation, rejection, interview request, or offer
 
 1. EMAIL TYPE:
-- "confirmation": Application received/submitted confirmation
-- "rejection": The candidate was rejected or not moving forward
-- "interview": Interview invitation, scheduling, or rescheduling
-- "offer": Job offer
-- "unrelated": Not related to any job application from the list
+- "confirmation": Application received/submitted confirmation FROM THE COMPANY
+- "rejection": The candidate was rejected or not moving forward FROM THE COMPANY
+- "interview": Interview invitation, scheduling FROM THE COMPANY'S RECRUITER/HR
+- "offer": Job offer FROM THE COMPANY
+- "unrelated": Everything else (marketing, newsletters, job board alerts, coaching services, etc.)
 
 2. If type is "interview", also extract:
 - Interview type: phone_screen, technical, behavioral, onsite, panel, final, or other
@@ -1199,13 +1448,13 @@ Classify this email and extract information:
 - Names of interviewers mentioned
 - Whether the email requires a response to confirm/schedule
 
-3. Extract recruiter information from the email
+3. Extract recruiter information from the email (only if from the actual company)
 
 Return ONLY valid JSON:
 {
   "type": "confirmation|rejection|interview|offer|unrelated",
-  "company": "Company name or null",
-  "confidence": 0.0 to 1.0,
+  "company": "Company name from the list above, or null if unrelated",
+  "confidence": 0.0 to 1.0 (use 0.9+ only if CERTAIN it's from the company),
   "summary": "Brief summary",
   "recruiter_name": "Name or null",
   "recruiter_email": "Email or null",
@@ -1221,7 +1470,8 @@ Return ONLY valid JSON:
   }
 }
 
-Only include interview_details if type is "interview".`;
+Only include interview_details if type is "interview".
+When in doubt, classify as "unrelated" with low confidence.`;
 
   try {
     const response = await callAI(prompt);
