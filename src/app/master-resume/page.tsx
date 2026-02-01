@@ -83,7 +83,7 @@ export default function MasterResumePage() {
   const previewDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    document.title = "ResumeGenie - Master Resume";
+    document.title = "ResumeGenie - Your Resume";
   }, []);
 
   useEffect(() => {

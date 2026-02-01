@@ -96,26 +96,102 @@
     // Job description - look for "About the job" section or similar
     let jobDescription = '';
 
-    // Method 1: Try legacy selectors
-    jobDescription = document.querySelector('.jobs-description__content')?.innerText?.trim()
+    // Method 1: Try modern LinkedIn selectors (2024-2025 structure)
+    jobDescription = document.querySelector('.jobs-description-content__text')?.innerText?.trim()
+      || document.querySelector('.jobs-description__content')?.innerText?.trim()
       || document.querySelector('.jobs-box__html-content')?.innerText?.trim()
       || document.querySelector('#job-details')?.innerText?.trim()
-      || document.querySelector('.jobs-description-content__text')?.innerText?.trim()
+      || document.querySelector('[data-job-details-content]')?.innerText?.trim()
       || '';
 
-    // Method 2: Find "About the job" section by scanning the page
+    // Method 2: Look for article or div with "About the job" heading nearby
     if (!jobDescription) {
-      const allElements = document.querySelectorAll('h2, h3, div, section');
-      for (const el of allElements) {
-        const text = el.textContent?.trim() || '';
-        if (text.toLowerCase().startsWith('about the job') || text.toLowerCase().startsWith('about this job')) {
-          // Get the parent or next sibling content
-          const parent = el.closest('section') || el.closest('div') || el.parentElement;
-          if (parent) {
-            const desc = parent.innerText?.trim() || '';
-            if (desc.length > 100) {
-              jobDescription = desc;
-              console.log('[ResumeGenie] Found job description via "About the job" section, length:', desc.length);
+      // Find "About the job" heading
+      const headings = document.querySelectorAll('h2, h3, span, div');
+      for (const heading of headings) {
+        const headingText = heading.textContent?.trim().toLowerCase() || '';
+        if (headingText === 'about the job' || headingText === 'about this job' || headingText === 'job description') {
+          // Try to find the content after this heading
+          // Method 2a: Check next siblings
+          let sibling = heading.nextElementSibling;
+          while (sibling) {
+            const text = sibling.innerText?.trim() || '';
+            if (text.length > 100) {
+              jobDescription = text;
+              console.log('[ResumeGenie] Found description via sibling of heading, length:', text.length);
+              break;
+            }
+            sibling = sibling.nextElementSibling;
+          }
+
+          if (jobDescription) break;
+
+          // Method 2b: Check parent container
+          let parent = heading.parentElement;
+          for (let i = 0; i < 5 && parent; i++) {
+            const text = parent.innerText?.trim() || '';
+            // Look for substantial content that's not just the heading
+            if (text.length > 200 && text.length < 15000) {
+              // Remove the heading text from the beginning if present
+              let desc = text;
+              if (desc.toLowerCase().startsWith('about the job')) {
+                desc = desc.substring('about the job'.length).trim();
+              }
+              if (desc.length > 100) {
+                jobDescription = desc;
+                console.log('[ResumeGenie] Found description via parent of heading, length:', desc.length);
+                break;
+              }
+            }
+            parent = parent.parentElement;
+          }
+
+          if (jobDescription) break;
+        }
+      }
+    }
+
+    // Method 3: Find the job details container by class patterns
+    if (!jobDescription) {
+      const possibleContainers = document.querySelectorAll('[class*="description"], [class*="details"], [class*="job-view"]');
+      for (const container of possibleContainers) {
+        const rect = container.getBoundingClientRect();
+        // Skip small or hidden elements
+        if (rect.width < 300 || rect.height < 100) continue;
+
+        const text = container.innerText?.trim() || '';
+        // Look for substantial text that includes job-related content
+        if (text.length > 300 && text.length < 15000) {
+          // Check if it looks like a job description (has keywords like responsibilities, requirements, etc.)
+          const looksLikeDescription = text.match(/(responsibilities|requirements|qualifications|experience|skills|about|you will|we are|the role|join|team|looking for)/i);
+          if (looksLikeDescription) {
+            jobDescription = text;
+            console.log('[ResumeGenie] Found description via class pattern, length:', text.length);
+            break;
+          }
+        }
+      }
+    }
+
+    // Method 4: Find any large text block in the right panel (fallback)
+    if (!jobDescription) {
+      const textBlocks = document.querySelectorAll('div, section, article');
+      for (const el of textBlocks) {
+        const rect = el.getBoundingClientRect();
+        // Must be in the visible area
+        if (rect.width < 300 || rect.height < 100) continue;
+        // Prefer content on the right side of the page (job details panel)
+        if (rect.left < 300) continue;
+
+        const text = el.innerText?.trim() || '';
+        // Description should be substantial text
+        if (text.length > 300 && text.length < 15000) {
+          // Check it's not just navigation or other UI
+          if (!text.match(/^(easy apply|save|share|show|hide|premium|people you|recent searches)/i)) {
+            // Verify it looks like a job description
+            if (text.match(/(responsibilities|requirements|qualifications|experience|about|the role|join us|looking for|we are)/i)) {
+              jobDescription = text;
+              console.log('[ResumeGenie] Found job description via text block scan, length:', text.length);
               break;
             }
           }
@@ -123,24 +199,39 @@
       }
     }
 
-    // Method 3: Find any large text block in the right panel that looks like a description
+    // Method 5: Last resort - find the largest text block on the page that looks like a description
     if (!jobDescription) {
-      const textBlocks = document.querySelectorAll('div, section, article');
-      for (const el of textBlocks) {
-        const rect = el.getBoundingClientRect();
-        // Must be in the right panel and below the header
-        if (rect.left < 400 || rect.top < 300) continue;
+      let bestCandidate = { text: '', score: 0 };
+      const allDivs = document.querySelectorAll('div, article, section');
 
+      for (const el of allDivs) {
         const text = el.innerText?.trim() || '';
-        // Description should be substantial text
-        if (text.length > 200 && text.length < 10000) {
-          // Check it's not just navigation or other UI
-          if (!text.match(/^(easy apply|save|share|show|hide|premium|people you)/i)) {
-            jobDescription = text;
-            console.log('[ResumeGenie] Found job description via text block scan, length:', text.length);
-            break;
-          }
+        if (text.length < 200 || text.length > 20000) continue;
+
+        // Score based on description-like keywords
+        let score = 0;
+        if (text.match(/responsibilities/i)) score += 3;
+        if (text.match(/requirements/i)) score += 3;
+        if (text.match(/qualifications/i)) score += 3;
+        if (text.match(/experience/i)) score += 2;
+        if (text.match(/skills/i)) score += 2;
+        if (text.match(/about the (job|role|position)/i)) score += 4;
+        if (text.match(/you will|you'll/i)) score += 2;
+        if (text.match(/we are looking|we're looking/i)) score += 2;
+        if (text.match(/\$\d+|\d+k/i)) score += 1; // salary mention
+
+        // Penalize if it looks like navigation or repeated elements
+        if (text.match(/sign in|log in|create account/i)) score -= 5;
+        if (text.match(/people also viewed|similar jobs/i)) score -= 3;
+
+        if (score > bestCandidate.score && score >= 3) {
+          bestCandidate = { text, score };
         }
+      }
+
+      if (bestCandidate.text) {
+        jobDescription = bestCandidate.text;
+        console.log('[ResumeGenie] Found description via scoring, score:', bestCandidate.score, 'length:', jobDescription.length);
       }
     }
 

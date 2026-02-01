@@ -21,7 +21,7 @@ export default function ReviewPage() {
   const [showAddModal, setShowAddModal] = useState(false);
 
   useEffect(() => {
-    document.title = "ResumeGenie - Job Tracker";
+    document.title = "ResumeGenie - ATS Optimizer";
   }, []);
 
   useEffect(() => {

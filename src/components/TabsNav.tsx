@@ -37,7 +37,7 @@ export default function TabsNav({ reviewCount = 0 }: { reviewCount?: number }) {
 
   const tabs: Tab[] = [
     {
-      name: "Dashboard",
+      name: "Home",
       href: "/dashboard",
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -46,7 +46,7 @@ export default function TabsNav({ reviewCount = 0 }: { reviewCount?: number }) {
       ),
     },
     {
-      name: "Master Resume",
+      name: "Your Resume",
       href: "/master-resume",
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -55,7 +55,7 @@ export default function TabsNav({ reviewCount = 0 }: { reviewCount?: number }) {
       ),
     },
     {
-      name: "Review",
+      name: "ATS Optimizer",
       href: "/review",
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -66,7 +66,7 @@ export default function TabsNav({ reviewCount = 0 }: { reviewCount?: number }) {
       badge: reviewCount > 0 ? reviewCount : undefined,
     },
     {
-      name: "Applied",
+      name: "Tracker",
       href: "/applied",
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

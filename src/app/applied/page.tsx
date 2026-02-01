@@ -53,7 +53,7 @@ export default function AppliedPage() {
   const [showArchived, setShowArchived] = useState(false);
 
   useEffect(() => {
-    document.title = "ResumeGenie - Applied";
+    document.title = "ResumeGenie - Tracker";
   }, []);
 
   useEffect(() => {

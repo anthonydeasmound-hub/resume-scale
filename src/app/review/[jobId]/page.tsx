@@ -19,6 +19,7 @@ import SkillsSection from "@/components/review/SkillsSection";
 import JobDetailsSidebar from "@/components/review/JobDetailsSidebar";
 import CoverLetterPreview from "@/components/review/CoverLetterPreview";
 import ResumePreviewPane from "@/components/review/ResumePreviewPane";
+import BulletOptimizationModal, { BulletSuggestion } from "@/components/review/BulletOptimizationModal";
 
 const COLOR_OPTIONS = [
   { id: "blue", name: "Navy Blue", hex: "#3D5A80" },
@@ -98,8 +99,13 @@ export default function JobReviewPage() {
   // Consolidated content loading (single LLM call for summaries, bullets, and skills)
   const [loadingAllContent, setLoadingAllContent] = useState(false);
 
+  // Batch bullet optimization
+  const [optimizingBullets, setOptimizingBullets] = useState(false);
+  const [bulletSuggestions, setBulletSuggestions] = useState<BulletSuggestion[]>([]);
+  const [showOptimizationModal, setShowOptimizationModal] = useState(false);
+
   useEffect(() => {
-    document.title = "ResumeGenie - Review";
+    document.title = "ResumeGenie - ATS Optimizer";
   }, []);
 
   useEffect(() => {
@@ -593,16 +599,6 @@ export default function JobReviewPage() {
     setHasChanges(true);
   };
 
-  // Apply improved bullet from ATS optimization
-  const applyImprovedBullet = (roleIndex: number, bulletIndex: number, improvedText: string) => {
-    const key = `${roleIndex}-${bulletIndex}`;
-    setEditedBullets((prev) => ({
-      ...prev,
-      [key]: improvedText,
-    }));
-    setHasChanges(true);
-  };
-
   // Cancel editing
   const cancelEditingBullet = () => {
     setEditingBulletKey(null);
@@ -764,6 +760,100 @@ export default function JobReviewPage() {
 
     return () => clearTimeout(timeoutId);
   }, [selectedRoles, selectedSummaryIndex, summaryOptions, selectedSkills, editedBullets]);
+
+  // Batch optimize all selected bullets for ATS
+  const optimizeAllBullets = async () => {
+    if (!job || !masterResume || !atsScore) return;
+
+    setOptimizingBullets(true);
+    const suggestions: BulletSuggestion[] = [];
+
+    try {
+      // Collect all selected bullets
+      const bulletsToOptimize: {
+        roleIndex: number;
+        bulletIndex: number;
+        roleName: string;
+        bulletText: string;
+      }[] = [];
+
+      selectedRoles.forEach((role) => {
+        const masterRole = masterResume.work_experience[role.roleIndex];
+        role.selectedBullets.forEach((bulletIdx) => {
+          const bulletText = getBulletText(role.roleIndex, bulletIdx, role.bulletOptions);
+          bulletsToOptimize.push({
+            roleIndex: role.roleIndex,
+            bulletIndex: bulletIdx,
+            roleName: `${masterRole.title} at ${masterRole.company}`,
+            bulletText,
+          });
+        });
+      });
+
+      // Make parallel API calls for all bullets
+      const promises = bulletsToOptimize.map(async (bullet) => {
+        try {
+          const response = await fetch("/api/ai/improve-bullet", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              jobId: job.id,
+              bullet: bullet.bulletText,
+              missingKeywords: atsScore.breakdown.keywords.missing || [],
+              missingSkills: atsScore.breakdown.hardSkills.missing || [],
+            }),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            // Only include if the improvement is different
+            if (data.improved && data.improved !== bullet.bulletText) {
+              return {
+                roleIndex: bullet.roleIndex,
+                bulletIndex: bullet.bulletIndex,
+                roleName: bullet.roleName,
+                original: bullet.bulletText,
+                improved: data.improved,
+                selected: true,
+              } as BulletSuggestion;
+            }
+          }
+          return null;
+        } catch {
+          return null;
+        }
+      });
+
+      const results = await Promise.all(promises);
+      const validSuggestions = results.filter((s): s is BulletSuggestion => s !== null);
+
+      if (validSuggestions.length > 0) {
+        setBulletSuggestions(validSuggestions);
+        setShowOptimizationModal(true);
+      } else {
+        showToast("info", "All bullets are already optimized for ATS!");
+      }
+    } catch (error) {
+      console.error("Failed to optimize bullets:", error);
+      showToast("error", "Failed to optimize bullets");
+    } finally {
+      setOptimizingBullets(false);
+    }
+  };
+
+  // Apply selected bullet improvements
+  const applyBulletImprovements = (selectedSuggestions: BulletSuggestion[]) => {
+    const newEditedBullets = { ...editedBullets };
+    selectedSuggestions.forEach((suggestion) => {
+      const key = `${suggestion.roleIndex}-${suggestion.bulletIndex}`;
+      newEditedBullets[key] = suggestion.improved;
+    });
+    setEditedBullets(newEditedBullets);
+    setHasChanges(true);
+    setShowOptimizationModal(false);
+    setBulletSuggestions([]);
+    showToast("success", `Applied ${selectedSuggestions.length} bullet improvement${selectedSuggestions.length !== 1 ? 's' : ''}`);
+  };
 
   const buildTailoredResume = (): TailoredResume | null => {
     if (!masterResume) return null;
@@ -1153,9 +1243,6 @@ export default function JobReviewPage() {
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
                     onDragEnd={handleDragEnd}
-                    jobId={job?.id}
-                    atsScore={atsScore}
-                    onApplyImprovedBullet={applyImprovedBullet}
                   />
                 )}
 
@@ -1196,6 +1283,9 @@ export default function JobReviewPage() {
                   loading={loadingAts}
                   onCalculate={calculateAtsScore}
                   disabled={selectedRoles.length === 0 || !job}
+                  onOptimizeBullets={optimizeAllBullets}
+                  optimizingBullets={optimizingBullets}
+                  hasBullets={selectedRoles.some(r => r.selectedBullets.length > 0)}
                 />
 
 
@@ -1239,7 +1329,7 @@ export default function JobReviewPage() {
                       setCoverLetter(e.target.value);
                       setHasChanges(true);
                     }}
-                    className="w-full border border-gray-200 rounded-lg p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                    className="w-full border border-gray-200 rounded-lg p-3 text-sm text-gray-900 resize-none focus:outline-none focus:ring-2 focus:ring-brand-blue"
                     rows={16}
                     placeholder="Write or generate your cover letter..."
                   />
@@ -1324,6 +1414,18 @@ export default function JobReviewPage() {
           )}
         </div>
       </div>
+
+      {/* Bullet Optimization Modal */}
+      {showOptimizationModal && bulletSuggestions.length > 0 && (
+        <BulletOptimizationModal
+          suggestions={bulletSuggestions}
+          onApply={applyBulletImprovements}
+          onClose={() => {
+            setShowOptimizationModal(false);
+            setBulletSuggestions([]);
+          }}
+        />
+      )}
     </div>
   );
 }

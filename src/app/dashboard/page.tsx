@@ -102,7 +102,7 @@ export default function DashboardPage() {
   const previewScale = 0.48;
 
   useEffect(() => {
-    document.title = "ResumeGenie - Dashboard";
+    document.title = "ResumeGenie - Home";
   }, []);
 
   const fetchSetupStatus = useCallback(async () => {
@@ -375,7 +375,7 @@ export default function DashboardPage() {
               <div>
                 <div className="bg-white rounded-xl shadow-lg overflow-hidden">
                   <div className="bg-gray-100 px-4 py-2 border-b flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">Master Resume</span>
+                    <span className="text-sm font-medium text-gray-700">Your Resume</span>
                     <Link href="/master-resume" className="text-xs text-brand-blue hover:text-brand-blue-dark font-medium">
                       Edit Resume
                     </Link>

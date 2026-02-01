@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 interface SkillsSectionProps {
   expandedSection: "summary" | "experience" | "skills" | null;
   toggleSection: (section: "summary" | "experience" | "skills") => void;
@@ -9,6 +11,7 @@ interface SkillsSectionProps {
   skillsFromJobDescription: string[];
   recommendedSkills: string[];
   onToggleSkill: (skill: string) => void;
+  onAddCustomSkill?: (skill: string) => void;
 }
 
 export default function SkillsSection({
@@ -20,7 +23,28 @@ export default function SkillsSection({
   skillsFromJobDescription,
   recommendedSkills,
   onToggleSkill,
+  onAddCustomSkill,
 }: SkillsSectionProps) {
+  const [customSkill, setCustomSkill] = useState("");
+
+  const handleAddCustomSkill = () => {
+    const trimmed = customSkill.trim();
+    if (trimmed && !selectedSkills.includes(trimmed)) {
+      if (onAddCustomSkill) {
+        onAddCustomSkill(trimmed);
+      } else {
+        onToggleSkill(trimmed);
+      }
+      setCustomSkill("");
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleAddCustomSkill();
+    }
+  };
   return (
     <div className="bg-white rounded-xl shadow overflow-hidden">
       <button
@@ -57,7 +81,29 @@ export default function SkillsSection({
             </div>
           ) : (
             <div className="pt-3">
-              {/* Selected skills at top */}
+              {/* Add custom skill input */}
+              <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                <p className="text-xs font-medium text-gray-600 mb-2">Add your own skill:</p>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={customSkill}
+                    onChange={(e) => setCustomSkill(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Type a skill and press Enter..."
+                    className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-brand-blue text-gray-900"
+                  />
+                  <button
+                    onClick={handleAddCustomSkill}
+                    disabled={!customSkill.trim()}
+                    className="px-4 py-1.5 text-sm bg-brand-blue text-white rounded-lg hover:bg-brand-blue-dark disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Add
+                  </button>
+                </div>
+              </div>
+
+              {/* Selected skills */}
               <div className="mb-4">
                 <p className="text-xs font-medium text-gray-600 mb-2">
                   Selected ({selectedSkills.length}) - click to remove:
@@ -68,12 +114,16 @@ export default function SkillsSection({
                   ) : (
                     selectedSkills.map((skill) => {
                       const isFromResume = skillsFromResume.includes(skill);
+                      const isFromJob = skillsFromJobDescription.includes(skill);
+                      const isCustom = !isFromResume && !isFromJob && !recommendedSkills.includes(skill);
                       return (
                         <button
                           key={skill}
                           onClick={() => onToggleSkill(skill)}
                           className={`px-3 py-1 rounded-full text-sm transition-colors ${
-                            isFromResume
+                            isCustom
+                              ? "bg-green-100 text-green-700 border-2 border-green-400"
+                              : isFromResume
                               ? "bg-blue-100 text-brand-blue border-2 border-blue-400"
                               : "bg-purple-100 text-purple-700 border-2 border-purple-400"
                           }`}

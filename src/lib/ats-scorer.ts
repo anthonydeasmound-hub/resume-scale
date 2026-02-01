@@ -87,22 +87,41 @@ const EDUCATION_LEVELS: Record<string, number> = {
   'doctorate': 5,
 };
 
+// Normalize text for comparison - handles hyphens, slashes, case
+function normalizeForComparison(text: string): string {
+  return text.toLowerCase()
+    .replace(/[-\/]/g, ' ')  // Replace hyphens and slashes with spaces
+    .replace(/[^a-z0-9\s\+\#\.]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// Common stop words to filter out
+const STOP_WORDS = new Set([
+  'the', 'and', 'for', 'with', 'you', 'are', 'this', 'that', 'will', 'have',
+  'our', 'your', 'their', 'from', 'been', 'being', 'would', 'could', 'should',
+  'about', 'into', 'through', 'during', 'before', 'after', 'above', 'below',
+  'between', 'under', 'over', 'such', 'each', 'which', 'these', 'those',
+  'other', 'some', 'most', 'more', 'very', 'just', 'also', 'than', 'then',
+  'only', 'well', 'even', 'back', 'any', 'all', 'both', 'when', 'where',
+  'while', 'what', 'who', 'how', 'why', 'able', 'work', 'working', 'experience',
+  'including', 'within', 'across', 'must', 'required', 'preferred', 'looking',
+  'seeking', 'join', 'opportunity', 'role', 'position', 'responsibilities',
+]);
+
 function extractKeywords(text: string): string[] {
   if (!text) return [];
 
   // Normalize and tokenize
-  const normalized = text.toLowerCase()
-    .replace(/[^a-z0-9\s\-\/\+\#\.]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+  const normalized = normalizeForComparison(text);
 
   // Extract n-grams (1, 2, and 3 word phrases)
-  const words = normalized.split(' ').filter(w => w.length > 2);
+  const words = normalized.split(' ').filter(w => w.length > 2 && !STOP_WORDS.has(w));
   const keywords = new Set<string>();
 
-  // Single words
+  // Single words - only meaningful ones
   words.forEach(w => {
-    if (w.length > 3 && !['the', 'and', 'for', 'with', 'you', 'are', 'this', 'that', 'will', 'have'].includes(w)) {
+    if (w.length > 4 && !STOP_WORDS.has(w)) {
       keywords.add(w);
     }
   });
@@ -110,15 +129,17 @@ function extractKeywords(text: string): string[] {
   // Two-word phrases
   for (let i = 0; i < words.length - 1; i++) {
     const phrase = `${words[i]} ${words[i + 1]}`;
-    if (phrase.length > 5) {
+    if (phrase.length > 8) {
       keywords.add(phrase);
     }
   }
 
-  // Three-word phrases
+  // Three-word phrases - be more selective
   for (let i = 0; i < words.length - 2; i++) {
     const phrase = `${words[i]} ${words[i + 1]} ${words[i + 2]}`;
-    keywords.add(phrase);
+    if (phrase.length > 12) {
+      keywords.add(phrase);
+    }
   }
 
   return Array.from(keywords);
@@ -202,8 +223,7 @@ export function calculateATSScore(
   jobTitle: string
 ): ATSScore {
   const resumeText = getResumeFullText(resume);
-  const resumeTextLower = resumeText.toLowerCase();
-  const jobDescLower = jobDescription.toLowerCase();
+  const resumeTextNormalized = normalizeForComparison(resumeText);
 
   // 1. Keyword Matching (40 points)
   const jobKeywords = extractKeywords(jobDescription);
@@ -211,15 +231,31 @@ export function calculateATSScore(
   const missingKeywords: string[] = [];
 
   jobKeywords.forEach(kw => {
-    if (resumeTextLower.includes(kw)) {
+    // Use normalized comparison to handle hyphens, slashes, case differences
+    if (resumeTextNormalized.includes(kw)) {
       matchedKeywords.push(kw);
-    } else if (kw.length > 4) { // Only track meaningful missing keywords
+    } else if (kw.length > 5) { // Only track meaningful missing keywords
       missingKeywords.push(kw);
     }
   });
 
+  // Filter out missing keywords that are substrings of matched ones or each other
+  const filteredMissingKeywords = missingKeywords.filter(missing => {
+    // Check if this keyword is already covered by a matched keyword
+    const isCovered = matchedKeywords.some(matched =>
+      matched.includes(missing) || missing.includes(matched)
+    );
+    if (isCovered) return false;
+
+    // Check if this is a substring of another missing keyword (keep the longer one)
+    const isSubstring = missingKeywords.some(other =>
+      other !== missing && other.includes(missing) && other.length > missing.length
+    );
+    return !isSubstring;
+  });
+
   // Limit missing keywords to most relevant (longest phrases first)
-  const topMissingKeywords = missingKeywords
+  const topMissingKeywords = filteredMissingKeywords
     .sort((a, b) => b.length - a.length)
     .slice(0, 10);
 
@@ -338,26 +374,38 @@ export function calculateATSScore(
   // Calculate overall score
   const overall = keywordScore + hardSkillsScore + titleScore + educationScore + formatScore + softSkillsScore;
 
-  // Generate suggestions
+  // Generate suggestions - prioritize high-impact items
   const suggestions: string[] = [];
 
-  if (missingHardSkills.length > 0 && missingHardSkills.length <= 5) {
-    suggestions.push(`Add these skills if you have them: ${missingHardSkills.slice(0, 3).join(', ')}`);
+  // 1. Missing hard skills (20 points potential) - highest priority
+  if (missingHardSkills.length > 0) {
+    suggestions.push(`Add these technical skills if you have them: ${missingHardSkills.slice(0, 4).join(', ')}`);
   }
 
+  // 2. Missing keywords (40 points potential) - filter out generic phrases
   if (topMissingKeywords.length > 0) {
-    const relevantMissing = topMissingKeywords.filter(k => k.length > 6).slice(0, 3);
-    if (relevantMissing.length > 0) {
-      suggestions.push(`Consider including these terms: ${relevantMissing.join(', ')}`);
+    // Filter to only show actionable, specific terms
+    const actionableKeywords = topMissingKeywords
+      .filter(k => {
+        // Skip very generic phrases
+        const generic = ['current customers', 'new business', 'sales team', 'business development'];
+        return k.length > 6 && !generic.some(g => k.includes(g));
+      })
+      .slice(0, 3);
+    if (actionableKeywords.length > 0) {
+      suggestions.push(`Consider adding these terms to your bullets: ${actionableKeywords.join(', ')}`);
     }
   }
 
+  // 3. Format issues (10 points potential)
+  formatIssues.forEach(issue => suggestions.push(issue));
+
+  // 4. Title relevance (15 points potential)
   if (titleRelevance === 'low') {
     suggestions.push('Tailor your job titles or bullet points to better match the target role');
   }
 
-  formatIssues.forEach(issue => suggestions.push(issue));
-
+  // 5. Soft skills (5 points potential) - lowest priority
   if (matchedSoftSkills.length === 0 && jobSoftSkills.length > 0) {
     suggestions.push(`Highlight soft skills like: ${jobSoftSkills.slice(0, 3).join(', ')}`);
   }
