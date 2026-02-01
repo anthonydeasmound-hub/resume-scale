@@ -14,6 +14,7 @@ export const horizonMetadata: TemplateMetadata = {
 
 export function generateHorizonHTML(data: ResumeData, options: TemplateOptions): string {
   const { accentColor, showPhoto, showSkillBars, showIcons, showLanguages } = options;
+  const photoUrl = data.profilePhotoUrl;
 
   // Create a lighter version of accent color for sidebar
   const sidebarBg = `${accentColor}12`;
@@ -105,6 +106,12 @@ export function generateHorizonHTML(data: ResumeData, options: TemplateOptions):
       background: #ddd;
       margin: 0 auto 20px;
       border: 3px solid ${accentColor};
+      overflow: hidden;
+    }
+    .photo-placeholder img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
 
     .sidebar-section {
@@ -287,7 +294,7 @@ export function generateHorizonHTML(data: ResumeData, options: TemplateOptions):
 <body>
   <div class="page">
     <div class="sidebar">
-      ${showPhoto ? '<div class="photo-placeholder"></div>' : ''}
+      ${showPhoto ? `<div class="photo-placeholder">${photoUrl ? `<img src="${photoUrl}" alt="Profile photo" />` : ''}</div>` : ''}
 
       <div class="sidebar-section">
         <div class="sidebar-title">Contact</div>

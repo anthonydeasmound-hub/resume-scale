@@ -12,6 +12,9 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS resumes (
   id SERIAL PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id),
+  profile_name TEXT NOT NULL DEFAULT 'Master Resume',
+  is_primary BOOLEAN NOT NULL DEFAULT TRUE,
+  profile_description TEXT,
   contact_info TEXT,
   work_experience TEXT,
   skills TEXT,
@@ -27,6 +30,12 @@ CREATE TABLE IF NOT EXISTS resumes (
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
 );
+
+-- Ensure only one primary profile per user
+CREATE UNIQUE INDEX IF NOT EXISTS idx_resumes_user_primary ON resumes (user_id) WHERE is_primary = TRUE;
+
+-- Prevent duplicate profile names per user
+ALTER TABLE resumes ADD CONSTRAINT IF NOT EXISTS unique_user_profile_name UNIQUE (user_id, profile_name);
 
 CREATE TABLE IF NOT EXISTS job_applications (
   id SERIAL PRIMARY KEY,
@@ -52,6 +61,7 @@ CREATE TABLE IF NOT EXISTS job_applications (
   archived_at TEXT,
   pinned INTEGER DEFAULT 0,
   last_activity_at TEXT,
+  source_profile_id INTEGER REFERENCES resumes(id) ON DELETE SET NULL,
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
 );
@@ -153,3 +163,17 @@ CREATE INDEX IF NOT EXISTS idx_email_actions_job_id ON email_actions(job_id);
 CREATE INDEX IF NOT EXISTS idx_calendar_events_job_id ON calendar_events(job_id);
 CREATE INDEX IF NOT EXISTS idx_extension_tokens_user_id ON extension_tokens(user_id);
 CREATE INDEX IF NOT EXISTS idx_extension_tokens_token ON extension_tokens(token);
+
+-- User settings for extension (weekly goals, preferences)
+CREATE TABLE IF NOT EXISTS user_settings (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) UNIQUE,
+  weekly_jobs_goal INTEGER DEFAULT 10,
+  weekly_reviews_goal INTEGER DEFAULT 5,
+  weekly_applications_goal INTEGER DEFAULT 5,
+  show_welcome_card INTEGER DEFAULT 1,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_settings_user_id ON user_settings(user_id);

@@ -40,6 +40,7 @@ const honorSchema = z.array(z.object({
 })).max(50);
 
 const inputSchema = z.object({
+  profile_id: z.number().optional(),
   contact_info: contactInfoSchema,
   work_experience: workExperienceSchema,
   skills: z.array(z.string().max(200)).max(100),
@@ -63,11 +64,13 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
+    console.log("Resume save request body:", JSON.stringify(body, null, 2));
     const parsed = inputSchema.safeParse(body);
     if (!parsed.success) {
+      console.error("Validation errors:", parsed.error.flatten());
       return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten().fieldErrors }, { status: 400 });
     }
-    const { contact_info, work_experience, skills, education, certifications, languages, honors, profile_photo_path, raw_text, summary, resume_style, accent_color } = parsed.data;
+    const { profile_id, contact_info, work_experience, skills, education, certifications, languages, honors, profile_photo_path, raw_text, summary, resume_style, accent_color } = parsed.data;
 
     // Get or create user
     let user = await queryOne<{ id: number }>("SELECT id FROM users WHERE email = $1", [session.user.email]);
@@ -80,8 +83,30 @@ export async function POST(request: NextRequest) {
       user = { id: result.rows[0].id as number };
     }
 
-    // Check if resume exists
-    const existingResume = await queryOne<{ id: number }>("SELECT id FROM resumes WHERE user_id = $1", [user.id]);
+    // Check if resume exists - either by profile_id or primary profile
+    let existingResume: { id: number } | undefined;
+
+    if (profile_id) {
+      // Update specific profile (ensure it belongs to this user)
+      existingResume = await queryOne<{ id: number }>(
+        "SELECT id FROM resumes WHERE id = $1 AND user_id = $2",
+        [profile_id, user.id]
+      );
+    } else {
+      // Get primary profile
+      existingResume = await queryOne<{ id: number }>(
+        "SELECT id FROM resumes WHERE user_id = $1 AND is_primary = TRUE",
+        [user.id]
+      );
+
+      // Fallback for existing users without is_primary set
+      if (!existingResume) {
+        existingResume = await queryOne<{ id: number }>(
+          "SELECT id FROM resumes WHERE user_id = $1 ORDER BY created_at ASC LIMIT 1",
+          [user.id]
+        );
+      }
+    }
 
     if (existingResume) {
       // Update existing resume
@@ -90,7 +115,7 @@ export async function POST(request: NextRequest) {
         SET contact_info = $1, work_experience = $2, skills = $3, education = $4,
             certifications = $5, languages = $6, honors = $7, profile_photo_path = $8,
             raw_text = $9, summary = $10, resume_style = $11, accent_color = $12, updated_at = NOW()
-        WHERE user_id = $13
+        WHERE id = $13
       `, [
         JSON.stringify(contact_info),
         JSON.stringify(work_experience),
@@ -100,19 +125,21 @@ export async function POST(request: NextRequest) {
         languages ? JSON.stringify(languages) : null,
         honors ? JSON.stringify(honors) : null,
         profile_photo_path || null,
-        raw_text,
+        raw_text || null,
         summary || null,
         resume_style || 'basic',
         accent_color || '#2563eb',
-        user.id
+        existingResume.id
       ]);
     } else {
-      // Insert new resume
+      // Insert new resume (as primary profile)
       await execute(`
-        INSERT INTO resumes (user_id, contact_info, work_experience, skills, education, certifications, languages, honors, profile_photo_path, raw_text, summary, resume_style, accent_color)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+        INSERT INTO resumes (user_id, profile_name, is_primary, contact_info, work_experience, skills, education, certifications, languages, honors, profile_photo_path, raw_text, summary, resume_style, accent_color)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
       `, [
         user.id,
+        'Master Resume',
+        true,
         JSON.stringify(contact_info),
         JSON.stringify(work_experience),
         JSON.stringify(skills),
@@ -121,7 +148,7 @@ export async function POST(request: NextRequest) {
         languages ? JSON.stringify(languages) : null,
         honors ? JSON.stringify(honors) : null,
         profile_photo_path || null,
-        raw_text,
+        raw_text || null,
         summary || null,
         resume_style || 'basic',
         accent_color || '#2563eb'
@@ -131,8 +158,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Resume save error:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
-      { error: "Failed to save resume" },
+      { error: "Failed to save resume", details: errorMessage },
       { status: 500 }
     );
   }

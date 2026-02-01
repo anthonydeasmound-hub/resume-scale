@@ -42,6 +42,24 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        // CORS for LinkedIn import API routes (used by Chrome extension)
+        source: "/api/linkedin/:path*",
+        headers: [
+          {
+            key: "Access-Control-Allow-Origin",
+            value: "*",
+          },
+          {
+            key: "Access-Control-Allow-Methods",
+            value: "GET, POST, OPTIONS",
+          },
+          {
+            key: "Access-Control-Allow-Headers",
+            value: "Content-Type, Authorization",
+          },
+        ],
+      },
+      {
         source: "/(.*)",
         headers: [
           {

@@ -1,17 +1,14 @@
-import { neon } from "@neondatabase/serverless";
-
-type SqlFunction = (query: string, params?: unknown[]) => Promise<Record<string, unknown>[]>;
+import { neon, NeonQueryFunction } from "@neondatabase/serverless";
 
 // Lazy initialization — avoids throwing during Next.js build when DATABASE_URL isn't set.
-let _sql: SqlFunction | null = null;
+let _sql: NeonQueryFunction<false, false> | null = null;
 
-function getSql(): SqlFunction {
+function getSql(): NeonQueryFunction<false, false> {
   if (!_sql) {
     if (!process.env.DATABASE_URL) {
       throw new Error("DATABASE_URL environment variable is required");
     }
-    // neon() returns a tagged template function, but also supports (query, params) calls.
-    _sql = neon(process.env.DATABASE_URL) as unknown as SqlFunction;
+    _sql = neon(process.env.DATABASE_URL);
   }
   return _sql;
 }
@@ -20,7 +17,8 @@ function getSql(): SqlFunction {
  * Query a single row. Returns undefined if no rows match.
  */
 export async function queryOne<T>(query: string, params: unknown[] = []): Promise<T | undefined> {
-  const rows = await getSql()(query, params);
+  const sql = getSql();
+  const rows = await sql.query(query, params);
   return rows[0] as T | undefined;
 }
 
@@ -28,7 +26,8 @@ export async function queryOne<T>(query: string, params: unknown[] = []): Promis
  * Query multiple rows.
  */
 export async function queryAll<T>(query: string, params: unknown[] = []): Promise<T[]> {
-  const rows = await getSql()(query, params);
+  const sql = getSql();
+  const rows = await sql.query(query, params);
   return rows as T[];
 }
 
@@ -37,7 +36,8 @@ export async function queryAll<T>(query: string, params: unknown[] = []): Promis
  * For INSERT, add "RETURNING id" to your query to get the new row's ID.
  */
 export async function execute(query: string, params: unknown[] = []): Promise<{ rows: Record<string, unknown>[]; rowCount: number }> {
-  const rows = await getSql()(query, params);
+  const sql = getSql();
+  const rows = await sql.query(query, params);
   return { rows: rows as Record<string, unknown>[], rowCount: rows.length };
 }
 
@@ -53,6 +53,9 @@ export interface User {
 export interface Resume {
   id: number;
   user_id: number;
+  profile_name: string;
+  is_primary: boolean;
+  profile_description: string | null;
   contact_info: string | null;
   work_experience: string | null;
   skills: string | null;
@@ -79,7 +82,7 @@ export interface JobApplication {
   cover_letter: string | null;
   resume_style: string;
   resume_color: string;
-  status: "draft" | "review" | "applied" | "interview" | "rejected" | "offer";
+  status: "draft" | "review" | "applied" | "interview" | "rejected" | "offer" | "bookmarked" | "applying" | "interviewing" | "negotiating" | "accepted";
   reviewed: number;
   date_applied: string | null;
   job_details_parsed: string | null;
@@ -93,6 +96,7 @@ export interface JobApplication {
   archived_at: string | null;
   pinned: number;
   last_activity_at: string | null;
+  source_profile_id: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -235,6 +239,17 @@ export interface CalendarEvent {
   location: string | null;
   meeting_link: string | null;
   sync_status: CalendarSyncStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserSettings {
+  id: number;
+  user_id: number;
+  weekly_jobs_goal: number;
+  weekly_reviews_goal: number;
+  weekly_applications_goal: number;
+  show_welcome_card: number;
   created_at: string;
   updated_at: string;
 }

@@ -17,7 +17,9 @@ import HonorsSection from "@/components/master-resume/HonorsSection";
 import ProfilePhotoSection from "@/components/master-resume/ProfilePhotoSection";
 import LivePreviewPanel from "@/components/master-resume/LivePreviewPanel";
 import FullPreviewModal from "@/components/master-resume/FullPreviewModal";
-import type { ResumeData, ContactInfo, WorkExperience, Education, Certification, Honor } from "@/components/master-resume/types";
+import type { ResumeData, ContactInfo, WorkExperience, Education, Certification, Honor, Profile } from "@/components/master-resume/types";
+import ProfileSwitcher from "@/components/master-resume/ProfileSwitcher";
+import NewProfileModal from "@/components/master-resume/NewProfileModal";
 
 const TEMPLATES = [
   { id: "executive", name: "Executive", description: "Traditional corporate style" },
@@ -62,6 +64,11 @@ export default function MasterResumePage() {
   const [newLanguage, setNewLanguage] = useState("");
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
+  // Profile state
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [currentProfileId, setCurrentProfileId] = useState<number | null>(null);
+  const [showNewProfileModal, setShowNewProfileModal] = useState(false);
+
   // Template and color state
   const [selectedTemplate, setSelectedTemplate] = useState("executive");
   const [selectedColor, setSelectedColor] = useState("#2563eb");
@@ -81,9 +88,22 @@ export default function MasterResumePage() {
 
   useEffect(() => {
     if (session) {
+      fetchProfiles();
       fetchResumeData();
     }
   }, [session]);
+
+  const fetchProfiles = async () => {
+    try {
+      const response = await fetch("/api/resume/profiles");
+      if (response.ok) {
+        const data = await response.json();
+        setProfiles(data.profiles);
+      }
+    } catch (err) {
+      console.error("Failed to fetch profiles:", err);
+    }
+  };
 
   useEffect(() => {
     setHasChanges(JSON.stringify(resumeData) !== JSON.stringify(originalData));
@@ -164,9 +184,12 @@ export default function MasterResumePage() {
     };
   }, [fetchPreviewHtml]);
 
-  const fetchResumeData = async () => {
+  const fetchResumeData = async (profileId?: number) => {
     try {
-      const response = await fetch("/api/resume/master");
+      const url = profileId
+        ? `/api/resume/master?profileId=${profileId}`
+        : "/api/resume/master";
+      const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
         const formatted: ResumeData = {
@@ -186,6 +209,7 @@ export default function MasterResumePage() {
         setOriginalData(formatted);
         setSelectedTemplate(formatted.resume_style);
         setSelectedColor(formatted.accent_color);
+        setCurrentProfileId(data.id);
       }
     } catch (err) {
       console.error("Failed to fetch resume:", err);
@@ -201,12 +225,17 @@ export default function MasterResumePage() {
       const response = await fetch("/api/resume/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(resumeData),
+        body: JSON.stringify({
+          ...resumeData,
+          profile_id: currentProfileId,
+        }),
       });
 
       if (response.ok) {
         setOriginalData(resumeData);
         showToast("success", "Changes saved successfully!");
+        // Refresh profiles list to update job_title_preview if work experience changed
+        fetchProfiles();
       } else {
         showToast("error", "Failed to save changes. Please try again.");
       }
@@ -215,6 +244,103 @@ export default function MasterResumePage() {
       showToast("error", "Failed to save changes. Please try again.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Profile management handlers
+  const handleSelectProfile = async (profileId: number) => {
+    if (hasChanges) {
+      const confirmed = window.confirm("You have unsaved changes. Do you want to discard them and switch profiles?");
+      if (!confirmed) return;
+    }
+    setLoading(true);
+    await fetchResumeData(profileId);
+  };
+
+  const handleCreateProfile = async (data: { name: string; description?: string; duplicate_from: number }) => {
+    const response = await fetch("/api/resume/profiles", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Failed to create profile");
+    }
+
+    const result = await response.json();
+    await fetchProfiles();
+    // Switch to the new profile
+    await fetchResumeData(result.profile.id);
+    showToast("success", `Profile "${data.name}" created successfully!`);
+  };
+
+  const handleRenameProfile = async (profileId: number, newName: string) => {
+    try {
+      const response = await fetch(`/api/resume/profiles/${profileId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newName }),
+      });
+
+      if (response.ok) {
+        await fetchProfiles();
+        showToast("success", "Profile renamed successfully!");
+      } else {
+        const error = await response.json();
+        showToast("error", error.error || "Failed to rename profile");
+      }
+    } catch (err) {
+      console.error("Rename profile error:", err);
+      showToast("error", "Failed to rename profile");
+    }
+  };
+
+  const handleDeleteProfile = async (profileId: number) => {
+    const confirmed = window.confirm("Are you sure you want to delete this profile? This action cannot be undone.");
+    if (!confirmed) return;
+
+    try {
+      const response = await fetch(`/api/resume/profiles/${profileId}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        await fetchProfiles();
+        // If we deleted the current profile, switch to primary
+        if (profileId === currentProfileId) {
+          await fetchResumeData();
+        }
+        showToast("success", "Profile deleted successfully!");
+      } else {
+        const error = await response.json();
+        showToast("error", error.error || "Failed to delete profile");
+      }
+    } catch (err) {
+      console.error("Delete profile error:", err);
+      showToast("error", "Failed to delete profile");
+    }
+  };
+
+  const handleSetPrimaryProfile = async (profileId: number) => {
+    try {
+      const response = await fetch(`/api/resume/profiles/${profileId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_primary: true }),
+      });
+
+      if (response.ok) {
+        await fetchProfiles();
+        showToast("success", "Profile set as primary!");
+      } else {
+        const error = await response.json();
+        showToast("error", error.error || "Failed to set primary profile");
+      }
+    } catch (err) {
+      console.error("Set primary profile error:", err);
+      showToast("error", "Failed to set primary profile");
     }
   };
 
@@ -533,6 +659,19 @@ export default function MasterResumePage() {
       <TabsNav />
 
       <div className="pt-14 md:pt-0 md:ml-64 p-4 md:p-8">
+        {/* Profile Switcher */}
+        {profiles.length > 0 && currentProfileId && (
+          <ProfileSwitcher
+            profiles={profiles}
+            currentProfileId={currentProfileId}
+            onSelect={handleSelectProfile}
+            onCreateNew={() => setShowNewProfileModal(true)}
+            onRename={handleRenameProfile}
+            onDelete={handleDeleteProfile}
+            onSetPrimary={handleSetPrimaryProfile}
+          />
+        )}
+
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
           <div>
@@ -669,6 +808,15 @@ export default function MasterResumePage() {
           downloadingPdf={downloadingPdf}
           onDownloadPdf={handleDownloadPdf}
           onClose={() => setShowFullPreview(false)}
+        />
+      )}
+
+      {/* New Profile Modal */}
+      {showNewProfileModal && currentProfileId && (
+        <NewProfileModal
+          currentProfileId={currentProfileId}
+          onClose={() => setShowNewProfileModal(false)}
+          onSubmit={handleCreateProfile}
         />
       )}
     </div>

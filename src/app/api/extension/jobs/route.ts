@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { queryOne, execute } from "@/lib/db";
+import { queryOne, queryAll, execute, JobApplication } from "@/lib/db";
 
 async function getUserFromToken(request: NextRequest): Promise<{ id: number; email: string } | null> {
   const authHeader = request.headers.get("authorization");
@@ -20,6 +20,42 @@ async function getUserFromToken(request: NextRequest): Promise<{ id: number; ema
   }
 
   return { id: tokenRecord.user_id, email: tokenRecord.email };
+}
+
+// Get recent saved jobs
+export async function GET(request: NextRequest) {
+  const user = await getUserFromToken(request);
+
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const { searchParams } = new URL(request.url);
+    const limit = Math.min(parseInt(searchParams.get("limit") || "5", 10), 20);
+
+    const jobs = await queryAll<Pick<JobApplication, "id" | "job_title" | "company_name" | "status" | "created_at">>(
+      `SELECT id, job_title, company_name, status, created_at
+       FROM job_applications
+       WHERE user_id = $1 AND archived_at IS NULL
+       ORDER BY created_at DESC
+       LIMIT $2`,
+      [user.id, limit]
+    );
+
+    return NextResponse.json({
+      jobs: jobs.map((job) => ({
+        id: job.id,
+        title: job.job_title,
+        company: job.company_name,
+        status: job.status,
+        createdAt: job.created_at,
+      })),
+    });
+  } catch (error) {
+    console.error("Extension get jobs error:", error);
+    return NextResponse.json({ error: "Failed to fetch jobs" }, { status: 500 });
+  }
 }
 
 export async function POST(request: NextRequest) {

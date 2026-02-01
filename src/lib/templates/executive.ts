@@ -14,6 +14,7 @@ export const executiveMetadata: TemplateMetadata = {
 
 export function generateExecutiveHTML(data: ResumeData, options: TemplateOptions): string {
   const { accentColor, showPhoto, showLanguages } = options;
+  const photoUrl = data.profilePhotoUrl;
 
   const experienceHTML = data.experience.map(exp => {
     const bullets = Array.isArray(exp.description) ? exp.description : [exp.description];
@@ -99,6 +100,12 @@ export function generateExecutiveHTML(data: ResumeData, options: TemplateOptions
       border-radius: 50%;
       background: #e5e7eb;
       flex-shrink: 0;
+      overflow: hidden;
+    }
+    .photo-placeholder img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
     .header-content { flex: 1; text-align: left; }
     ` : ''}
@@ -230,7 +237,7 @@ export function generateExecutiveHTML(data: ResumeData, options: TemplateOptions
 <body>
   <div class="page">
     <div class="header${showPhoto ? ' header-with-photo' : ''}">
-      ${showPhoto ? '<div class="photo-placeholder"></div><div class="header-content">' : ''}
+      ${showPhoto ? `<div class="photo-placeholder">${photoUrl ? `<img src="${photoUrl}" alt="Profile photo" />` : ''}</div><div class="header-content">` : ''}
       <div class="name">${data.contactInfo.name}</div>
       ${data.jobTitle ? `<div class="job-title">${data.jobTitle}</div>` : ''}
       <div class="contact-line">${contactParts.join(' • ')}</div>

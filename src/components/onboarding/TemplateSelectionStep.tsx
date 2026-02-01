@@ -1,5 +1,7 @@
 "use client";
 
+import { useCallback, useEffect, useState } from "react";
+import useEmblaCarousel from "embla-carousel-react";
 import { Step, TEMPLATES, COLORS } from "./types";
 
 interface TemplateSelectionStepProps {
@@ -35,6 +37,51 @@ export default function TemplateSelectionStep({
   setTemplateOptions,
   setStep,
 }: TemplateSelectionStepProps) {
+  const filteredTemplates = TEMPLATES.filter(
+    (t) => templateCategory === "all" || t.category === templateCategory
+  );
+
+  const [emblaRef, emblaApi] = useEmblaCarousel({
+    align: "start",
+    containScroll: "trimSnaps",
+    slidesToScroll: 1,
+  });
+
+  const [canScrollPrev, setCanScrollPrev] = useState(false);
+  const [canScrollNext, setCanScrollNext] = useState(false);
+
+  const scrollPrev = useCallback(() => {
+    if (emblaApi) emblaApi.scrollPrev();
+  }, [emblaApi]);
+
+  const scrollNext = useCallback(() => {
+    if (emblaApi) emblaApi.scrollNext();
+  }, [emblaApi]);
+
+  const onSelect = useCallback(() => {
+    if (!emblaApi) return;
+    setCanScrollPrev(emblaApi.canScrollPrev());
+    setCanScrollNext(emblaApi.canScrollNext());
+  }, [emblaApi]);
+
+  useEffect(() => {
+    if (!emblaApi) return;
+    onSelect();
+    emblaApi.on("select", onSelect);
+    emblaApi.on("reInit", onSelect);
+    return () => {
+      emblaApi.off("select", onSelect);
+      emblaApi.off("reInit", onSelect);
+    };
+  }, [emblaApi, onSelect]);
+
+  // Reset carousel when category changes
+  useEffect(() => {
+    if (emblaApi) {
+      emblaApi.reInit();
+    }
+  }, [emblaApi, templateCategory]);
+
   return (
     <div className="bg-white rounded-xl shadow-lg p-6">
       <div className="flex items-center gap-3 mb-6">
@@ -66,80 +113,181 @@ export default function TemplateSelectionStep({
         ))}
       </div>
 
-      {/* Template Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-        {TEMPLATES.filter(t => templateCategory === "all" || t.category === templateCategory).map((template) => (
-          <button
-            key={template.id}
-            onClick={() => setSelectedTemplate(template.id)}
-            className={`p-4 rounded-xl border-2 transition-all duration-200 text-left ${
-              selectedTemplate === template.id
-                ? "border-indigo-500 bg-indigo-50 ring-2 ring-indigo-200"
-                : "border-gray-200 hover:border-gray-300 hover:shadow-md"
-            }`}
-          >
-            {/* Template Preview Thumbnail */}
-            <div className="aspect-[8.5/11] bg-gray-100 rounded-lg mb-3 relative overflow-hidden">
-              <div className="absolute inset-2 bg-white rounded shadow-sm">
-                {/* Simplified template preview based on layout */}
-                {template.layout === "single" ? (
-                  <div className="p-2">
-                    <div className="h-3 bg-gray-300 rounded w-1/2 mb-2" style={{ backgroundColor: selectedTemplate === template.id ? selectedColor : undefined }} />
-                    <div className="h-1.5 bg-gray-200 rounded w-3/4 mb-1" />
-                    <div className="h-1.5 bg-gray-200 rounded w-2/3 mb-3" />
-                    <div className="space-y-2">
-                      <div className="h-1 bg-gray-200 rounded" />
-                      <div className="h-1 bg-gray-200 rounded w-5/6" />
-                      <div className="h-1 bg-gray-200 rounded w-4/5" />
+      {/* Template Carousel */}
+      <div className="relative mb-6">
+        {/* Left Arrow */}
+        <button
+          onClick={scrollPrev}
+          disabled={!canScrollPrev}
+          className={`absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 z-10 w-10 h-10 rounded-full bg-white shadow-lg flex items-center justify-center transition-all ${
+            canScrollPrev
+              ? "hover:bg-gray-50 text-gray-700"
+              : "opacity-50 cursor-not-allowed text-gray-300"
+          }`}
+          aria-label="Previous templates"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+
+        {/* Carousel Viewport */}
+        <div className="overflow-hidden px-2" ref={emblaRef}>
+          <div className="flex gap-4">
+            {filteredTemplates.map((template) => (
+              <div
+                key={template.id}
+                className="flex-[0_0_280px] md:flex-[0_0_280px] sm:flex-[0_0_45%] max-sm:flex-[0_0_85%] min-w-0"
+              >
+                <button
+                  onClick={() => setSelectedTemplate(template.id)}
+                  className={`w-full p-3 rounded-xl border-2 transition-all duration-200 text-left ${
+                    selectedTemplate === template.id
+                      ? "border-indigo-500 bg-indigo-50 ring-2 ring-indigo-200"
+                      : "border-gray-200 hover:border-gray-300 hover:shadow-md"
+                  }`}
+                >
+                  {/* Template Preview Image */}
+                  <div className="aspect-[8.5/11] bg-gray-100 rounded-lg mb-3 relative overflow-hidden">
+                    <img
+                      src={`/template-previews/${template.id}.png`}
+                      alt={`${template.name} template preview`}
+                      className="w-full h-full object-cover object-top rounded"
+                      loading="lazy"
+                      onError={(e) => {
+                        // Fallback to placeholder if image doesn't exist
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = "none";
+                        const fallback = target.nextElementSibling as HTMLElement;
+                        if (fallback) fallback.style.display = "block";
+                      }}
+                    />
+                    {/* Fallback placeholder (hidden by default) */}
+                    <div
+                      className="absolute inset-0 bg-white rounded shadow-sm hidden"
+                      style={{ display: "none" }}
+                    >
+                      {template.layout === "single" ? (
+                        <div className="p-3">
+                          <div
+                            className="h-4 bg-gray-300 rounded w-1/2 mb-2"
+                            style={{
+                              backgroundColor:
+                                selectedTemplate === template.id ? selectedColor : undefined,
+                            }}
+                          />
+                          <div className="h-2 bg-gray-200 rounded w-3/4 mb-1" />
+                          <div className="h-2 bg-gray-200 rounded w-2/3 mb-4" />
+                          <div className="space-y-2">
+                            <div className="h-1.5 bg-gray-200 rounded" />
+                            <div className="h-1.5 bg-gray-200 rounded w-5/6" />
+                            <div className="h-1.5 bg-gray-200 rounded w-4/5" />
+                          </div>
+                        </div>
+                      ) : template.layout === "two-column-left" ? (
+                        <div className="flex h-full">
+                          <div
+                            className="w-1/3 p-2"
+                            style={{
+                              backgroundColor:
+                                selectedTemplate === template.id
+                                  ? `${selectedColor}20`
+                                  : "#f3f4f6",
+                            }}
+                          >
+                            <div
+                              className="h-3 bg-gray-300 rounded w-full mb-2"
+                              style={{
+                                backgroundColor:
+                                  selectedTemplate === template.id ? selectedColor : undefined,
+                              }}
+                            />
+                            <div className="space-y-1">
+                              <div className="h-1.5 bg-gray-200 rounded" />
+                              <div className="h-1.5 bg-gray-200 rounded w-4/5" />
+                            </div>
+                          </div>
+                          <div className="flex-1 p-2">
+                            <div className="h-2 bg-gray-200 rounded w-3/4 mb-2" />
+                            <div className="space-y-1">
+                              <div className="h-1.5 bg-gray-200 rounded" />
+                              <div className="h-1.5 bg-gray-200 rounded w-5/6" />
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex h-full">
+                          <div className="flex-1 p-2">
+                            <div
+                              className="h-3 bg-gray-300 rounded w-1/2 mb-2"
+                              style={{
+                                backgroundColor:
+                                  selectedTemplate === template.id ? selectedColor : undefined,
+                              }}
+                            />
+                            <div className="space-y-1">
+                              <div className="h-1.5 bg-gray-200 rounded" />
+                              <div className="h-1.5 bg-gray-200 rounded w-5/6" />
+                            </div>
+                          </div>
+                          <div
+                            className="w-1/3 p-2"
+                            style={{
+                              backgroundColor:
+                                selectedTemplate === template.id
+                                  ? `${selectedColor}20`
+                                  : "#f3f4f6",
+                            }}
+                          >
+                            <div className="space-y-1">
+                              <div className="h-1.5 bg-gray-200 rounded" />
+                              <div className="h-1.5 bg-gray-200 rounded w-4/5" />
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
+                    {/* Selection checkmark */}
+                    {selectedTemplate === template.id && (
+                      <div className="absolute top-2 right-2 w-6 h-6 bg-indigo-600 rounded-full flex items-center justify-center">
+                        <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path
+                            fillRule="evenodd"
+                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      </div>
+                    )}
                   </div>
-                ) : template.layout === "two-column-left" ? (
-                  <div className="flex h-full">
-                    <div className="w-1/3 p-1.5" style={{ backgroundColor: selectedTemplate === template.id ? `${selectedColor}20` : "#f3f4f6" }}>
-                      <div className="h-2 bg-gray-300 rounded w-full mb-2" style={{ backgroundColor: selectedTemplate === template.id ? selectedColor : undefined }} />
-                      <div className="space-y-1">
-                        <div className="h-1 bg-gray-200 rounded" />
-                        <div className="h-1 bg-gray-200 rounded w-4/5" />
-                      </div>
-                    </div>
-                    <div className="flex-1 p-1.5">
-                      <div className="h-1.5 bg-gray-200 rounded w-3/4 mb-2" />
-                      <div className="space-y-1">
-                        <div className="h-1 bg-gray-200 rounded" />
-                        <div className="h-1 bg-gray-200 rounded w-5/6" />
-                      </div>
-                    </div>
+                  <h3 className="font-medium text-gray-800 text-sm">{template.name}</h3>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full capitalize">
+                      {template.category}
+                    </span>
+                    <p className="text-xs text-gray-500 truncate">{template.description}</p>
                   </div>
-                ) : (
-                  <div className="flex h-full">
-                    <div className="flex-1 p-1.5">
-                      <div className="h-2 bg-gray-300 rounded w-1/2 mb-2" style={{ backgroundColor: selectedTemplate === template.id ? selectedColor : undefined }} />
-                      <div className="space-y-1">
-                        <div className="h-1 bg-gray-200 rounded" />
-                        <div className="h-1 bg-gray-200 rounded w-5/6" />
-                      </div>
-                    </div>
-                    <div className="w-1/3 p-1.5" style={{ backgroundColor: selectedTemplate === template.id ? `${selectedColor}20` : "#f3f4f6" }}>
-                      <div className="space-y-1">
-                        <div className="h-1 bg-gray-200 rounded" />
-                        <div className="h-1 bg-gray-200 rounded w-4/5" />
-                      </div>
-                    </div>
-                  </div>
-                )}
+                </button>
               </div>
-              {selectedTemplate === template.id && (
-                <div className="absolute top-2 right-2 w-6 h-6 bg-indigo-600 rounded-full flex items-center justify-center">
-                  <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
-                </div>
-              )}
-            </div>
-            <h3 className="font-medium text-gray-800 text-sm">{template.name}</h3>
-            <p className="text-xs text-gray-500">{template.description}</p>
-          </button>
-        ))}
+            ))}
+          </div>
+        </div>
+
+        {/* Right Arrow */}
+        <button
+          onClick={scrollNext}
+          disabled={!canScrollNext}
+          className={`absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 z-10 w-10 h-10 rounded-full bg-white shadow-lg flex items-center justify-center transition-all ${
+            canScrollNext
+              ? "hover:bg-gray-50 text-gray-700"
+              : "opacity-50 cursor-not-allowed text-gray-300"
+          }`}
+          aria-label="Next templates"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
       </div>
 
       {/* Color Selection */}

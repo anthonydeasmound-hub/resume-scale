@@ -166,6 +166,25 @@
 
       console.log('[ResumeGenie] Captured HTML length:', pageHtml.length);
 
+      // Try to get the actual profile URL (not /in/me/)
+      let profileUrl = window.location.href.split('?')[0];
+
+      // Check for canonical URL which has the real profile URL
+      const canonicalLink = document.querySelector('link[rel="canonical"]');
+      if (canonicalLink && canonicalLink.href && canonicalLink.href.includes('/in/')) {
+        profileUrl = canonicalLink.href;
+        console.log('[ResumeGenie] Found canonical URL:', profileUrl);
+      }
+
+      // Also try to find it from the page's meta tags or profile link
+      if (profileUrl.includes('/in/me')) {
+        const profileLink = document.querySelector('a[href*="/in/"][href*="linkedin.com"]');
+        if (profileLink && !profileLink.href.includes('/in/me')) {
+          profileUrl = profileLink.href.split('?')[0];
+          console.log('[ResumeGenie] Found profile link:', profileUrl);
+        }
+      }
+
       // Send HTML to server for AI parsing
       updateStatus('Processing with AI...');
       const response = await fetch(`${settings.serverUrl}/api/linkedin/parse-html`, {
@@ -176,14 +195,17 @@
         },
         body: JSON.stringify({
           html: pageHtml,
-          profile_url: window.location.href.split('?')[0]
+          profile_url: profileUrl
         })
       });
 
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to parse profile data');
+        const errorMsg = result.details
+          ? `${result.error}: ${result.details}`
+          : (result.error || 'Failed to parse profile data');
+        throw new Error(errorMsg);
       }
 
       updateStatus('Import successful! Redirecting...');

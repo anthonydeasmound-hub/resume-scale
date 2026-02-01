@@ -1,9 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { queryOne } from "@/lib/db";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.email) {
@@ -17,9 +17,16 @@ export async function GET() {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Get user's master resume
-    const resume = await queryOne<{
+    // Check for profileId query param
+    const { searchParams } = new URL(request.url);
+    const profileId = searchParams.get("profileId");
+
+    // Get user's resume - either by profileId or primary profile
+    let resume: {
       id: number;
+      profile_name: string;
+      is_primary: boolean;
+      profile_description: string | null;
       contact_info: string;
       work_experience: string;
       skills: string;
@@ -33,7 +40,29 @@ export async function GET() {
       accent_color: string | null;
       created_at: string;
       updated_at: string;
-    }>("SELECT * FROM resumes WHERE user_id = $1", [user.id]);
+    } | undefined;
+
+    if (profileId) {
+      // Get specific profile by ID (ensure it belongs to this user)
+      resume = await queryOne<typeof resume>(
+        "SELECT * FROM resumes WHERE id = $1 AND user_id = $2",
+        [parseInt(profileId), user.id]
+      );
+    } else {
+      // Get primary profile (fallback to any profile for backwards compatibility)
+      resume = await queryOne<typeof resume>(
+        "SELECT * FROM resumes WHERE user_id = $1 AND is_primary = TRUE",
+        [user.id]
+      );
+
+      // Fallback for existing users without is_primary set
+      if (!resume) {
+        resume = await queryOne<typeof resume>(
+          "SELECT * FROM resumes WHERE user_id = $1 ORDER BY created_at ASC LIMIT 1",
+          [user.id]
+        );
+      }
+    }
 
     if (!resume) {
       return NextResponse.json({ error: "Resume not found" }, { status: 404 });
@@ -41,6 +70,14 @@ export async function GET() {
 
     return NextResponse.json({
       id: resume.id,
+      profile: {
+        id: resume.id,
+        name: resume.profile_name || "Master Resume",
+        is_primary: resume.is_primary ?? true,
+        description: resume.profile_description,
+        created_at: resume.created_at,
+        updated_at: resume.updated_at,
+      },
       contact_info: JSON.parse(resume.contact_info),
       work_experience: JSON.parse(resume.work_experience),
       skills: JSON.parse(resume.skills),

@@ -46,3 +46,13 @@ export interface ResumeData {
   resume_style: string;
   accent_color: string;
 }
+
+export interface Profile {
+  id: number;
+  name: string;
+  is_primary: boolean;
+  description: string | null;
+  job_title_preview?: string;
+  created_at: string;
+  updated_at: string;
+}

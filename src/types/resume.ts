@@ -50,6 +50,7 @@ export interface ResumeData {
   certifications?: Certification[];
   languages?: string[];
   honors?: Honor[];
+  profilePhotoUrl?: string;
 }
 
 export interface CoverLetterData {

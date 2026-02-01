@@ -14,6 +14,7 @@ export const cornerstoneMetadata: TemplateMetadata = {
 
 export function generateCornerstoneHTML(data: ResumeData, options: TemplateOptions): string {
   const { accentColor, showPhoto, showSkillBars, showLanguages } = options;
+  const photoUrl = data.profilePhotoUrl;
 
   const experienceHTML = data.experience.map(exp => {
     const bullets = Array.isArray(exp.description) ? exp.description : [exp.description];
@@ -96,13 +97,19 @@ export function generateCornerstoneHTML(data: ResumeData, options: TemplateOptio
     }
 
     ${showPhoto ? `
-    .photo-placeholder {
+    .photo-container {
       width: 110px;
       height: 110px;
       border-radius: 8px;
       background: rgba(255,255,255,0.2);
       margin: 0 auto 20px;
       border: 3px solid rgba(255,255,255,0.5);
+      overflow: hidden;
+    }
+    .photo-container img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
     ` : ''}
 
@@ -314,7 +321,7 @@ export function generateCornerstoneHTML(data: ResumeData, options: TemplateOptio
 <body>
   <div class="page">
     <div class="sidebar">
-      ${showPhoto ? '<div class="photo-placeholder"></div>' : ''}
+      ${showPhoto ? `<div class="photo-container">${photoUrl ? `<img src="${photoUrl}" alt="Profile photo" />` : ''}</div>` : ''}
       <div class="sidebar-name">${data.contactInfo.name}</div>
       ${data.jobTitle ? `<div class="sidebar-title">${data.jobTitle}</div>` : ''}
 

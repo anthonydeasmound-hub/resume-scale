@@ -1,3 +1,16 @@
+export type JobStatus =
+  | "draft"
+  | "review"
+  | "applied"
+  | "interview"
+  | "rejected"
+  | "offer"
+  | "bookmarked"
+  | "applying"
+  | "interviewing"
+  | "negotiating"
+  | "accepted";
+
 export interface Job {
   id: number;
   company_name: string;
@@ -7,10 +20,12 @@ export interface Job {
   cover_letter: string | null;
   resume_style: string;
   resume_color: string;
-  status: string;
+  status: JobStatus;
   reviewed: boolean;
   created_at: string;
+  date_applied: string | null;
   job_details_parsed: string | null;
+  source_profile_id: number | null;
 }
 
 export interface JobDetailsParsed {

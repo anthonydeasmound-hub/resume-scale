@@ -119,6 +119,11 @@ function OnboardingContent() {
   const [token, setToken] = useState("");
   const [tokenCopied, setTokenCopied] = useState(false);
   const [newSkill, setNewSkill] = useState("");
+
+  // Upload state
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [pastedText, setPastedText] = useState("");
+  const [uploading, setUploading] = useState(false);
   const [aiRecommendations, setAiRecommendations] = useState<Record<number, string[]>>({});
   const [loadingRecommendations, setLoadingRecommendations] = useState<Record<number, boolean>>({});
   const [expandedSuggestions, setExpandedSuggestions] = useState<Record<number, boolean>>({});
@@ -308,6 +313,7 @@ function OnboardingContent() {
         certifications: editableData.certifications || [],
         languages: editableData.languages || [],
         honors: editableData.honors || [],
+        profilePhotoUrl: editableData.profile_picture_url,
       };
 
       const response = await fetch("/api/resume/preview-html", {
@@ -574,6 +580,104 @@ function OnboardingContent() {
     window.open("https://www.linkedin.com/in/me?resumegenie_import=auto", "_blank");
   };
 
+  // Handle resume upload (PDF) or pasted text
+  const handleResumeUpload = async () => {
+    setUploading(true);
+    setError("");
+
+    try {
+      let resumeText = "";
+      let extractedPhotoUrl: string | undefined = undefined;
+
+      // If file is uploaded, extract text from PDF
+      if (uploadedFile) {
+        const formData = new FormData();
+        formData.append("file", uploadedFile);
+
+        const uploadRes = await fetch("/api/resume/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!uploadRes.ok) {
+          const errorData = await uploadRes.json();
+          throw new Error(errorData.error || "Failed to extract text from PDF");
+        }
+
+        const uploadData = await uploadRes.json();
+        resumeText = uploadData.text;
+
+        // Store extracted photo URL if available
+        extractedPhotoUrl = uploadData.photoUrl || undefined;
+      } else if (pastedText.trim()) {
+        resumeText = pastedText.trim();
+      } else {
+        setError("Please upload a PDF file or paste your resume text.");
+        setUploading(false);
+        return;
+      }
+
+      // Parse the resume text using AI
+      const parseRes = await fetch("/api/resume/parse", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resumeText }),
+      });
+
+      if (!parseRes.ok) {
+        const errorData = await parseRes.json();
+        if (parseRes.status === 429) {
+          throw new Error("AI service is busy. Please wait a moment and try again.");
+        }
+        throw new Error(errorData.error || "Failed to parse resume");
+      }
+
+      const parsedResume = await parseRes.json();
+
+      // Convert ParsedResume to LinkedInData format
+      const linkedInFormatData: LinkedInData = {
+        contact_info: {
+          name: parsedResume.contact_info?.name || session?.user?.name || "",
+          email: parsedResume.contact_info?.email || session?.user?.email || "",
+          phone: parsedResume.contact_info?.phone || "",
+          location: parsedResume.contact_info?.location || "",
+          linkedin: parsedResume.contact_info?.linkedin || "",
+        },
+        work_experience: (parsedResume.work_experience || []).map((exp: { company: string; title: string; start_date: string; end_date: string; description: string[] }) => ({
+          company: exp.company || "",
+          title: exp.title || "",
+          start_date: exp.start_date || "",
+          end_date: exp.end_date || "",
+          description: exp.description || [],
+        })),
+        education: (parsedResume.education || []).map((edu: { institution: string; degree: string; field: string; graduation_date: string }) => ({
+          institution: edu.institution || "",
+          degree: edu.degree || "",
+          field: edu.field || "",
+          graduation_date: edu.graduation_date || "",
+        })),
+        skills: parsedResume.skills || [],
+        certifications: [],
+        languages: [],
+        honors: [],
+        // Include extracted photo from PDF if available
+        profile_picture_url: extractedPhotoUrl,
+      };
+
+      // Process work experience (sort by date, remove duplicates)
+      linkedInFormatData.work_experience = processWorkExperience(linkedInFormatData.work_experience);
+
+      setEditableData(linkedInFormatData);
+      setEntryPath("upload");
+      setStep("template");
+    } catch (err) {
+      console.error("Resume upload error:", err);
+      setError(err instanceof Error ? err.message : "Failed to process resume. Please try again.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!editableData) return;
 
@@ -592,13 +696,18 @@ function OnboardingContent() {
           certifications: editableData.certifications,
           languages: editableData.languages,
           honors: editableData.honors,
+          profile_photo_path: editableData.profile_picture_url || null,
           summary: selectedSummary,
           resume_style: selectedTemplate,
           accent_color: selectedColor,
         }),
       });
 
-      if (!response.ok) throw new Error("Failed to save");
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Save error details:", errorData);
+        throw new Error(errorData.error || "Failed to save");
+      }
 
       setStep("complete");
     } catch (err) {
@@ -645,6 +754,7 @@ function OnboardingContent() {
         certifications: editableData.certifications || [],
         languages: editableData.languages || [],
         honors: editableData.honors || [],
+        profilePhotoUrl: editableData.profile_picture_url,
       };
 
       const response = await fetch("/api/generate-resume-pdf", {
@@ -773,29 +883,63 @@ function OnboardingContent() {
               Upload Your Resume
             </h2>
             <p className="text-gray-600 mb-6 text-sm">
-              Upload a PDF or DOCX file, or paste your resume text below.
+              Upload a PDF file or paste your resume text below.
             </p>
 
             {/* File upload area */}
             <div className="mb-6">
-              <label className="block border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 transition-colors cursor-pointer">
-                <svg className="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                </svg>
-                <p className="text-gray-600 mb-2">Drop your resume here or click to browse</p>
-                <p className="text-xs text-gray-400">Supports PDF, DOCX, and TXT files</p>
+              <label className={`block border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${
+                uploadedFile
+                  ? "border-green-400 bg-green-50"
+                  : "border-gray-300 hover:border-blue-400"
+              }`}>
+                {uploadedFile ? (
+                  <>
+                    <svg className="w-12 h-12 text-green-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p className="text-green-700 font-medium mb-1">{uploadedFile.name}</p>
+                    <p className="text-xs text-green-600">{(uploadedFile.size / 1024).toFixed(1)} KB - Click to change</p>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                    <p className="text-gray-600 mb-2">Drop your resume here or click to browse</p>
+                    <p className="text-xs text-gray-400">Supports PDF files (max 10MB)</p>
+                  </>
+                )}
                 <input
                   type="file"
-                  accept=".pdf,.docx,.doc,.txt"
+                  accept=".pdf"
                   className="hidden"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) {
-                      setError("File upload coming soon! Please paste your resume text below for now.");
+                      if (!file.name.toLowerCase().endsWith(".pdf")) {
+                        setError("Only PDF files are supported at this time.");
+                        return;
+                      }
+                      if (file.size > 10 * 1024 * 1024) {
+                        setError("File too large. Maximum size is 10MB.");
+                        return;
+                      }
+                      setUploadedFile(file);
+                      setPastedText(""); // Clear pasted text when file is selected
+                      setError("");
                     }
                   }}
                 />
               </label>
+              {uploadedFile && (
+                <button
+                  onClick={() => setUploadedFile(null)}
+                  className="mt-2 text-sm text-red-600 hover:text-red-700"
+                >
+                  Remove file
+                </button>
+              )}
             </div>
 
             <div className="relative mb-6">
@@ -812,27 +956,47 @@ function OnboardingContent() {
               <textarea
                 placeholder="Paste your resume text here..."
                 rows={8}
+                value={pastedText}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-brand-blue focus:border-transparent resize-none"
                 onChange={(e) => {
-                  // TODO: Implement text parsing in Phase 2
+                  setPastedText(e.target.value);
+                  if (e.target.value.trim()) {
+                    setUploadedFile(null); // Clear file when text is pasted
+                  }
+                  setError("");
                 }}
               />
             </div>
 
             <div className="flex gap-4">
               <button
-                onClick={() => setStep("entry")}
-                className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+                onClick={() => {
+                  setUploadedFile(null);
+                  setPastedText("");
+                  setError("");
+                  setStep("entry");
+                }}
+                disabled={uploading}
+                className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors disabled:opacity-50"
               >
                 Back
               </button>
               <button
-                onClick={() => {
-                  setError("Resume parsing coming soon! Try LinkedIn import or Start Fresh for now.");
-                }}
-                className="flex-1 bg-brand-gold text-gray-900 py-3 rounded-lg font-medium hover:bg-brand-gold-dark transition-colors"
+                onClick={handleResumeUpload}
+                disabled={uploading || (!uploadedFile && !pastedText.trim())}
+                className="flex-1 bg-brand-gold text-gray-900 py-3 rounded-lg font-medium hover:bg-brand-gold-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                Continue
+                {uploading ? (
+                  <>
+                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Processing...
+                  </>
+                ) : (
+                  "Continue"
+                )}
               </button>
             </div>
           </div>
