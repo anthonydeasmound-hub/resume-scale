@@ -10,6 +10,7 @@ interface SkillsSectionProps {
   skillsFromResume: string[];
   skillsFromJobDescription: string[];
   recommendedSkills: string[];
+  atsMissingSkills?: string[];
   onToggleSkill: (skill: string) => void;
   onAddCustomSkill?: (skill: string) => void;
 }
@@ -22,6 +23,7 @@ export default function SkillsSection({
   skillsFromResume,
   skillsFromJobDescription,
   recommendedSkills,
+  atsMissingSkills = [],
   onToggleSkill,
   onAddCustomSkill,
 }: SkillsSectionProps) {
@@ -136,8 +138,33 @@ export default function SkillsSection({
                 </div>
               </div>
 
-              {/* Skills from Job Description - Most Important */}
-              {skillsFromJobDescription.filter(s => !selectedSkills.includes(s)).length > 0 && (
+              {/* ATS Missing Skills - Highest Priority */}
+              {atsMissingSkills.filter(s => !selectedSkills.includes(s)).length > 0 && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p className="text-xs font-medium text-red-700">ATS Recommended - Add to improve your score:</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {atsMissingSkills
+                      .filter(skill => !selectedSkills.includes(skill))
+                      .map((skill) => (
+                        <button
+                          key={skill}
+                          onClick={() => onToggleSkill(skill)}
+                          className="px-3 py-1 rounded-full text-sm transition-colors bg-red-100 text-red-800 border border-red-300 hover:bg-red-200 font-medium"
+                        >
+                          + {skill}
+                        </button>
+                      ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Skills from Job Description */}
+              {skillsFromJobDescription.filter(s => !selectedSkills.includes(s) && !atsMissingSkills.includes(s)).length > 0 && (
                 <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
                   <div className="flex items-center gap-2 mb-2">
                     <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -147,7 +174,7 @@ export default function SkillsSection({
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {skillsFromJobDescription
-                      .filter(skill => !selectedSkills.includes(skill))
+                      .filter(skill => !selectedSkills.includes(skill) && !atsMissingSkills.includes(skill))
                       .map((skill) => (
                         <button
                           key={skill}

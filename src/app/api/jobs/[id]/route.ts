@@ -70,7 +70,8 @@ export async function PATCH(
       "date_applied", "reviewed", "interview_1", "interview_2", "interview_3",
       "interview_4", "interview_5", "recruiter_name", "recruiter_email",
       "recruiter_title", "recruiter_source", "interview_guide", "interview_guide_generated_at",
-      "source_profile_id"
+      "source_profile_id", "job_url", "excitement_level",
+      "job_title", "company_name", "job_description", "job_details_parsed"
     ];
     const updateFields: string[] = [];
     const values: (string | number)[] = [];
@@ -79,14 +80,16 @@ export async function PATCH(
     for (const [key, value] of Object.entries(updates)) {
       if (allowedFields.includes(key)) {
         updateFields.push(`${key} = $${paramIndex++}`);
-        // Convert booleans to integers, stringify objects
+        // Convert booleans to integers, stringify objects, handle nulls
         let dbValue: string | number | null;
-        if (typeof value === "boolean") {
+        if (value === null) {
+          dbValue = null;
+        } else if (typeof value === "boolean") {
           dbValue = value ? 1 : 0;
-        } else if (typeof value === "object" && value !== null) {
+        } else if (typeof value === "object") {
           dbValue = JSON.stringify(value);
         } else {
-          dbValue = value as string | number | null;
+          dbValue = value as string | number;
         }
         values.push(dbValue as string | number);
       }

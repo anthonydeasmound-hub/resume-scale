@@ -26,6 +26,12 @@ export interface Job {
   date_applied: string | null;
   job_details_parsed: string | null;
   source_profile_id: number | null;
+  job_url: string | null;
+  excitement_level: number | null;
+  recruiter_name: string | null;
+  recruiter_email: string | null;
+  recruiter_title: string | null;
+  interview_guide: string | null;
 }
 
 export interface JobDetailsParsed {
@@ -66,6 +72,7 @@ export interface MasterResume {
   work_experience: WorkExperience[];
   skills: string[];
   education: Education[];
+  accent_color?: string;
 }
 
 export interface TailoredResume {

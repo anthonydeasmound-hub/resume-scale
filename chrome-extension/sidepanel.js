@@ -58,6 +58,7 @@
   // State
   let currentJobData = null;
   let isSaved = false;
+  let savedJobId = null; // Store the ID of the saved job for navigation
   let serverUrl = '';
   let currentUser = null;
   let currentGoals = { jobsSaved: 10, resumesReviewed: 5, applicationsSent: 5 };
@@ -194,7 +195,7 @@
     recentJobsContainer.querySelectorAll('.recent-job-item').forEach(item => {
       item.addEventListener('click', () => {
         const jobId = item.dataset.jobId;
-        chrome.tabs.create({ url: `${serverUrl}/review?job=${jobId}` });
+        chrome.tabs.create({ url: `${serverUrl}/review/${jobId}` });
       });
     });
   }
@@ -210,6 +211,16 @@
   function showJob(data, source) {
     currentJobData = data;
     isSaved = false;
+    savedJobId = null; // Reset saved job ID when showing a new job
+
+    // Debug: log the apply URL status
+    console.log('[ResumeGenie Sidepanel] Job data received:', {
+      title: data.job_title,
+      company: data.company_name,
+      apply_url: data.apply_url || 'NOT FOUND',
+      is_easy_apply: data.is_easy_apply,
+      source_url: data.source_url
+    });
 
     jobTitle.textContent = data.job_title || 'Untitled Position';
     jobCompany.textContent = data.company_name || '';
@@ -228,6 +239,7 @@
   function hideJob() {
     currentJobData = null;
     isSaved = false;
+    savedJobId = null; // Reset saved job ID when hiding job
     currentJobSection.style.display = 'none';
   }
 
@@ -277,6 +289,43 @@
     }
 
     saveBtn.disabled = true;
+
+    // Check if we need to capture the apply URL first
+    const hasApplyUrl = currentJobData.apply_url && !currentJobData.apply_url.includes('linkedin.com');
+    const isEasyApply = currentJobData.is_easy_apply;
+
+    if (!hasApplyUrl && !isEasyApply) {
+      // Try to capture the apply URL by clicking the Apply button
+      saveBtnText.textContent = 'Capturing apply URL...';
+      showMessage('Opening application page to capture URL...', 'info');
+
+      try {
+        const captureResult = await new Promise((resolve) => {
+          chrome.runtime.sendMessage({
+            type: 'CAPTURE_APPLY_URL',
+            jobData: currentJobData
+          }, (response) => {
+            resolve(response);
+          });
+        });
+
+        console.log('[ResumeGenie] Capture result:', captureResult);
+
+        if (captureResult && captureResult.success) {
+          // Update job data with the captured URL
+          currentJobData = captureResult.jobData;
+          showMessage(`Captured: ${captureResult.applyUrl.substring(0, 50)}...`, 'success');
+        } else {
+          // Capture failed, but continue saving without the URL
+          console.log('[ResumeGenie] Could not capture apply URL:', captureResult?.error);
+          showMessage(captureResult?.error || 'Could not capture apply URL, saving anyway...', 'warning');
+        }
+      } catch (err) {
+        console.error('[ResumeGenie] Error capturing apply URL:', err);
+        showMessage('Could not capture apply URL, saving anyway...', 'warning');
+      }
+    }
+
     saveBtnText.textContent = 'Saving...';
 
     try {
@@ -293,6 +342,7 @@
 
       if (response.ok) {
         isSaved = true;
+        savedJobId = data.job_id; // Store the saved job ID for navigation
         showMessage(data.message || 'Job saved!', 'success');
         saveBtnText.textContent = 'Saved — Review Resume';
         saveBtn.classList.add('saved');
@@ -301,11 +351,14 @@
         // Refresh dashboard stats and recent jobs
         loadDashboard();
       } else {
-        showMessage(data.error || 'Failed to save', 'error');
+        const errorMsg = data.details ? `${data.error}: ${data.details}` : (data.error || 'Failed to save');
+        console.error('[ResumeGenie] Save failed:', JSON.stringify(data, null, 2));
+        showMessage(errorMsg, 'error');
         saveBtnText.textContent = 'Save to ResumeGenie';
         saveBtn.disabled = false;
       }
     } catch (error) {
+      console.error('[ResumeGenie] Network error:', error);
       showMessage('Could not connect to server', 'error');
       saveBtnText.textContent = 'Save to ResumeGenie';
       saveBtn.disabled = false;
@@ -316,10 +369,10 @@
   function setupEventListeners() {
     // Save button
     saveBtn.addEventListener('click', async () => {
-      if (isSaved) {
+      if (isSaved && savedJobId) {
         const settings = await chrome.storage.local.get(['serverUrl']);
-        chrome.tabs.create({ url: `${settings.serverUrl}/review` });
-      } else {
+        chrome.tabs.create({ url: `${settings.serverUrl}/review/${savedJobId}` });
+      } else if (!isSaved) {
         handleSave();
       }
     });

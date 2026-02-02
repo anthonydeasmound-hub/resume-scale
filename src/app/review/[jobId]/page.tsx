@@ -1,7 +1,7 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { ResumeData } from "@/types/resume";
 import TabsNav from "@/components/TabsNav";
@@ -13,32 +13,42 @@ import { showToast } from "@/components/Toast";
 import { Job, MasterResume, TailoredResume, SelectedRole } from "@/components/review/types";
 import { Profile } from "@/components/master-resume/types";
 import ProfileSelector from "@/components/review/ProfileSelector";
+import EditJobModal, { EditJobData } from "@/components/applied/EditJobModal";
+import ContactsTab from "@/components/applied/ContactsTab";
+import EmailTemplatesTab from "@/components/applied/EmailTemplatesTab";
+import InterviewPrepTab from "@/components/applied/InterviewPrepTab";
 import SummarySection from "@/components/review/SummarySection";
 import WorkExperienceSection from "@/components/review/WorkExperienceSection";
 import SkillsSection from "@/components/review/SkillsSection";
-import JobDetailsSidebar from "@/components/review/JobDetailsSidebar";
 import CoverLetterPreview from "@/components/review/CoverLetterPreview";
 import ResumePreviewPane from "@/components/review/ResumePreviewPane";
 import BulletOptimizationModal, { BulletSuggestion } from "@/components/review/BulletOptimizationModal";
-
-const COLOR_OPTIONS = [
-  { id: "blue", name: "Navy Blue", hex: "#3D5A80" },
-  { id: "teal", name: "Teal", hex: "#2A9D8F" },
-  { id: "burgundy", name: "Burgundy", hex: "#7B2D26" },
-  { id: "forest", name: "Forest", hex: "#2D5A27" },
-  { id: "slate", name: "Slate", hex: "#4A5568" },
-  { id: "purple", name: "Purple", hex: "#5B4B8A" },
-];
+import JobHeader from "@/components/review/JobHeader";
+import WorkflowProgress from "@/components/review/WorkflowProgress";
+import ApplyTabContent from "@/components/review/ApplyTabContent";
+import { JobStatus } from "@/components/review/types";
 
 export default function JobReviewPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const jobId = params.jobId as string;
 
   const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"resume" | "cover" | "job-details">("resume");
+  const [activeTab, setActiveTab] = useState<"resume" | "cover" | "apply" | "job-details" | "contacts" | "emails" | "interview-prep">("resume");
+
+  // Apply tab state
+  const [applicationUrl, setApplicationUrl] = useState("");
+  const [savingUrl, setSavingUrl] = useState(false);
+
+  // Edit/Delete modal state
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  // Interview stages for email context
+  const [stages, setStages] = useState<{ stage_type: string; status: string }[]>([]);
   const [accentColor, setAccentColor] = useState("#3D5A80");
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
@@ -88,8 +98,7 @@ export default function JobReviewPage() {
   const [loadingPreview, setLoadingPreview] = useState(false);
 
 
-  // Job details sidebar
-  const [showJobDetails, setShowJobDetails] = useState(true);
+  // Job details sidebar (removed - now in tab)
   const [showFullDescription, setShowFullDescription] = useState(false);
 
   // ATS Score
@@ -108,12 +117,51 @@ export default function JobReviewPage() {
     document.title = "ResumeGenie - ATS Optimizer";
   }, []);
 
+  // Handle markApplied query param (user returning from application)
+  useEffect(() => {
+    const markApplied = searchParams.get("markApplied");
+    if (markApplied === "true" && job && job.status !== "applied") {
+      // Mark the job as applied
+      const updateStatus = async () => {
+        try {
+          await fetch(`/api/jobs/${job.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: "applied", date_applied: new Date().toISOString() }),
+          });
+          setJob({ ...job, status: "applied" });
+          showToast("success", "Application submitted! Job marked as applied.");
+          // Clean up localStorage
+          localStorage.removeItem("resumegenie_autofill");
+          // Remove query param from URL
+          router.replace(`/review/${job.id}`);
+        } catch (err) {
+          console.error("Failed to mark as applied:", err);
+        }
+      };
+      updateStatus();
+    }
+  }, [searchParams, job, router]);
+
   useEffect(() => {
     if (session && jobId) {
       fetchJob();
       fetchProfiles();
+      fetchStages();
     }
   }, [session, jobId]);
+
+  const fetchStages = async () => {
+    try {
+      const response = await fetch(`/api/jobs/${jobId}/stages`);
+      if (response.ok) {
+        const data = await response.json();
+        setStages(data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch stages:", err);
+    }
+  };
 
   // Fetch master resume when profile is selected or job is loaded
   useEffect(() => {
@@ -133,6 +181,11 @@ export default function JobReviewPage() {
 
         if (data.cover_letter) {
           setCoverLetter(data.cover_letter);
+        }
+
+        // Set application URL if available
+        if (data.job_url) {
+          setApplicationUrl(data.job_url);
         }
 
         // Set source profile ID if saved, will be used after profiles are loaded
@@ -181,6 +234,10 @@ export default function JobReviewPage() {
       if (response.ok) {
         const data = await response.json();
         setMasterResume(data);
+        // Set accent color from master resume
+        if (data.accent_color) {
+          setAccentColor(data.accent_color);
+        }
       }
     } catch (err) {
       console.error("Failed to fetch master resume:", err);
@@ -666,17 +723,6 @@ export default function JobReviewPage() {
     setHasChanges(true);
   };
 
-  const updateColor = async (newColor: string) => {
-    if (!job) return;
-    setAccentColor(newColor);
-
-    await fetch(`/api/jobs/${job.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ resume_color: newColor }),
-    });
-  };
-
   const generateCoverLetter = async () => {
     if (!job) return;
     setGeneratingCoverLetter(true);
@@ -971,6 +1017,61 @@ export default function JobReviewPage() {
     }
   };
 
+  const handleEditJob = async (data: EditJobData) => {
+    if (!job) return;
+    try {
+      const jobDetailsParsed = job.job_details_parsed ? JSON.parse(job.job_details_parsed) : {};
+      jobDetailsParsed.location = data.location;
+
+      await fetch(`/api/jobs/${job.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          job_title: data.job_title,
+          company_name: data.company_name,
+          job_url: data.job_url,
+          job_description: data.job_description,
+          job_details_parsed: JSON.stringify(jobDetailsParsed),
+        }),
+      });
+
+      setJob({
+        ...job,
+        job_title: data.job_title,
+        company_name: data.company_name,
+        job_url: data.job_url,
+        job_description: data.job_description,
+        job_details_parsed: JSON.stringify(jobDetailsParsed),
+      });
+      showToast("success", "Job updated");
+    } catch (err) {
+      console.error("Failed to update job:", err);
+      showToast("error", "Failed to update job");
+      throw err;
+    }
+  };
+
+  const handleDeleteJob = async () => {
+    if (!job) return;
+    if (!confirm("Are you sure you want to delete this job? This cannot be undone.")) return;
+
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/jobs/${job.id}`, { method: "DELETE" });
+      if (res.ok) {
+        showToast("success", "Job deleted");
+        router.push("/review");
+      } else {
+        showToast("error", "Failed to delete job");
+      }
+    } catch (err) {
+      console.error("Failed to delete job:", err);
+      showToast("error", "Failed to delete job");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const markAsApplied = async () => {
     if (!job) return;
 
@@ -985,6 +1086,82 @@ export default function JobReviewPage() {
     });
 
     router.push("/applied");
+  };
+
+  const handleStatusChange = async (status: JobStatus) => {
+    if (!job) return;
+
+    try {
+      await fetch(`/api/jobs/${job.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      setJob({ ...job, status });
+    } catch (err) {
+      console.error("Failed to update status:", err);
+    }
+  };
+
+  const handleWorkflowStageClick = (tab: typeof activeTab | null, status?: string) => {
+    if (tab) {
+      setActiveTab(tab);
+    } else if (status) {
+      handleStatusChange(status as JobStatus);
+    }
+  };
+
+  const handleCloseJob = async (reason: string) => {
+    if (!job) return;
+
+    if (reason === "delete") {
+      if (!confirm("Are you sure you want to delete this job?")) return;
+      try {
+        await fetch(`/api/jobs/${job.id}`, { method: "DELETE" });
+        router.push("/review");
+      } catch (err) {
+        console.error("Failed to delete job:", err);
+        showToast("error", "Failed to delete job");
+      }
+      return;
+    }
+
+    // Map close reasons to statuses
+    const statusMap: Record<string, JobStatus> = {
+      withdrew: "rejected",
+      not_selected: "rejected",
+      no_response: "rejected",
+      archived: "rejected",
+    };
+
+    const newStatus = statusMap[reason] || "rejected";
+    try {
+      await fetch(`/api/jobs/${job.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      showToast("success", "Job closed");
+      router.push("/review");
+    } catch (err) {
+      console.error("Failed to close job:", err);
+      showToast("error", "Failed to close job");
+    }
+  };
+
+  const handleExcitementChange = async (level: number | null) => {
+    if (!job) return;
+
+    try {
+      await fetch(`/api/jobs/${job.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ excitement_level: level }),
+      });
+      setJob({ ...job, excitement_level: level });
+    } catch (err) {
+      console.error("Failed to update excitement:", err);
+    }
   };
 
   const downloadResumePDF = async () => {
@@ -1128,67 +1305,30 @@ export default function JobReviewPage() {
       <TabsNav />
 
       <div className="pt-14 md:pt-0 md:ml-64 p-4 md:p-8">
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
-          <div>
-            <button
-              onClick={() => router.push("/review")}
-              className="text-brand-blue hover:text-brand-blue-dark text-sm mb-2"
-            >
-              &#8592; Back to jobs
-            </button>
-            <h1 className="text-2xl font-bold text-gray-900">
-              {job.job_title} at {job.company_name}
-            </h1>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            {hasChanges && (
-              <button
-                onClick={saveChanges}
-                disabled={saving}
-                className="bg-yellow-500 text-white px-6 py-2 rounded-lg font-medium hover:bg-yellow-600 disabled:opacity-50 transition-colors"
-              >
-                {saving ? "Saving..." : "Save Changes"}
-              </button>
-            )}
-            <button
-              onClick={markAsApplied}
-              className="bg-green-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-green-700 transition-colors"
-            >
-              Mark as Applied
-            </button>
-          </div>
-        </div>
+        <JobHeader
+          job={job}
+          hasChanges={hasChanges}
+          saving={saving}
+          onSave={saveChanges}
+          onBack={() => router.push("/review")}
+          onExcitementChange={handleExcitementChange}
+          onEdit={() => setShowEditModal(true)}
+          onDelete={handleDeleteJob}
+          deleting={deleting}
+        />
 
-        <div className={`grid gap-6 ${showJobDetails ? "lg:grid-cols-[1fr_1fr_280px]" : "lg:grid-cols-2"}`}>
+        <div className="grid gap-6 lg:grid-cols-2">
           {/* Left side - Accordions */}
           <div className="space-y-4">
-            {/* Resume/Cover Letter Tabs */}
-            <div className="bg-white rounded-xl shadow p-2 flex">
-              <button
-                onClick={() => setActiveTab("resume")}
-                className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  activeTab === "resume" ? "bg-blue-100 text-brand-blue" : "text-gray-600"
-                }`}
-              >
-                Resume Builder
-              </button>
-              <button
-                onClick={() => setActiveTab("cover")}
-                className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  activeTab === "cover" ? "bg-blue-100 text-brand-blue" : "text-gray-600"
-                }`}
-              >
-                Cover Letter
-              </button>
-              <button
-                onClick={() => setActiveTab("job-details")}
-                className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  activeTab === "job-details" ? "bg-blue-100 text-brand-blue" : "text-gray-600"
-                }`}
-              >
-                Job Details
-              </button>
-            </div>
+            {/* Workflow Progress */}
+            <WorkflowProgress
+              activeTab={activeTab}
+              hasResume={Boolean(job.tailored_resume)}
+              hasCoverLetter={Boolean(job.cover_letter)}
+              status={job.status}
+              onStageClick={handleWorkflowStageClick}
+              onCloseJob={handleCloseJob}
+            />
 
             {activeTab === "resume" && (
               <>
@@ -1254,28 +1394,9 @@ export default function JobReviewPage() {
                   skillsFromResume={skillsFromResume}
                   skillsFromJobDescription={skillsFromJobDescription}
                   recommendedSkills={recommendedSkills}
+                  atsMissingSkills={atsScore?.breakdown?.hardSkills?.missing || []}
                   onToggleSkill={toggleSkill}
                 />
-
-                {/* Color Selection */}
-                <div className="bg-white rounded-xl shadow p-4">
-                  <h3 className="font-medium text-gray-900 mb-3">Accent Color</h3>
-                  <div className="grid grid-cols-6 gap-2">
-                    {COLOR_OPTIONS.map((c) => (
-                      <button
-                        key={c.id}
-                        onClick={() => updateColor(c.hex)}
-                        title={c.name}
-                        className={`w-8 h-8 rounded-full transition-all ${
-                          accentColor === c.hex
-                            ? "ring-2 ring-offset-2 ring-gray-400 scale-110"
-                            : "hover:scale-105"
-                        }`}
-                        style={{ backgroundColor: c.hex }}
-                      />
-                    ))}
-                  </div>
-                </div>
 
                 {/* ATS Compatibility Score */}
                 <ATSScoreCard
@@ -1348,6 +1469,31 @@ export default function JobReviewPage() {
               </>
             )}
 
+            {activeTab === "apply" && job && (
+              <ApplyTabContent
+                jobId={job.id}
+                companyName={job.company_name}
+                jobTitle={job.job_title}
+                applicationUrl={applicationUrl}
+                onApplicationUrlChange={setApplicationUrl}
+                hasResume={selectedSummaryIndex !== null && selectedRoles.length > 0}
+                hasCoverLetter={!!coverLetter}
+                dateApplied={job.date_applied}
+                onDownloadResume={downloadResumePDF}
+                onDownloadCoverLetter={downloadCoverLetterPDF}
+                onCopyCoverLetter={() => {
+                  if (coverLetter) {
+                    navigator.clipboard.writeText(coverLetter);
+                    showToast("success", "Cover letter copied to clipboard");
+                  }
+                }}
+                onMarkAsApplied={markAsApplied}
+                onGoToCoverLetter={() => setActiveTab("cover")}
+                downloadDisabled={selectedSummaryIndex === null || selectedRoles.length === 0}
+                showToast={showToast}
+              />
+            )}
+
             {activeTab === "job-details" && job && (
               <JobAnalysisPanel
                 jobId={job.id}
@@ -1359,6 +1505,43 @@ export default function JobReviewPage() {
                     ? JSON.parse(job.job_details_parsed)
                     : null
                 }
+                onJobDetailsUpdated={(jobDetails) => {
+                  // Update job state so JobHeader shows updated salary/location
+                  console.log("[review page] onJobDetailsUpdated called with:", jobDetails);
+                  console.log("[review page] salary_range:", jobDetails.salary_range);
+                  setJob({ ...job, job_details_parsed: JSON.stringify(jobDetails) });
+                }}
+              />
+            )}
+
+            {activeTab === "contacts" && job && (
+              <ContactsTab
+                jobId={job.id}
+                companyName={job.company_name}
+                recruiterName={job.recruiter_name}
+                recruiterEmail={job.recruiter_email}
+                recruiterTitle={job.recruiter_title}
+              />
+            )}
+
+            {activeTab === "emails" && job && (
+              <EmailTemplatesTab
+                jobId={job.id}
+                companyName={job.company_name}
+                jobTitle={job.job_title}
+                recruiterName={job.recruiter_name}
+                recruiterEmail={job.recruiter_email}
+                interviewStage={stages.find(s => s.status === "scheduled" || s.status === "pending")?.stage_type}
+              />
+            )}
+
+            {activeTab === "interview-prep" && job && (
+              <InterviewPrepTab
+                jobId={job.id}
+                companyName={job.company_name}
+                jobTitle={job.job_title}
+                jobDescription={job.job_description}
+                existingGuide={job.interview_guide}
               />
             )}
           </div>
@@ -1371,7 +1554,7 @@ export default function JobReviewPage() {
             </div>
 
             <div className="overflow-auto p-4 bg-gray-100" style={{ maxHeight: "calc(100vh - 200px)" }}>
-              {activeTab === "resume" && (
+              {(activeTab === "resume" || activeTab === "apply" || activeTab === "job-details" || activeTab === "contacts" || activeTab === "emails" || activeTab === "interview-prep") && (
                 <ResumePreviewPane
                   iframeRef={iframeRef}
                   previewHtml={previewHtml}
@@ -1389,30 +1572,7 @@ export default function JobReviewPage() {
             </div>
           </div>
 
-          {/* Right side - Job Details Sidebar */}
-          {showJobDetails && job?.job_details_parsed && (
-            <JobDetailsSidebar
-              jobDetailsParsed={job.job_details_parsed}
-              jobDescription={job.job_description}
-              showFullDescription={showFullDescription}
-              onSetShowFullDescription={setShowFullDescription}
-              onClose={() => setShowJobDetails(false)}
-            />
-          )}
-
-          {/* Toggle button when sidebar is hidden */}
-          {!showJobDetails && job?.job_details_parsed && (
-            <button
-              onClick={() => setShowJobDetails(true)}
-              className="fixed right-4 top-1/2 -translate-y-1/2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white p-2 rounded-l-lg shadow-lg hover:from-indigo-600 hover:to-purple-700 transition-all"
-              title="Show Job Details"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-          )}
-        </div>
+                  </div>
       </div>
 
       {/* Bullet Optimization Modal */}
@@ -1423,6 +1583,22 @@ export default function JobReviewPage() {
           onClose={() => {
             setShowOptimizationModal(false);
             setBulletSuggestions([]);
+          }}
+        />
+      )}
+
+      {/* Edit Job Modal */}
+      {job && (
+        <EditJobModal
+          isOpen={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          onSave={handleEditJob}
+          initialData={{
+            job_title: job.job_title,
+            company_name: job.company_name,
+            job_url: job.job_url || "",
+            location: job.job_details_parsed ? JSON.parse(job.job_details_parsed).location || "" : "",
+            job_description: job.job_description || "",
           }}
         />
       )}

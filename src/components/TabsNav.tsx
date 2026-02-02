@@ -132,7 +132,7 @@ export default function TabsNav({ reviewCount = 0 }: { reviewCount?: number }) {
         } md:translate-x-0`}
       >
         {/* Logo */}
-        <div className="px-4 py-5 border-b border-gray-200 flex justify-center">
+        <div className="px-4 py-5 flex justify-center">
           <Link href="/dashboard">
             <Image src="/logo.png" alt="ResumeGenie" width={240} height={144} className="h-36 w-auto object-contain" priority />
           </Link>
@@ -160,7 +160,7 @@ export default function TabsNav({ reviewCount = 0 }: { reviewCount?: number }) {
                     </span>
                   )}
                 </Link>
-                {(index === 0 || index === 3) && (
+                {index === 0 && (
                   <div className="border-t border-gray-200 my-2" />
                 )}
               </div>

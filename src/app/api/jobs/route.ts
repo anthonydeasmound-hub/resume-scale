@@ -40,6 +40,9 @@ export async function POST(request: NextRequest) {
       extractJobDetails(job_description),
     ]);
 
+    console.log("[jobs POST] Extracted salary_range:", jobDetails.salary_range);
+    console.log("[jobs POST] Extracted location:", jobDetails.location);
+
     const result = await execute(`
       INSERT INTO job_applications (user_id, company_name, job_title, job_description, job_details_parsed, status)
       VALUES ($1, $2, $3, $4, $5, 'review') RETURNING id

@@ -81,3 +81,65 @@ export async function fetchRecentEmails(accessToken: string, maxResults = 50): P
 
   return emails;
 }
+
+export interface SendEmailParams {
+  to: string;
+  subject: string;
+  body: string;
+  fromName?: string;
+}
+
+export async function sendEmail(
+  accessToken: string,
+  userEmail: string,
+  params: SendEmailParams
+): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  const { to, subject, body, fromName } = params;
+
+  // Construct the email in RFC 2822 format
+  const fromHeader = fromName ? `"${fromName}" <${userEmail}>` : userEmail;
+  const emailLines = [
+    `From: ${fromHeader}`,
+    `To: ${to}`,
+    `Subject: ${subject}`,
+    "MIME-Version: 1.0",
+    "Content-Type: text/plain; charset=utf-8",
+    "",
+    body,
+  ];
+
+  const email = emailLines.join("\r\n");
+
+  // Base64 URL encode the email
+  const encodedEmail = Buffer.from(email)
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+
+  try {
+    const response = await fetch(
+      "https://gmail.googleapis.com/gmail/v1/users/me/messages/send",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ raw: encodedEmail }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("Gmail send error:", errorData);
+      return { success: false, error: errorData.error?.message || "Failed to send email" };
+    }
+
+    const data = await response.json();
+    return { success: true, messageId: data.id };
+  } catch (error) {
+    console.error("Gmail send exception:", error);
+    return { success: false, error: "Failed to send email" };
+  }
+}

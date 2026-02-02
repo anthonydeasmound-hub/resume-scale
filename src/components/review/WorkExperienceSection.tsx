@@ -98,7 +98,7 @@ export default function WorkExperienceSection({
                 <p className="text-sm text-gray-500">Generating bullet options for your roles...</p>
               </div>
             ) : (
-              selectedRoles.map((selectedRole) => {
+              selectedRoles.map((selectedRole, roleMapIndex) => {
                 const role = masterResume.work_experience[selectedRole.roleIndex];
                 if (!role) return null;
 
@@ -108,7 +108,7 @@ export default function WorkExperienceSection({
                   .filter(({ idx }) => !selectedRole.selectedBullets.includes(idx));
 
                 return (
-                  <div key={selectedRole.roleIndex} className="rounded-lg border border-blue-500">
+                  <div key={`role-${selectedRole.roleIndex}-${roleMapIndex}`} className="rounded-lg border border-blue-500">
                     <div className="px-3 py-2 bg-brand-blue-light border-b border-brand-blue">
                       <div className="font-medium text-gray-900">{role.title}</div>
                       <div className="text-sm text-gray-500">{role.company} | {role.start_date} - {role.end_date}</div>
@@ -192,18 +192,16 @@ export default function WorkExperienceSection({
                                               <path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-8a2 2 0 1 0-.001-4.001A2 2 0 0 0 13 6zm0 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z" />
                                             </svg>
                                           </div>
-                                          {/* Checkbox */}
-                                          <div
+                                          {/* Minus button to remove */}
+                                          <button
                                             onClick={() => onToggleBullet(selectedRole.roleIndex, bulletIdx)}
-                                            className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 mt-0.5 cursor-pointer ${
-                                              isFromMaster ? "bg-brand-blue-light0" : "bg-purple-500"
-                                            }`}
-                                            title="Click to remove"
+                                            className="w-5 h-5 rounded-full bg-red-100 hover:bg-red-200 flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors"
+                                            title="Remove bullet"
                                           >
-                                            <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                            <svg className="w-3 h-3 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M20 12H4" />
                                             </svg>
-                                          </div>
+                                          </button>
                                           {/* Bullet text */}
                                           <span className="text-gray-700 flex-1">{bulletText}</span>
                                           {/* Labels and edit button */}
@@ -262,15 +260,28 @@ export default function WorkExperienceSection({
                                         return (
                                           <div
                                             key={idx}
-                                            onClick={() => !isMaxReached && onToggleBullet(selectedRole.roleIndex, idx)}
-                                            className={`p-2 rounded border cursor-pointer text-sm transition-colors ${
+                                            className={`p-2 rounded border text-sm transition-colors ${
                                               isMaxReached
-                                                ? "border-gray-200 bg-gray-100 opacity-50 cursor-not-allowed"
-                                                : "border-gray-200 hover:border-purple-300 hover:bg-purple-50"
+                                                ? "border-gray-200 bg-gray-50 opacity-50"
+                                                : "border-gray-200 hover:border-green-300 hover:bg-green-50"
                                             }`}
                                           >
                                             <div className="flex items-start gap-2">
-                                              <div className="w-4 h-4 rounded border border-gray-300 flex-shrink-0 mt-0.5" />
+                                              {/* Plus button to add */}
+                                              <button
+                                                onClick={() => !isMaxReached && onToggleBullet(selectedRole.roleIndex, idx)}
+                                                disabled={isMaxReached}
+                                                className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors ${
+                                                  isMaxReached
+                                                    ? "bg-gray-200 cursor-not-allowed"
+                                                    : "bg-green-100 hover:bg-green-200 cursor-pointer"
+                                                }`}
+                                                title={isMaxReached ? "Maximum bullets reached" : "Add bullet"}
+                                              >
+                                                <svg className={`w-3 h-3 ${isMaxReached ? "text-gray-400" : "text-green-600"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
+                                                </svg>
+                                              </button>
                                               <span className="text-gray-700 flex-1">{bullet}</span>
                                               <span className={`text-xs px-1.5 py-0.5 rounded ${isFromMaster ? "bg-gray-100 text-gray-500" : "bg-purple-50 text-purple-500"}`}>
                                                 {isFromMaster ? "Resume" : "AI"}

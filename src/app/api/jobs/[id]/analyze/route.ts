@@ -188,6 +188,9 @@ export async function POST(
     // Re-parse job details with updated extraction (gets new fields like about_company, role_summary)
     const jobDetails = await extractJobDetails(job.job_description);
 
+    console.log("[analyze POST] Extracted jobDetails.salary_range:", jobDetails.salary_range);
+    console.log("[analyze POST] Extracted jobDetails.location:", jobDetails.location);
+
     // Generate fresh analysis
     const analysis = await analyzeJobDescription(
       job.job_description,

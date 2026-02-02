@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { queryOne, queryAll, execute, JobApplication } from "@/lib/db";
+import { extractJobDetails } from "@/lib/gemini";
 
 async function getUserFromToken(request: NextRequest): Promise<{ id: number; email: string } | null> {
   const authHeader = request.headers.get("authorization");
@@ -67,10 +68,21 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { job_description, job_title, company_name, company_url, source_url } = body;
+    const { job_description, job_title, company_name, company_url, source_url, apply_url, job_url, location, salary, is_easy_apply, source } = body;
 
     // Description is optional - we can still save the job without it
     const description = job_description || "No description available";
+
+    // Only use actual external apply URLs, not LinkedIn source URLs
+    // apply_url = external career page URL (what we want)
+    // source_url = LinkedIn job posting URL (not useful for applying)
+    const isLinkedInUrl = (url: string) => url?.includes('linkedin.com');
+    let applicationUrl = apply_url || job_url || null;
+
+    // If the URL is a LinkedIn URL, it's not a real application URL
+    if (applicationUrl && isLinkedInUrl(applicationUrl)) {
+      applicationUrl = null;
+    }
 
     // Check for duplicate (same company and title for this user)
     const existing = await queryOne<{ id: number }>(
@@ -82,16 +94,47 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Job already saved" }, { status: 409 });
     }
 
+    // Extract job details (salary, location, etc.) from description
+    let extractedDetails = null;
+    if (description && description !== "No description available") {
+      try {
+        extractedDetails = await extractJobDetails(description);
+        console.log("[extension/jobs] Extracted job details:", {
+          salary: extractedDetails.salary_range,
+          location: extractedDetails.location,
+        });
+      } catch (error) {
+        console.error("[extension/jobs] Failed to extract job details:", error);
+        // Continue without parsed details - job will still be saved
+      }
+    }
+
+    // Combine extracted details with source metadata
+    const jobDetails = {
+      ...(extractedDetails || {}),
+      source_url: source_url || null,
+      is_easy_apply: is_easy_apply || false,
+      source: source || 'unknown',
+    };
+
     // Create job application
     const result = await execute(`
-      INSERT INTO job_applications (user_id, company_name, job_title, job_description, status)
-      VALUES ($1, $2, $3, $4, 'review') RETURNING id
+      INSERT INTO job_applications (user_id, company_name, job_title, job_description, job_details_parsed, job_url, status)
+      VALUES ($1, $2, $3, $4, $5, $6, 'review') RETURNING id
     `, [
       user.id,
       company_name || "Unknown Company",
       job_title || "Unknown Position",
-      description
+      description,
+      JSON.stringify(jobDetails),
+      applicationUrl
     ]);
+
+    console.log("[extension/jobs] Saved job with:", {
+      applicationUrl,
+      isEasyApply: is_easy_apply,
+      sourceUrl: source_url,
+    });
 
     return NextResponse.json({
       success: true,
@@ -100,6 +143,11 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Extension jobs error:", error);
-    return NextResponse.json({ error: "Failed to save job" }, { status: 500 });
+    // Return more specific error message for debugging
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    return NextResponse.json({
+      error: "Failed to save job",
+      details: errorMessage
+    }, { status: 500 });
   }
 }

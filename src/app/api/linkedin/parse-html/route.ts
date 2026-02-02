@@ -344,7 +344,7 @@ The JSON structure should be exactly:
   "experience": [
     {
       "title": "Job Title",
-      "company": "Company Name",
+      "company": "Company Name (REQUIRED - never leave empty)",
       "start_date": "Month Year (e.g., Jan 2020)",
       "end_date": "Month Year or Present",
       "description": "Job description if available"
@@ -381,6 +381,8 @@ CRITICAL RULES:
 - NEVER fabricate, invent, or make up any data
 - If you cannot find a person's name, use empty string - do NOT use "John Doe" or similar
 - If you cannot find work experience, return empty array - do NOT invent companies like "ABC Corp" or "XYZ Inc"
+- IMPORTANT: For each work experience, the "company" field is REQUIRED. On LinkedIn, when a person has multiple roles at the same company, the company name appears ONCE above all those roles. Make sure to assign that company name to EACH role/position listed under it.
+- Look for company names that appear before job titles - they often appear as "Company Name" followed by "Full-time" or employment type, then the job titles below
 - If information is not found, use empty string "" or empty array []
 - Extract up to 10 work experiences and 20 skills
 - Return ONLY valid JSON, no markdown, no explanation

@@ -162,88 +162,167 @@ export default function TemplateSelectionStep({
                         if (fallback) fallback.style.display = "block";
                       }}
                     />
-                    {/* Fallback placeholder (hidden by default) */}
+                    {/* Fallback placeholder - template-specific designs */}
                     <div
                       className="absolute inset-0 bg-white rounded shadow-sm hidden"
                       style={{ display: "none" }}
                     >
-                      {template.layout === "single" ? (
-                        <div className="p-3">
-                          <div
-                            className="h-4 bg-gray-300 rounded w-1/2 mb-2"
-                            style={{
-                              backgroundColor:
-                                selectedTemplate === template.id ? selectedColor : undefined,
-                            }}
-                          />
-                          <div className="h-2 bg-gray-200 rounded w-3/4 mb-1" />
-                          <div className="h-2 bg-gray-200 rounded w-2/3 mb-4" />
-                          <div className="space-y-2">
-                            <div className="h-1.5 bg-gray-200 rounded" />
-                            <div className="h-1.5 bg-gray-200 rounded w-5/6" />
-                            <div className="h-1.5 bg-gray-200 rounded w-4/5" />
+                      {/* Navy Header - header band with photo */}
+                      {template.id === "navy-header" && (
+                        <div className="h-full flex flex-col">
+                          <div className="p-2 flex items-center justify-between" style={{ backgroundColor: selectedTemplate === template.id ? selectedColor : "#1e3a5f" }}>
+                            <div className="space-y-0.5"><div className="h-1 bg-white/60 rounded w-8"></div><div className="h-0.5 bg-white/40 rounded w-10"></div></div>
+                            <div className="w-6 h-6 rounded-full bg-white/90 border border-white/50"></div>
+                            <div className="text-right space-y-0.5"><div className="h-1.5 bg-white rounded w-10"></div><div className="h-1 bg-white/60 rounded w-8"></div></div>
+                          </div>
+                          <div className="p-2 flex-1 space-y-2">
+                            <div><div className="h-1.5 rounded w-1/4 mb-1" style={{ backgroundColor: selectedTemplate === template.id ? `${selectedColor}40` : "#1e3a5f40" }}></div><div className="h-0.5 bg-gray-200 rounded w-full"></div><div className="h-0.5 bg-gray-200 rounded w-4/5 mt-0.5"></div></div>
+                            <div><div className="h-1.5 rounded w-1/3 mb-1" style={{ backgroundColor: selectedTemplate === template.id ? `${selectedColor}40` : "#1e3a5f40" }}></div><div className="space-y-0.5"><div className="h-0.5 bg-gray-200 rounded"></div><div className="h-0.5 bg-gray-200 rounded w-5/6"></div></div></div>
                           </div>
                         </div>
-                      ) : template.layout === "two-column-left" ? (
-                        <div className="flex h-full">
-                          <div
-                            className="w-1/3 p-2"
-                            style={{
-                              backgroundColor:
-                                selectedTemplate === template.id
-                                  ? `${selectedColor}20`
-                                  : "#f3f4f6",
-                            }}
-                          >
-                            <div
-                              className="h-3 bg-gray-300 rounded w-full mb-2"
-                              style={{
-                                backgroundColor:
-                                  selectedTemplate === template.id ? selectedColor : undefined,
-                              }}
-                            />
-                            <div className="space-y-1">
-                              <div className="h-1.5 bg-gray-200 rounded" />
-                              <div className="h-1.5 bg-gray-200 rounded w-4/5" />
-                            </div>
+                      )}
+                      {/* Blush Sidebar - pink sidebar with script style */}
+                      {template.id === "blush-sidebar" && (
+                        <div className="h-full flex">
+                          <div className="w-1/3 p-1.5" style={{ backgroundColor: selectedTemplate === template.id ? `${selectedColor}20` : "#fce7f3" }}>
+                            <div className="w-5 h-5 rounded-full mx-auto mb-1.5 border-2" style={{ backgroundColor: "#f9a8d4", borderColor: selectedTemplate === template.id ? selectedColor : "#f472b6" }}></div>
+                            <div className="h-1 rounded w-3/4 mx-auto mb-0.5" style={{ backgroundColor: selectedTemplate === template.id ? `${selectedColor}60` : "#f472b680" }}></div>
+                            <div className="space-y-1 mt-2"><div className="h-1 rounded w-2/3" style={{ backgroundColor: selectedTemplate === template.id ? `${selectedColor}40` : "#f472b640" }}></div><div className="h-0.5 bg-pink-200 rounded"></div><div className="h-0.5 bg-pink-200 rounded w-4/5"></div></div>
                           </div>
-                          <div className="flex-1 p-2">
-                            <div className="h-2 bg-gray-200 rounded w-3/4 mb-2" />
-                            <div className="space-y-1">
-                              <div className="h-1.5 bg-gray-200 rounded" />
-                              <div className="h-1.5 bg-gray-200 rounded w-5/6" />
-                            </div>
+                          <div className="flex-1 p-1.5 space-y-1.5">
+                            <div><div className="h-1 rounded w-1/4 mb-0.5 italic" style={{ backgroundColor: selectedTemplate === template.id ? `${selectedColor}40` : "#f472b640" }}></div><div className="h-0.5 bg-gray-200 rounded"></div></div>
+                            <div><div className="h-1 rounded w-1/3 mb-0.5" style={{ backgroundColor: selectedTemplate === template.id ? `${selectedColor}40` : "#f472b640" }}></div><div className="space-y-0.5"><div className="h-0.5 bg-gray-200 rounded"></div><div className="h-0.5 bg-gray-200 rounded w-4/5"></div></div></div>
                           </div>
                         </div>
-                      ) : (
-                        <div className="flex h-full">
-                          <div className="flex-1 p-2">
-                            <div
-                              className="h-3 bg-gray-300 rounded w-1/2 mb-2"
-                              style={{
-                                backgroundColor:
-                                  selectedTemplate === template.id ? selectedColor : undefined,
-                              }}
-                            />
-                            <div className="space-y-1">
-                              <div className="h-1.5 bg-gray-200 rounded" />
-                              <div className="h-1.5 bg-gray-200 rounded w-5/6" />
+                      )}
+                      {/* Navy Initials - dark sidebar with initials circle */}
+                      {template.id === "navy-initials" && (
+                        <div className="h-full flex">
+                          <div className="w-1/3 p-1.5" style={{ backgroundColor: selectedTemplate === template.id ? selectedColor : "#1e40af" }}>
+                            <div className="w-5 h-5 rounded-full bg-white mx-auto mb-1 flex items-center justify-center"><span className="text-[6px] font-bold" style={{ color: selectedTemplate === template.id ? selectedColor : "#1e40af" }}>AB</span></div>
+                            <div className="h-1 bg-white/70 rounded w-3/4 mx-auto mb-0.5"></div>
+                            <div className="space-y-1 mt-2"><div className="h-0.5 bg-white/40 rounded"></div><div className="h-0.5 bg-white/30 rounded w-4/5"></div></div>
+                          </div>
+                          <div className="flex-1 p-1.5 space-y-1.5">
+                            <div><div className="h-1 rounded w-1/3 mb-0.5" style={{ backgroundColor: selectedTemplate === template.id ? selectedColor : "#1e40af" }}></div><div className="h-0.5 bg-gray-200 rounded"></div></div>
+                            <div><div className="h-1 rounded w-1/4 mb-0.5" style={{ backgroundColor: selectedTemplate === template.id ? selectedColor : "#1e40af" }}></div><div className="space-y-0.5"><div className="h-0.5 bg-gray-200 rounded"></div><div className="h-0.5 bg-gray-200 rounded w-5/6"></div></div></div>
+                          </div>
+                        </div>
+                      )}
+                      {/* Teal Split - header with two-column body */}
+                      {template.id === "teal-header-split" && (
+                        <div className="h-full flex flex-col">
+                          <div className="p-1.5 flex items-center gap-1.5" style={{ backgroundColor: selectedTemplate === template.id ? selectedColor : "#0d9488" }}>
+                            <div className="w-5 h-5 rounded-full bg-white"></div>
+                            <div className="flex-1"><div className="h-1.5 bg-white rounded w-1/2 mb-0.5"></div><div className="h-1 bg-white/70 rounded w-1/3"></div></div>
+                          </div>
+                          <div className="flex-1 flex p-1.5 gap-1.5">
+                            <div className="flex-1 space-y-1"><div className="h-1 rounded w-1/3 mb-0.5" style={{ backgroundColor: selectedTemplate === template.id ? `${selectedColor}40` : "#0d948840" }}></div><div className="h-0.5 bg-gray-200 rounded"></div><div className="h-0.5 bg-gray-200 rounded w-4/5"></div></div>
+                            <div className="w-1/3 space-y-1"><div className="h-1 rounded w-2/3 mb-0.5" style={{ backgroundColor: selectedTemplate === template.id ? `${selectedColor}40` : "#0d948840" }}></div><div className="h-0.5 bg-gray-200 rounded"></div></div>
+                          </div>
+                        </div>
+                      )}
+                      {/* Coral Sidebar */}
+                      {template.id === "coral-sidebar" && (
+                        <div className="h-full flex">
+                          <div className="w-1/3 p-1.5" style={{ backgroundColor: selectedTemplate === template.id ? selectedColor : "#f97316" }}>
+                            <div className="w-5 h-5 rounded-lg bg-white mx-auto mb-1"></div>
+                            <div className="h-1 bg-white/80 rounded w-3/4 mx-auto mb-0.5"></div>
+                            <div className="space-y-1 mt-2"><div className="h-0.5 bg-white/50 rounded"></div><div className="h-0.5 bg-white/40 rounded w-4/5"></div></div>
+                          </div>
+                          <div className="flex-1 p-1.5 bg-gray-50 space-y-1.5">
+                            <div><div className="h-1 rounded w-1/4 mb-0.5" style={{ backgroundColor: selectedTemplate === template.id ? `${selectedColor}60` : "#f9731660" }}></div><div className="h-0.5 bg-gray-200 rounded"></div></div>
+                            <div><div className="h-1 rounded w-1/3 mb-0.5" style={{ backgroundColor: selectedTemplate === template.id ? `${selectedColor}60` : "#f9731660" }}></div><div className="space-y-0.5"><div className="h-0.5 bg-gray-200 rounded"></div><div className="h-0.5 bg-gray-200 rounded w-5/6"></div></div></div>
+                          </div>
+                        </div>
+                      )}
+                      {/* Lavender Right */}
+                      {template.id === "lavender-right" && (
+                        <div className="h-full flex">
+                          <div className="flex-1 p-1.5 space-y-1.5">
+                            <div className="border-b pb-1" style={{ borderColor: selectedTemplate === template.id ? `${selectedColor}40` : "#c4b5fd" }}><div className="h-2 bg-gray-300 rounded w-1/2 mb-0.5"></div><div className="h-1 rounded w-1/3" style={{ backgroundColor: selectedTemplate === template.id ? `${selectedColor}60` : "#a78bfa" }}></div></div>
+                            <div><div className="h-1 rounded w-1/4 mb-0.5" style={{ backgroundColor: selectedTemplate === template.id ? `${selectedColor}40` : "#c4b5fd" }}></div><div className="h-0.5 bg-gray-200 rounded"></div></div>
+                          </div>
+                          <div className="w-1/3 p-1.5 border-l-2" style={{ backgroundColor: selectedTemplate === template.id ? `${selectedColor}15` : "#ede9fe", borderColor: selectedTemplate === template.id ? `${selectedColor}40` : "#c4b5fd" }}>
+                            <div className="w-5 h-5 rounded-full mx-auto mb-1 border-2" style={{ backgroundColor: "#ddd", borderColor: selectedTemplate === template.id ? `${selectedColor}60` : "#a78bfa" }}></div>
+                            <div className="space-y-1"><div className="h-0.5 rounded" style={{ backgroundColor: selectedTemplate === template.id ? `${selectedColor}40` : "#c4b5fd" }}></div><div className="h-0.5 bg-purple-200 rounded w-4/5"></div></div>
+                          </div>
+                        </div>
+                      )}
+                      {/* Teal Contact - gradient sidebar with icons */}
+                      {template.id === "teal-contact" && (
+                        <div className="h-full flex">
+                          <div className="w-1/3 p-1.5" style={{ background: selectedTemplate === template.id ? `linear-gradient(180deg, ${selectedColor} 0%, ${selectedColor}dd 100%)` : "linear-gradient(180deg, #0d9488 0%, #0d9488dd 100%)" }}>
+                            <div className="w-5 h-5 rounded-full bg-white/90 mx-auto mb-1"></div>
+                            <div className="h-1 bg-white/70 rounded w-3/4 mx-auto mb-0.5"></div>
+                            <div className="space-y-1.5 mt-2">
+                              <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-white/30"></div><div className="h-0.5 bg-white/50 rounded flex-1"></div></div>
+                              <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-white/30"></div><div className="h-0.5 bg-white/50 rounded flex-1"></div></div>
                             </div>
                           </div>
-                          <div
-                            className="w-1/3 p-2"
-                            style={{
-                              backgroundColor:
-                                selectedTemplate === template.id
-                                  ? `${selectedColor}20`
-                                  : "#f3f4f6",
-                            }}
-                          >
-                            <div className="space-y-1">
-                              <div className="h-1.5 bg-gray-200 rounded" />
-                              <div className="h-1.5 bg-gray-200 rounded w-4/5" />
-                            </div>
+                          <div className="flex-1 p-1.5 space-y-1.5">
+                            <div><div className="h-1 rounded w-1/3 mb-0.5" style={{ backgroundColor: selectedTemplate === template.id ? selectedColor : "#0d9488" }}></div><div className="h-0.5 bg-gray-200 rounded"></div></div>
+                            <div><div className="h-1 rounded w-1/4 mb-0.5" style={{ backgroundColor: selectedTemplate === template.id ? selectedColor : "#0d9488" }}></div><div className="space-y-0.5"><div className="h-0.5 bg-gray-200 rounded"></div><div className="h-0.5 bg-gray-200 rounded w-5/6"></div></div></div>
                           </div>
+                        </div>
+                      )}
+                      {/* Dusty Blue */}
+                      {template.id === "dusty-blue" && (
+                        <div className="h-full flex">
+                          <div className="w-1/3 p-1.5 border-r-4" style={{ backgroundColor: selectedTemplate === template.id ? `${selectedColor}20` : "#dbeafe", borderColor: selectedTemplate === template.id ? selectedColor : "#3b82f6" }}>
+                            <div className="w-5 h-5 rounded-full mx-auto mb-1 border-2" style={{ backgroundColor: "#ddd", borderColor: selectedTemplate === template.id ? selectedColor : "#3b82f6" }}></div>
+                            <div className="h-1 rounded w-3/4 mx-auto mb-0.5" style={{ backgroundColor: selectedTemplate === template.id ? selectedColor : "#3b82f6" }}></div>
+                            <div className="space-y-1 mt-2"><div className="h-1 rounded w-2/3" style={{ backgroundColor: selectedTemplate === template.id ? `${selectedColor}60` : "#3b82f660" }}></div><div className="h-0.5 bg-blue-200 rounded"></div></div>
+                          </div>
+                          <div className="flex-1 p-1.5 space-y-1.5">
+                            <div><div className="h-1 rounded w-1/3 mb-0.5" style={{ backgroundColor: selectedTemplate === template.id ? selectedColor : "#3b82f6" }}></div><div className="h-0.5 bg-gray-200 rounded"></div></div>
+                            <div><div className="h-1 rounded w-1/4 mb-0.5" style={{ backgroundColor: selectedTemplate === template.id ? selectedColor : "#3b82f6" }}></div><div className="space-y-0.5"><div className="h-0.5 bg-gray-200 rounded"></div><div className="h-0.5 bg-gray-200 rounded w-5/6"></div></div></div>
+                          </div>
+                        </div>
+                      )}
+                      {/* Minimalist Bars */}
+                      {template.id === "minimalist-bars" && (
+                        <div className="h-full p-2 space-y-1.5">
+                          <div className="text-center pb-1.5 border-b-2" style={{ borderColor: selectedTemplate === template.id ? selectedColor : "#374151" }}><div className="h-2 bg-gray-300 rounded w-1/3 mx-auto mb-0.5"></div><div className="h-1 rounded w-1/4 mx-auto" style={{ backgroundColor: selectedTemplate === template.id ? `${selectedColor}40` : "#37415140" }}></div></div>
+                          <div><div className="h-1.5 rounded-sm w-1/4 mb-0.5 flex items-center pl-0.5" style={{ backgroundColor: selectedTemplate === template.id ? selectedColor : "#374151" }}><span className="text-white text-[4px]">SUMMARY</span></div><div className="h-0.5 bg-gray-200 rounded"></div></div>
+                          <div><div className="h-1.5 rounded-sm w-1/4 mb-0.5 flex items-center pl-0.5" style={{ backgroundColor: selectedTemplate === template.id ? selectedColor : "#374151" }}><span className="text-white text-[4px]">EXPERIENCE</span></div><div className="space-y-0.5"><div className="h-0.5 bg-gray-200 rounded"></div><div className="h-0.5 bg-gray-200 rounded w-4/5"></div></div></div>
+                        </div>
+                      )}
+                      {/* Clean Dividers */}
+                      {template.id === "clean-dividers" && (
+                        <div className="h-full p-2 space-y-1.5">
+                          <div><div className="h-2 bg-gray-300 rounded w-1/2 mb-0.5"></div><div className="h-1 rounded w-1/4" style={{ backgroundColor: selectedTemplate === template.id ? selectedColor : "#2563eb" }}></div></div>
+                          <div className="flex items-center gap-1"><div className="h-1 rounded w-1/6 flex-shrink-0" style={{ backgroundColor: selectedTemplate === template.id ? selectedColor : "#2563eb" }}></div><div className="h-px bg-gray-200 flex-1"></div></div>
+                          <div className="h-0.5 bg-gray-200 rounded"></div>
+                          <div className="flex items-center gap-1"><div className="h-1 rounded w-1/5 flex-shrink-0" style={{ backgroundColor: selectedTemplate === template.id ? selectedColor : "#2563eb" }}></div><div className="h-px bg-gray-200 flex-1"></div></div>
+                          <div className="space-y-0.5"><div className="h-0.5 bg-gray-200 rounded"></div><div className="h-0.5 bg-gray-200 rounded w-5/6"></div></div>
+                        </div>
+                      )}
+                      {/* Block Accent */}
+                      {template.id === "block-accent" && (
+                        <div className="h-full flex">
+                          <div className="w-1/3 p-1.5 bg-gray-100 border-r-4" style={{ borderColor: selectedTemplate === template.id ? selectedColor : "#2563eb" }}>
+                            <div className="w-5 h-5 mx-auto mb-1" style={{ backgroundColor: selectedTemplate === template.id ? selectedColor : "#2563eb" }}></div>
+                            <div className="h-1 bg-gray-800 rounded w-3/4 mx-auto mb-0.5"></div>
+                            <div className="mt-2 -mx-1.5 px-1.5 py-0.5 text-white text-[4px]" style={{ backgroundColor: selectedTemplate === template.id ? selectedColor : "#2563eb" }}>CONTACT</div>
+                            <div className="space-y-0.5 mt-1"><div className="h-0.5 bg-gray-300 rounded"></div><div className="h-0.5 bg-gray-300 rounded w-4/5"></div></div>
+                          </div>
+                          <div className="flex-1 p-1.5 space-y-1.5">
+                            <div><div className="h-1 rounded w-1/4 border-b-2 inline-block" style={{ borderColor: selectedTemplate === template.id ? selectedColor : "#2563eb" }}></div></div>
+                            <div className="flex justify-between items-center"><div className="h-0.5 bg-gray-300 rounded w-1/3"></div><div className="h-1.5 rounded text-[4px] text-white px-1" style={{ backgroundColor: selectedTemplate === template.id ? selectedColor : "#2563eb" }}>2023</div></div>
+                            <div className="space-y-0.5"><div className="h-0.5 bg-gray-200 rounded"></div><div className="h-0.5 bg-gray-200 rounded w-5/6"></div></div>
+                          </div>
+                        </div>
+                      )}
+                      {/* Minimal Photo */}
+                      {template.id === "minimal-photo" && (
+                        <div className="h-full p-2 space-y-1.5">
+                          <div className="flex items-center gap-2 pb-1.5 border-b border-gray-200">
+                            <div className="w-6 h-6 rounded-full bg-gray-200"></div>
+                            <div className="flex-1"><div className="h-2 bg-gray-300 rounded w-1/2 mb-0.5"></div><div className="h-1 rounded w-1/3" style={{ backgroundColor: selectedTemplate === template.id ? selectedColor : "#2563eb" }}></div></div>
+                          </div>
+                          <div><div className="h-1 rounded w-1/5 mb-0.5" style={{ backgroundColor: selectedTemplate === template.id ? selectedColor : "#2563eb" }}></div><div className="h-0.5 bg-gray-200 rounded"></div></div>
+                          <div><div className="h-1 rounded w-1/4 mb-0.5" style={{ backgroundColor: selectedTemplate === template.id ? selectedColor : "#2563eb" }}></div><div className="space-y-0.5"><div className="h-0.5 bg-gray-200 rounded"></div><div className="h-0.5 bg-gray-200 rounded w-4/5"></div></div></div>
                         </div>
                       )}
                     </div>

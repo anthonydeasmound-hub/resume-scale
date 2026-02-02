@@ -334,7 +334,12 @@ Extract and categorize the information into these sections:
 
 6. benefits: Perks, benefits, what the company offers employees (list of bullet points, 0-8 items)
 
-7. salary_range: If mentioned, extract the salary/compensation range as a string (e.g., "$80,000 - $120,000/year")
+7. salary_range: Extract ANY salary/compensation information mentioned. Look for ALL formats including:
+   - "$X - $Y" or "$X to $Y" or "between $X and $Y"
+   - "base salary of $X" or "starting at $X"
+   - "OTE of $X" (on-target earnings) or "total compensation of $X"
+   - Hourly rates like "$X/hour" or "$X per hour"
+   Format as a readable string like "$80,000 - $120,000/year" or "$80,000 base + commission (OTE $140,000)"
 
 8. location: Where the job is located (city, state/country)
 
@@ -354,7 +359,7 @@ Return ONLY valid JSON:
   "requirements": ["required item 1", "required item 2"],
   "nice_to_haves": ["preferred item 1", "preferred item 2"],
   "benefits": ["benefit 1", "benefit 2"],
-  "salary_range": "$X - $Y" or null,
+  "salary_range": "$80,000 + commission" or "$80,000 - $100,000/year" or null,
   "location": "City, State" or null,
   "work_type": "remote" | "hybrid" | "on-site" | null
 }`;
@@ -377,6 +382,43 @@ Return ONLY valid JSON:
     // Handle legacy 'qualifications' field - merge into nice_to_haves if present
     if (parsed.qualifications && parsed.qualifications.length > 0 && (!parsed.nice_to_haves || parsed.nice_to_haves.length === 0)) {
       parsed.nice_to_haves = parsed.qualifications;
+    }
+
+    // Debug logging for salary extraction
+    console.log("[extractJobDetails] AI extracted salary_range:", parsed.salary_range);
+    console.log("[extractJobDetails] AI extracted location:", parsed.location);
+
+    // Fallback: If AI didn't extract salary, try regex patterns on the raw text
+    // Order matters - most specific patterns first
+    // Note: [\d,.]+K?M? matches numbers with commas, decimals, and K/M suffixes (e.g., 127,500.00 or $350K)
+    if (!parsed.salary_range) {
+      const salaryPatterns = [
+        // "$350K/yr - $400K/yr" - range where both sides have year suffix
+        /\$[\d,.]+[KkMm]?(?:\s*\/\s*(?:year|yr|hr))?\s*[-–]\s*\$[\d,.]+[KkMm]?(?:\s*\/\s*(?:year|yr|hr))?/gi,
+        // "$127500.00 To $149500.00 / year" - range with "To" or "-" and optional year suffix at end
+        /\$[\d,.]+[KkMm]?\s*(?:[-–]|\s*[Tt]o\s*)\s*\$[\d,.]+[KkMm]?(?:\s*(?:\s*\/\s*|per\s+)?(?:year|yr|annually|hour|hr))?/gi,
+        // "between $80,000 and $100,000 annually"
+        /between\s+\$[\d,.]+[KkMm]?\s+and\s+\$[\d,.]+[KkMm]?(?:\s*(?:\s*\/\s*|per\s+)?(?:year|yr|annually))?/gi,
+        // "Compensation: $80,000 + commission" on same line (no newline crossing)
+        /(?:compensation|salary|pay)(?:\s+range)?[: \t]+\$[\d,.]+[KkMm]?(?:\s*\+\s*(?:commission|bonus|uncapped commission))?/gi,
+        // "OTE of $140,000" or "OTE $140,000"
+        /OTE\s*(?:of\s*)?\$[\d,.]+[KkMm]?/gi,
+        // "base salary of $80,000"
+        /base\s+(?:salary|pay)\s+(?:of\s+)?\$[\d,.]+[KkMm]?/gi,
+        // Simple "$80,000 + commission"
+        /\$[\d,.]+[KkMm]?(?:\s*\+\s*(?:commission|bonus|uncapped commission))/gi,
+        // Just "$80,000/year" or "$80,000 / year" with year indicator
+        /\$[\d,.]+[KkMm]?(?:\s*(?:\s*\/\s*|per\s+)?(?:year|yr|annually))/gi,
+      ];
+
+      for (const pattern of salaryPatterns) {
+        const match = jobDescription.match(pattern);
+        if (match) {
+          parsed.salary_range = match[0].trim();
+          console.log("[extractJobDetails] Fallback regex found salary:", parsed.salary_range);
+          break;
+        }
+      }
     }
 
     return parsed;
@@ -626,15 +668,31 @@ Return ONLY valid JSON:
       "graduation_date": "Date"
     }
   ]
-}`;
+}
+
+IMPORTANT: Return ONLY the JSON object. Do not include any text before or after the JSON.`;
 
   const response = await callAI(prompt);
-  const cleanedResponse = response
+
+  // Extract JSON from response - handle cases where AI includes extra text
+  let cleanedResponse = response
     .replace(/```json\n?/g, "")
     .replace(/```\n?/g, "")
     .trim();
 
-  return JSON.parse(cleanedResponse);
+  // If response starts with text before JSON, extract just the JSON
+  const jsonStart = cleanedResponse.indexOf("{");
+  const jsonEnd = cleanedResponse.lastIndexOf("}");
+  if (jsonStart !== -1 && jsonEnd !== -1 && jsonStart < jsonEnd) {
+    cleanedResponse = cleanedResponse.slice(jsonStart, jsonEnd + 1);
+  }
+
+  try {
+    return JSON.parse(cleanedResponse);
+  } catch (parseError) {
+    console.error("[tailorResume] JSON parse error. Response was:", cleanedResponse.slice(0, 200));
+    throw new Error("AI returned invalid JSON for resume tailoring");
+  }
 }
 
 export async function generateCoverLetter(

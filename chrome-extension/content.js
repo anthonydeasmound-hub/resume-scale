@@ -5,6 +5,87 @@
 
   let lastSentJobKey = '';
 
+  // Debug function to find apply URLs in page data
+  function debugFindApplyUrls() {
+    console.log('[ResumeGenie DEBUG] Searching for apply URLs...');
+
+    // Get current job ID from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentJobId = urlParams.get('currentJobId');
+    console.log('[ResumeGenie DEBUG] Current job ID:', currentJobId);
+
+    // Search all scripts for URL patterns
+    const scripts = document.querySelectorAll('script:not([src])');
+    let foundUrls = [];
+
+    scripts.forEach((script, idx) => {
+      const content = script.textContent || '';
+
+      // Look for any external URLs (not linkedin.com)
+      const urlMatches = content.match(/https?:\/\/(?!(?:www\.)?linkedin\.com)[^\s"'<>]+/g);
+      if (urlMatches) {
+        urlMatches.forEach(url => {
+          // Filter for job-related URLs
+          if (url.includes('job') || url.includes('career') || url.includes('apply') ||
+              url.includes('greenhouse') || url.includes('lever') || url.includes('workday') ||
+              url.includes('icims') || url.includes('taleo') || url.includes('gem.com') ||
+              url.includes('ashby') || url.includes('bamboo') || url.includes('smartrecruiters')) {
+            foundUrls.push(url);
+          }
+        });
+      }
+
+      // Also look for the job ID near any URL
+      if (currentJobId && content.includes(currentJobId)) {
+        console.log('[ResumeGenie DEBUG] Found script containing job ID', currentJobId);
+        // Extract surrounding context
+        const idIndex = content.indexOf(currentJobId);
+        const context = content.substring(Math.max(0, idIndex - 200), Math.min(content.length, idIndex + 500));
+        // Look for URLs in this context
+        const contextUrls = context.match(/https?:\/\/[^\s"'<>]+/g);
+        if (contextUrls) {
+          contextUrls.forEach(url => {
+            if (!url.includes('linkedin.com')) {
+              console.log('[ResumeGenie DEBUG] URL near job ID:', url);
+              foundUrls.push(url);
+            }
+          });
+        }
+      }
+    });
+
+    // Deduplicate
+    foundUrls = [...new Set(foundUrls)];
+    if (foundUrls.length > 0) {
+      console.log('[ResumeGenie DEBUG] Found potential apply URLs:', foundUrls);
+    } else {
+      console.log('[ResumeGenie DEBUG] No external job URLs found in scripts');
+    }
+
+    // Also check the Apply button's attributes and parent elements
+    const applyBtn = document.querySelector('button[aria-label*="Apply"], .jobs-apply-button');
+    if (applyBtn) {
+      console.log('[ResumeGenie DEBUG] Apply button found:', {
+        tagName: applyBtn.tagName,
+        className: applyBtn.className,
+        ariaLabel: applyBtn.getAttribute('aria-label'),
+        allAttributes: Array.from(applyBtn.attributes).map(a => `${a.name}="${a.value}"`).join(', ')
+      });
+
+      // Check parent elements for data
+      let parent = applyBtn.parentElement;
+      for (let i = 0; i < 5 && parent; i++) {
+        const dataAttrs = Array.from(parent.attributes).filter(a => a.name.startsWith('data-'));
+        if (dataAttrs.length > 0) {
+          console.log('[ResumeGenie DEBUG] Parent', i, 'data attributes:', dataAttrs.map(a => `${a.name}="${a.value}"`).join(', '));
+        }
+        parent = parent.parentElement;
+      }
+    }
+
+    return foundUrls;
+  }
+
   function extractJobData() {
     // Job title - LinkedIn uses obfuscated classes, need multiple strategies
     let jobTitle = '';
@@ -322,12 +403,203 @@
       postedDate = timeElement.textContent?.trim() || '';
     }
 
+    // Application URL - try to find external apply link
+    let applyUrl = '';
+    let isEasyApply = false;
+
+    // Check for Easy Apply button (application happens on LinkedIn)
+    const easyApplyBtn = document.querySelector('.jobs-apply-button--top-card .jobs-apply-button')
+      || document.querySelector('button[aria-label*="Easy Apply"]')
+      || document.querySelector('.jobs-s-apply button');
+
+    if (easyApplyBtn) {
+      const btnText = easyApplyBtn.textContent?.toLowerCase() || '';
+      isEasyApply = btnText.includes('easy apply');
+    }
+
+    // Look for external apply link
+    if (!isEasyApply) {
+      // METHOD 1: Extract from JSON-LD structured data (most reliable)
+      const jsonLdScripts = document.querySelectorAll('script[type="application/ld+json"]');
+      for (const script of jsonLdScripts) {
+        try {
+          const data = JSON.parse(script.textContent);
+          // Check for direct applyUrl
+          if (data.directApply === false && data.applyUrl) {
+            applyUrl = data.applyUrl;
+            console.log('[ResumeGenie] Found apply URL via JSON-LD applyUrl:', applyUrl);
+            break;
+          }
+          // Check for sameAs or url fields that might be external
+          if (data.hiringOrganization?.sameAs && !data.hiringOrganization.sameAs.includes('linkedin.com')) {
+            // This is company URL, not apply URL, but note it
+          }
+          // Check for application instructions
+          if (data.applicationContact?.url) {
+            applyUrl = data.applicationContact.url;
+            console.log('[ResumeGenie] Found apply URL via JSON-LD applicationContact:', applyUrl);
+            break;
+          }
+        } catch (e) {
+          // Invalid JSON, skip
+        }
+      }
+
+      // METHOD 2: Look in LinkedIn's embedded data (code/data in script tags)
+      if (!applyUrl) {
+        const allScripts = document.querySelectorAll('script:not([src])');
+        for (const script of allScripts) {
+          const content = script.textContent || '';
+          // Look for applyUrl or companyApplyUrl patterns
+          const applyUrlMatch = content.match(/"applyUrl"\s*:\s*"([^"]+)"/);
+          if (applyUrlMatch && applyUrlMatch[1] && !applyUrlMatch[1].includes('linkedin.com')) {
+            applyUrl = applyUrlMatch[1].replace(/\\u002F/g, '/').replace(/\\\//g, '/');
+            console.log('[ResumeGenie] Found apply URL via script content (applyUrl):', applyUrl);
+            break;
+          }
+          const companyApplyMatch = content.match(/"companyApplyUrl"\s*:\s*"([^"]+)"/);
+          if (companyApplyMatch && companyApplyMatch[1] && !companyApplyMatch[1].includes('linkedin.com')) {
+            applyUrl = companyApplyMatch[1].replace(/\\u002F/g, '/').replace(/\\\//g, '/');
+            console.log('[ResumeGenie] Found apply URL via script content (companyApplyUrl):', applyUrl);
+            break;
+          }
+          // Look for externalApplyUrl
+          const externalMatch = content.match(/"externalApply(?:Url)?"\s*:\s*"([^"]+)"/i);
+          if (externalMatch && externalMatch[1] && !externalMatch[1].includes('linkedin.com')) {
+            applyUrl = externalMatch[1].replace(/\\u002F/g, '/').replace(/\\\//g, '/');
+            console.log('[ResumeGenie] Found apply URL via script content (externalApply):', applyUrl);
+            break;
+          }
+          // Look for offsite apply URL
+          const offsiteMatch = content.match(/"offsiteApply(?:Url)?"\s*:\s*"([^"]+)"/i);
+          if (offsiteMatch && offsiteMatch[1] && !offsiteMatch[1].includes('linkedin.com')) {
+            applyUrl = offsiteMatch[1].replace(/\\u002F/g, '/').replace(/\\\//g, '/');
+            console.log('[ResumeGenie] Found apply URL via script content (offsiteApply):', applyUrl);
+            break;
+          }
+        }
+      }
+
+      // METHOD 3: Check for LinkedIn's job apply redirect URL pattern
+      if (!applyUrl) {
+        const applyLinks = document.querySelectorAll('a[href*="externalApply"], a[href*="applyUrl"]');
+        for (const link of applyLinks) {
+          if (link.href) {
+            // LinkedIn redirects have the actual URL as a parameter
+            try {
+              const url = new URL(link.href);
+              const redirectUrl = url.searchParams.get('url') || url.searchParams.get('dest');
+              if (redirectUrl && !redirectUrl.includes('linkedin.com')) {
+                applyUrl = decodeURIComponent(redirectUrl);
+                console.log('[ResumeGenie] Found apply URL via redirect param:', applyUrl);
+                break;
+              }
+            } catch (e) {
+              // Not a valid URL
+            }
+          }
+        }
+      }
+
+      // METHOD 4: Direct apply button that's a link
+      if (!applyUrl) {
+        const applyLink = document.querySelector('a.jobs-apply-button')
+          || document.querySelector('a[data-control-name="jobdetails_topcard_inapply"]')
+          || document.querySelector('.jobs-apply-button--top-card a');
+
+        if (applyLink && applyLink.href && !applyLink.href.includes('linkedin.com/jobs')) {
+          applyUrl = applyLink.href;
+          console.log('[ResumeGenie] Found apply URL via link:', applyUrl);
+        }
+      }
+
+      // METHOD 5: Look for "Apply on company site" or similar text
+      if (!applyUrl) {
+        const allLinks = document.querySelectorAll('a');
+        for (const link of allLinks) {
+          const text = link.textContent?.toLowerCase() || '';
+          const ariaLabel = link.getAttribute('aria-label')?.toLowerCase() || '';
+          if ((text.includes('apply') && !text.includes('easy')) ||
+              ariaLabel.includes('apply') ||
+              text.includes('company site') ||
+              text.includes('external')) {
+            // Make sure it's an external link, not a LinkedIn link
+            if (link.href && !link.href.includes('linkedin.com')) {
+              applyUrl = link.href;
+              console.log('[ResumeGenie] Found external apply URL:', applyUrl);
+              break;
+            }
+          }
+        }
+      }
+
+      // METHOD 6: Check for data attributes on apply buttons
+      if (!applyUrl) {
+        const applyButtons = document.querySelectorAll('button[class*="apply"], a[class*="apply"]');
+        for (const btn of applyButtons) {
+          // Check for data attributes that might contain the URL
+          const dataUrl = btn.getAttribute('data-url') ||
+                          btn.getAttribute('data-href') ||
+                          btn.getAttribute('data-apply-url') ||
+                          btn.getAttribute('data-entity-urn');
+          if (dataUrl && !dataUrl.includes('linkedin.com')) {
+            applyUrl = dataUrl;
+            console.log('[ResumeGenie] Found apply URL via data attribute:', applyUrl);
+            break;
+          }
+        }
+      }
+
+      // METHOD 7: Look for the apply URL in any element's data attributes
+      if (!applyUrl) {
+        const elementsWithData = document.querySelectorAll('[data-job-id], [data-entity-urn*="jobPosting"]');
+        for (const el of elementsWithData) {
+          // Check all data attributes
+          for (const attr of el.attributes) {
+            if (attr.name.startsWith('data-') && attr.value) {
+              // Check if value looks like an external URL
+              if (attr.value.startsWith('http') && !attr.value.includes('linkedin.com')) {
+                applyUrl = attr.value;
+                console.log('[ResumeGenie] Found apply URL via element data attr:', applyUrl);
+                break;
+              }
+            }
+          }
+          if (applyUrl) break;
+        }
+      }
+
+      // METHOD 8: Use debug search as last resort
+      if (!applyUrl) {
+        const debugUrls = debugFindApplyUrls();
+        if (debugUrls.length > 0) {
+          // Pick the most likely one (prefer greenhouse, lever, gem, etc.)
+          const atsUrls = debugUrls.filter(u =>
+            u.includes('greenhouse') || u.includes('lever') || u.includes('gem.com') ||
+            u.includes('ashby') || u.includes('workday') || u.includes('icims') ||
+            u.includes('smartrecruiters') || u.includes('bamboo') || u.includes('taleo')
+          );
+          applyUrl = atsUrls[0] || debugUrls[0];
+          console.log('[ResumeGenie] Found apply URL via debug search:', applyUrl);
+        }
+      }
+    }
+
+    // Log final apply URL status
+    if (applyUrl) {
+      console.log('[ResumeGenie] Final apply URL:', applyUrl);
+    } else if (!isEasyApply) {
+      console.log('[ResumeGenie] WARNING: External apply job but no URL found!');
+    }
+
     return {
       job_title: jobTitle,
       company_name: companyName,
       job_description: jobDescription,
       company_url: companyUrl,
       source_url: window.location.href,
+      apply_url: applyUrl,
+      is_easy_apply: isEasyApply,
       location: location,
       salary: salary,
       benefits: benefits,
@@ -338,7 +610,32 @@
     };
   }
 
+  // Helper to safely send messages (handles extension context invalidation)
+  function safeSendMessage(message) {
+    try {
+      // Check if chrome.runtime is still available
+      if (!chrome.runtime?.id) {
+        console.log('[ResumeGenie] Extension context invalidated, skipping message');
+        return;
+      }
+      chrome.runtime.sendMessage(message).catch((err) => {
+        // Silently ignore - extension may have been reloaded
+        if (err.message?.includes('Extension context invalidated')) {
+          console.log('[ResumeGenie] Extension was reloaded, refresh the page to reconnect');
+        }
+      });
+    } catch (err) {
+      // Extension context is invalid, stop trying to send messages
+      console.log('[ResumeGenie] Extension context invalid');
+    }
+  }
+
   function sendJobToSidePanel() {
+    // Check if extension context is still valid
+    if (!chrome.runtime?.id) {
+      return;
+    }
+
     const jobData = extractJobData();
     console.log('[ResumeGenie] Extracted job data:', {
       title: jobData.job_title,
@@ -353,21 +650,19 @@
       if (jobKey !== lastSentJobKey) {
         lastSentJobKey = jobKey;
         console.log('[ResumeGenie] Sending job to side panel:', jobData.job_title);
-        chrome.runtime.sendMessage({
+        safeSendMessage({
           type: 'JOB_DETECTED',
           source: 'linkedin',
           data: jobData
-        }).catch(() => {
-          // Side panel or background may not be ready
         });
       }
     } else {
       if (lastSentJobKey !== '') {
         lastSentJobKey = '';
-        chrome.runtime.sendMessage({
+        safeSendMessage({
           type: 'NO_JOB',
           source: 'linkedin'
-        }).catch(() => {});
+        });
       }
       console.log('[ResumeGenie] No job title found. Page title:', document.title);
     }
@@ -405,16 +700,101 @@
     sendJobToSidePanel();
   }, 1500);
 
+  // Function to find and click the Apply button
+  function clickApplyButton() {
+    console.log('[ResumeGenie] Looking for Apply button...');
+
+    // Look for the Apply button (not Easy Apply)
+    // The external Apply button typically has an external link icon
+    const applyButtons = document.querySelectorAll('button, a');
+
+    for (const btn of applyButtons) {
+      const text = btn.textContent?.trim().toLowerCase() || '';
+      const ariaLabel = btn.getAttribute('aria-label')?.toLowerCase() || '';
+      const className = btn.className?.toLowerCase() || '';
+
+      // Check if this is an Apply button (but not Easy Apply)
+      const isApplyButton = (
+        (text === 'apply' || text.startsWith('apply ') || ariaLabel.includes('apply')) &&
+        !text.includes('easy') &&
+        !ariaLabel.includes('easy')
+      );
+
+      // Also check for apply button classes
+      const hasApplyClass = className.includes('jobs-apply-button') || className.includes('apply');
+
+      if (isApplyButton || hasApplyClass) {
+        // Make sure it's visible
+        const rect = btn.getBoundingClientRect();
+        if (rect.width > 0 && rect.height > 0) {
+          // Check if it's not an Easy Apply button by looking at the text content
+          const fullText = btn.textContent?.toLowerCase() || '';
+          if (!fullText.includes('easy')) {
+            console.log('[ResumeGenie] Found Apply button, clicking...', btn);
+            btn.click();
+            return { clicked: true };
+          }
+        }
+      }
+    }
+
+    // Try more specific selectors
+    const specificSelectors = [
+      '.jobs-apply-button--top-card button:not([aria-label*="Easy"])',
+      '.jobs-s-apply button:not([aria-label*="Easy"])',
+      'button[aria-label="Apply"]',
+      'a[aria-label="Apply"]',
+      '.artdeco-button--primary:not([aria-label*="Easy"])'
+    ];
+
+    for (const selector of specificSelectors) {
+      try {
+        const btn = document.querySelector(selector);
+        if (btn) {
+          const text = btn.textContent?.toLowerCase() || '';
+          if (!text.includes('easy')) {
+            const rect = btn.getBoundingClientRect();
+            if (rect.width > 0 && rect.height > 0) {
+              console.log('[ResumeGenie] Found Apply button via selector, clicking...', selector);
+              btn.click();
+              return { clicked: true };
+            }
+          }
+        }
+      } catch (e) {
+        // Selector might be invalid
+      }
+    }
+
+    console.log('[ResumeGenie] Apply button not found');
+    return { clicked: false, error: 'Apply button not found' };
+  }
+
   // Listen for messages from the side panel (via background)
-  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.action === 'getJobData') {
-      const jobData = extractJobData();
-      sendResponse(jobData);
+  try {
+    if (chrome.runtime?.id) {
+      chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+        try {
+          if (request.action === 'getJobData') {
+            const jobData = extractJobData();
+            sendResponse(jobData);
+          }
+          if (request.action === 'scanForJob') {
+            sendJobToSidePanel();
+            sendResponse({ status: 'scanning' });
+          }
+          if (request.action === 'clickApplyButton') {
+            const result = clickApplyButton();
+            sendResponse(result);
+          }
+        } catch (err) {
+          console.log('[ResumeGenie] Error handling message:', err);
+          sendResponse({ error: err.message });
+        }
+        return true; // Keep the message channel open for async response
+      });
     }
-    if (request.action === 'scanForJob') {
-      sendJobToSidePanel();
-      sendResponse({ status: 'scanning' });
-    }
-    return true; // Keep the message channel open for async response
-  });
+  } catch (err) {
+    console.log('[ResumeGenie] Could not set up message listener');
+  }
 })();

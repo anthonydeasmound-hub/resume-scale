@@ -2,10 +2,29 @@
 
 import { useSession } from "next-auth/react";
 import { useRouter, useParams } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { ResumeData } from "@/types/resume";
 import TabsNav from "@/components/TabsNav";
 import { JobDetailSkeleton } from "@/components/Skeleton";
 import { showToast } from "@/components/Toast";
+import EditJobModal, { EditJobData } from "@/components/applied/EditJobModal";
+import ContactsTab from "@/components/applied/ContactsTab";
+import EmailTemplatesTab from "@/components/applied/EmailTemplatesTab";
+import InterviewPrepTab from "@/components/applied/InterviewPrepTab";
+
+// Import Review components for Resume Builder tab
+import JobAnalysisPanel from "@/components/review/JobAnalysisPanel";
+import ATSScoreCard from "@/components/review/ATSScoreCard";
+import { ATSScore } from "@/lib/ats-scorer";
+import ProfileSelector from "@/components/review/ProfileSelector";
+import SummarySection from "@/components/review/SummarySection";
+import WorkExperienceSection from "@/components/review/WorkExperienceSection";
+import SkillsSection from "@/components/review/SkillsSection";
+import CoverLetterPreview from "@/components/review/CoverLetterPreview";
+import ResumePreviewPane from "@/components/review/ResumePreviewPane";
+import BulletOptimizationModal, { BulletSuggestion } from "@/components/review/BulletOptimizationModal";
+import { MasterResume, TailoredResume, SelectedRole, Job as ReviewJob } from "@/components/review/types";
+import { Profile } from "@/components/master-resume/types";
 
 interface InterviewStage {
   id: number;
@@ -19,25 +38,6 @@ interface InterviewStage {
   notes: string | null;
 }
 
-interface EmailAction {
-  id: number;
-  job_id: number;
-  email_type: string;
-  direction: string;
-  subject: string | null;
-  status: string;
-  sent_at: string | null;
-  detected_at: string | null;
-  created_at: string;
-}
-
-interface JobNote {
-  id: number;
-  job_id: number;
-  content: string;
-  created_at: string;
-}
-
 interface JobDetails {
   salary_range: string | null;
   location: string | null;
@@ -49,6 +49,7 @@ interface Job {
   company_name: string;
   job_title: string;
   job_description: string | null;
+  job_url: string | null;
   status: string;
   date_applied: string | null;
   pinned: number;
@@ -56,8 +57,25 @@ interface Job {
   recruiter_email: string | null;
   recruiter_title: string | null;
   job_details_parsed: string | null;
+  interview_guide: string | null;
+  tailored_resume: string | null;
+  cover_letter: string | null;
+  resume_color: string | null;
+  source_profile_id: number | null;
+  excitement_level: number | null;
   created_at: string;
 }
+
+type TabType = "resume" | "cover" | "job-details" | "contacts" | "emails" | "interview-prep";
+
+const COLOR_OPTIONS = [
+  { id: "blue", name: "Navy Blue", hex: "#3D5A80" },
+  { id: "teal", name: "Teal", hex: "#2A9D8F" },
+  { id: "burgundy", name: "Burgundy", hex: "#7B2D26" },
+  { id: "forest", name: "Forest", hex: "#2D5A27" },
+  { id: "slate", name: "Slate", hex: "#4A5568" },
+  { id: "purple", name: "Purple", hex: "#5B4B8A" },
+];
 
 export default function JobDetailPage() {
   const { data: session, status } = useSession();
@@ -67,12 +85,66 @@ export default function JobDetailPage() {
 
   const [job, setJob] = useState<Job | null>(null);
   const [stages, setStages] = useState<InterviewStage[]>([]);
-  const [emails, setEmails] = useState<EmailAction[]>([]);
-  const [notes, setNotes] = useState<JobNote[]>([]);
   const [loading, setLoading] = useState(true);
-  const [newNote, setNewNote] = useState("");
-  const [addingNote, setAddingNote] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<TabType>("resume");
+
+  // Edit/Delete modal state
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  // Resume Builder state (from review page)
+  const [accentColor, setAccentColor] = useState("#3D5A80");
+  const [saving, setSaving] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
+  const [masterResume, setMasterResume] = useState<MasterResume | null>(null);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [selectedProfileId, setSelectedProfileId] = useState<number | null>(null);
+  const [expandedSection, setExpandedSection] = useState<"summary" | "experience" | "skills" | null>(null);
+
+  // Summary options
+  const [summaryOptions, setSummaryOptions] = useState<string[]>([]);
+  const [selectedSummaryIndex, setSelectedSummaryIndex] = useState<number | null>(null);
+  const [loadingSummaries, setLoadingSummaries] = useState(false);
+  const [editingSummary, setEditingSummary] = useState(false);
+  const [editedSummaryText, setEditedSummaryText] = useState("");
+
+  // Work experience
+  const [selectedRoles, setSelectedRoles] = useState<SelectedRole[]>([]);
+  const [editedBullets, setEditedBullets] = useState<Record<string, string>>({});
+  const [editingBulletKey, setEditingBulletKey] = useState<string | null>(null);
+  const [editingBulletText, setEditingBulletText] = useState("");
+  const [draggedBullet, setDraggedBullet] = useState<{ roleIndex: number; selectedIndex: number } | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  // Skills
+  const [skillsFromResume, setSkillsFromResume] = useState<string[]>([]);
+  const [skillsFromJobDescription, setSkillsFromJobDescription] = useState<string[]>([]);
+  const [recommendedSkills, setRecommendedSkills] = useState<string[]>([]);
+  const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+  const [loadingSkills, setLoadingSkills] = useState(false);
+
+  // Cover letter
+  const [coverLetter, setCoverLetter] = useState("");
+  const [generatingCoverLetter, setGeneratingCoverLetter] = useState(false);
+
+  // Preview
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [previewHtml, setPreviewHtml] = useState<string>("");
+  const [loadingPreview, setLoadingPreview] = useState(false);
+
+  // ATS Score
+  const [atsScore, setAtsScore] = useState<ATSScore | null>(null);
+  const [loadingAts, setLoadingAts] = useState(false);
+  const [loadingAllContent, setLoadingAllContent] = useState(false);
+
+  // Bullet optimization
+  const [optimizingBullets, setOptimizingBullets] = useState(false);
+  const [bulletSuggestions, setBulletSuggestions] = useState<BulletSuggestion[]>([]);
+  const [showOptimizationModal, setShowOptimizationModal] = useState(false);
+
+  const MAX_TOTAL_BULLETS = 12;
+  const INITIAL_SUGGESTIONS_SHOWN = 4;
+  const [expandedBulletOptions, setExpandedBulletOptions] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     document.title = "ResumeGenie - Job Details";
@@ -81,146 +153,724 @@ export default function JobDetailPage() {
   useEffect(() => {
     if (session && jobId) {
       fetchJobData();
+      fetchProfiles();
     }
   }, [session, jobId]);
 
+  useEffect(() => {
+    if (selectedProfileId !== null) {
+      fetchMasterResume(selectedProfileId);
+    }
+  }, [selectedProfileId]);
+
   const fetchJobData = async () => {
     try {
-      const [jobRes, stagesRes, emailsRes, notesRes] = await Promise.all([
+      const [jobRes, stagesRes] = await Promise.all([
         fetch(`/api/jobs/${jobId}`),
         fetch(`/api/jobs/${jobId}/stages`),
-        fetch(`/api/jobs/${jobId}/emails`),
-        fetch(`/api/jobs/${jobId}/notes`),
       ]);
 
       if (jobRes.ok) {
         const jobData = await jobRes.json();
         setJob(jobData);
+        setAccentColor(jobData.resume_color && jobData.resume_color !== "#000000" ? jobData.resume_color : "#3D5A80");
+        if (jobData.cover_letter) {
+          setCoverLetter(jobData.cover_letter);
+        }
+        if (jobData.source_profile_id) {
+          setSelectedProfileId(jobData.source_profile_id);
+        }
       }
       if (stagesRes.ok) {
         const stagesData = await stagesRes.json();
         setStages(stagesData);
       }
-      if (emailsRes.ok) {
-        const emailsData = await emailsRes.json();
-        setEmails(emailsData);
-      }
-      if (notesRes.ok) {
-        const notesData = await notesRes.json();
-        setNotes(notesData);
-      }
     } catch (err) {
       console.error("Failed to fetch job data:", err);
-      setError("Failed to load job details. Please refresh the page.");
     } finally {
       setLoading(false);
     }
   };
 
-  const togglePin = async () => {
-    if (!job) return;
+  const fetchProfiles = async () => {
     try {
-      await fetch(`/api/jobs/${jobId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pinned: job.pinned ? 0 : 1 }),
-      });
-      const wasPinned = job.pinned;
-      setJob((prev) => (prev ? { ...prev, pinned: prev.pinned ? 0 : 1 } : null));
-      showToast("success", wasPinned ? "Job unpinned" : "Job pinned");
-    } catch (err) {
-      console.error("Failed to toggle pin:", err);
-      setError("Failed to update pin status.");
-    }
-  };
-
-  const addNote = async () => {
-    if (!newNote.trim()) return;
-    setAddingNote(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/jobs/${jobId}/notes`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: newNote }),
-      });
-      if (res.ok) {
-        const note = await res.json();
-        setNotes((prev) => [note, ...prev]);
-        setNewNote("");
-        showToast("success", "Note added");
-      } else {
-        setError("Failed to add note. Please try again.");
+      const response = await fetch("/api/resume/profiles");
+      if (response.ok) {
+        const data = await response.json();
+        setProfiles(data.profiles);
+        if (selectedProfileId === null) {
+          const primaryProfile = data.profiles.find((p: Profile) => p.is_primary);
+          if (primaryProfile) {
+            setSelectedProfileId(primaryProfile.id);
+          } else if (data.profiles.length > 0) {
+            setSelectedProfileId(data.profiles[0].id);
+          }
+        }
       }
     } catch (err) {
-      console.error("Failed to add note:", err);
-      setError("Failed to add note. Please try again.");
-    } finally {
-      setAddingNote(false);
+      console.error("Failed to fetch profiles:", err);
     }
   };
 
-  const updateStageStatus = async (stageId: number, newStatus: string) => {
+  const fetchMasterResume = async (profileId?: number) => {
     try {
-      await fetch(`/api/jobs/${jobId}/stages/${stageId}`, {
+      const url = profileId ? `/api/resume/master?profileId=${profileId}` : "/api/resume/master";
+      const response = await fetch(url);
+      if (response.ok) {
+        const data = await response.json();
+        setMasterResume(data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch master resume:", err);
+    }
+  };
+
+  // Load saved tailored resume
+  useEffect(() => {
+    if (job && masterResume && job.tailored_resume) {
+      const tailored = JSON.parse(job.tailored_resume) as TailoredResume;
+      if (tailored.summary) {
+        setSummaryOptions([tailored.summary]);
+        setSelectedSummaryIndex(0);
+      }
+      if (tailored.skills) {
+        setSelectedSkills(tailored.skills);
+      }
+      if (tailored.work_experience && masterResume) {
+        const reconstructedRoles: SelectedRole[] = tailored.work_experience.map((exp) => {
+          const masterIndex = masterResume.work_experience.findIndex(
+            (m) => m.company === exp.company && m.title === exp.title
+          );
+          return {
+            roleIndex: masterIndex !== -1 ? masterIndex : 0,
+            masterBullets: exp.description,
+            aiBullets: [],
+            selectedBullets: exp.description.map((_, i) => i),
+            bulletOptions: exp.description,
+            loadingBullets: false,
+          };
+        });
+        setSelectedRoles(reconstructedRoles);
+      }
+    }
+  }, [job, masterResume]);
+
+  // Auto-load AI content
+  const loadAllContent = async () => {
+    if (!job || !masterResume || loadingAllContent) return;
+
+    setLoadingAllContent(true);
+    setLoadingSummaries(true);
+    setLoadingSkills(true);
+
+    const topRoles = masterResume.work_experience.slice(0, 3);
+    const initialRoles: SelectedRole[] = topRoles.map((role, idx) => {
+      const masterBullets = role.description.slice(0, 8);
+      const initialSelected = Math.min(3, masterBullets.length);
+      return {
+        roleIndex: idx,
+        masterBullets,
+        aiBullets: [],
+        bulletOptions: masterBullets,
+        selectedBullets: Array.from({ length: initialSelected }, (_, i) => i),
+        loadingBullets: true,
+      };
+    });
+    setSelectedRoles(initialRoles);
+
+    try {
+      const response = await fetch("/api/ai/generate-all-content", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobId: job.id, profileId: selectedProfileId }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.summaries?.length > 0) {
+          setSummaryOptions(data.summaries);
+          setSelectedSummaryIndex(0);
+        }
+        if (data.skills) {
+          setSkillsFromResume(data.skills.fromResume || []);
+          setSkillsFromJobDescription(data.skills.fromJobDescription || []);
+          setRecommendedSkills(data.skills.recommended || []);
+          setSelectedSkills(data.skills.fromResume || []);
+        }
+        if (data.rolesBullets?.length > 0) {
+          setSelectedRoles((prev) =>
+            prev.map((r) => {
+              const roleBullets = data.rolesBullets.find(
+                (rb: { roleIndex: number; bullets: string[] }) => rb.roleIndex === r.roleIndex
+              );
+              if (roleBullets?.bullets) {
+                const combined = [...r.masterBullets, ...roleBullets.bullets];
+                return {
+                  ...r,
+                  aiBullets: roleBullets.bullets,
+                  bulletOptions: combined,
+                  loadingBullets: false,
+                  selectedBullets: r.masterBullets.map((_, i) => i),
+                };
+              }
+              return { ...r, loadingBullets: false };
+            })
+          );
+        } else {
+          setSelectedRoles((prev) => prev.map((r) => ({ ...r, loadingBullets: false })));
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load all content:", error);
+      setSelectedRoles((prev) => prev.map((r) => ({ ...r, loadingBullets: false })));
+    } finally {
+      setLoadingAllContent(false);
+      setLoadingSummaries(false);
+      setLoadingSkills(false);
+    }
+  };
+
+  useEffect(() => {
+    if (job && masterResume && !job.tailored_resume) {
+      if (summaryOptions.length === 0 && selectedRoles.length === 0 && !loadingAllContent) {
+        loadAllContent();
+      }
+    }
+  }, [job, masterResume]);
+
+  const toggleSection = async (section: "summary" | "experience" | "skills") => {
+    setExpandedSection(expandedSection === section ? null : section);
+  };
+
+  const handleProfileChange = async (profileId: number) => {
+    if (profileId === selectedProfileId) return;
+
+    const hasContent = summaryOptions.length > 0 || selectedRoles.length > 0 || selectedSkills.length > 0;
+    if (hasContent) {
+      const confirmed = window.confirm(
+        "Changing the profile will reset all AI-generated content. Do you want to continue?"
+      );
+      if (!confirmed) return;
+    }
+
+    setSummaryOptions([]);
+    setSelectedSummaryIndex(null);
+    setSelectedRoles([]);
+    setEditedBullets({});
+    setSkillsFromResume([]);
+    setSkillsFromJobDescription([]);
+    setRecommendedSkills([]);
+    setSelectedSkills([]);
+    setAtsScore(null);
+
+    setSelectedProfileId(profileId);
+    setHasChanges(true);
+  };
+
+  const totalSelectedBullets = selectedRoles.reduce((sum, r) => sum + r.selectedBullets.length, 0);
+
+  const toggleBullet = (roleIndex: number, bulletIndex: number) => {
+    setSelectedRoles((prev) => {
+      const currentTotal = prev.reduce((sum, r) => sum + r.selectedBullets.length, 0);
+      return prev.map((r) => {
+        if (r.roleIndex !== roleIndex) return r;
+        const isSelected = r.selectedBullets.includes(bulletIndex);
+        let newSelected: number[];
+        if (isSelected) {
+          newSelected = r.selectedBullets.filter((i) => i !== bulletIndex);
+        } else if (currentTotal < MAX_TOTAL_BULLETS) {
+          newSelected = [...r.selectedBullets, bulletIndex];
+        } else {
+          return r;
+        }
+        return { ...r, selectedBullets: newSelected };
+      });
+    });
+    setHasChanges(true);
+  };
+
+  const getBulletText = (roleIndex: number, bulletIndex: number, bulletOptions: string[]): string => {
+    const key = `${roleIndex}-${bulletIndex}`;
+    return editedBullets[key] ?? bulletOptions[bulletIndex];
+  };
+
+  const startEditingBullet = (roleIndex: number, bulletIndex: number, currentText: string) => {
+    setEditingBulletKey(`${roleIndex}-${bulletIndex}`);
+    setEditingBulletText(currentText);
+  };
+
+  const saveEditedBullet = () => {
+    if (!editingBulletKey) return;
+    setEditedBullets((prev) => ({ ...prev, [editingBulletKey]: editingBulletText }));
+    setEditingBulletKey(null);
+    setEditingBulletText("");
+    setHasChanges(true);
+  };
+
+  const cancelEditingBullet = () => {
+    setEditingBulletKey(null);
+    setEditingBulletText("");
+  };
+
+  const handleDragStart = (roleIndex: number, selectedIndex: number) => {
+    setDraggedBullet({ roleIndex, selectedIndex });
+  };
+
+  const handleDragOver = (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault();
+    setDragOverIndex(targetIndex);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverIndex(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, roleIndex: number, targetIndex: number) => {
+    e.preventDefault();
+    if (!draggedBullet || draggedBullet.roleIndex !== roleIndex) {
+      setDraggedBullet(null);
+      setDragOverIndex(null);
+      return;
+    }
+    const sourceIndex = draggedBullet.selectedIndex;
+    if (sourceIndex === targetIndex) {
+      setDraggedBullet(null);
+      setDragOverIndex(null);
+      return;
+    }
+    setSelectedRoles((prev) =>
+      prev.map((r) => {
+        if (r.roleIndex !== roleIndex) return r;
+        const newSelected = [...r.selectedBullets];
+        const [removed] = newSelected.splice(sourceIndex, 1);
+        newSelected.splice(targetIndex, 0, removed);
+        return { ...r, selectedBullets: newSelected };
+      })
+    );
+    setDraggedBullet(null);
+    setDragOverIndex(null);
+    setHasChanges(true);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedBullet(null);
+    setDragOverIndex(null);
+  };
+
+  const toggleSkill = (skill: string) => {
+    setSelectedSkills((prev) => (prev.includes(skill) ? prev.filter((s) => s !== skill) : [...prev, skill]));
+    setHasChanges(true);
+  };
+
+  const selectSummary = (index: number) => {
+    setSelectedSummaryIndex(index);
+    setHasChanges(true);
+  };
+
+  const updateColor = async (newColor: string) => {
+    if (!job) return;
+    setAccentColor(newColor);
+    await fetch(`/api/jobs/${job.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ resume_color: newColor }),
+    });
+  };
+
+  const generateCoverLetter = async () => {
+    if (!job) return;
+    setGeneratingCoverLetter(true);
+    try {
+      const response = await fetch(`/api/jobs/${job.id}/generate`, { method: "POST" });
+      const data = await response.json();
+      if (response.ok && data.cover_letter) {
+        setCoverLetter(data.cover_letter);
+        setHasChanges(true);
+        showToast("success", "Cover letter generated!");
+      } else {
+        showToast("error", data.error || "Failed to generate cover letter.");
+      }
+    } catch (err) {
+      console.error("Failed to generate cover letter:", err);
+      showToast("error", "Failed to generate cover letter.");
+    } finally {
+      setGeneratingCoverLetter(false);
+    }
+  };
+
+  const calculateAtsScore = async () => {
+    if (!job || !masterResume || selectedRoles.length === 0) return;
+    setLoadingAts(true);
+    try {
+      const resumeContent = {
+        summary: selectedSummaryIndex !== null ? summaryOptions[selectedSummaryIndex] : undefined,
+        experience: selectedRoles.map((r) => {
+          const masterRole = masterResume.work_experience[r.roleIndex];
+          return {
+            title: masterRole.title,
+            company: masterRole.company,
+            bullets: r.selectedBullets.map((i) => getBulletText(r.roleIndex, i, r.bulletOptions)),
+          };
+        }),
+        skills: selectedSkills,
+        education: masterResume.education.map((e) => ({
+          degree: e.degree,
+          field: e.field,
+          institution: e.institution,
+        })),
+      };
+      const response = await fetch("/api/ats/score", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          resume: resumeContent,
+          jobDescription: job.job_description,
+          jobTitle: job.job_title,
+        }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setAtsScore(data);
+      }
+    } catch (err) {
+      console.error("Failed to calculate ATS score:", err);
+    } finally {
+      setLoadingAts(false);
+    }
+  };
+
+  const optimizeAllBullets = async () => {
+    if (!job || !masterResume || !atsScore) return;
+    setOptimizingBullets(true);
+    try {
+      const bulletsToOptimize: { roleIndex: number; bulletIndex: number; roleName: string; bulletText: string }[] = [];
+      selectedRoles.forEach((role) => {
+        const masterRole = masterResume.work_experience[role.roleIndex];
+        role.selectedBullets.forEach((bulletIdx) => {
+          const bulletText = getBulletText(role.roleIndex, bulletIdx, role.bulletOptions);
+          bulletsToOptimize.push({
+            roleIndex: role.roleIndex,
+            bulletIndex: bulletIdx,
+            roleName: `${masterRole.title} at ${masterRole.company}`,
+            bulletText,
+          });
+        });
+      });
+      const promises = bulletsToOptimize.map(async (bullet) => {
+        try {
+          const response = await fetch("/api/ai/improve-bullet", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              jobId: job.id,
+              bullet: bullet.bulletText,
+              missingKeywords: atsScore.breakdown.keywords.missing || [],
+              missingSkills: atsScore.breakdown.hardSkills.missing || [],
+            }),
+          });
+          if (response.ok) {
+            const data = await response.json();
+            if (data.improved && data.improved !== bullet.bulletText) {
+              return {
+                roleIndex: bullet.roleIndex,
+                bulletIndex: bullet.bulletIndex,
+                roleName: bullet.roleName,
+                original: bullet.bulletText,
+                improved: data.improved,
+                selected: true,
+              } as BulletSuggestion;
+            }
+          }
+          return null;
+        } catch {
+          return null;
+        }
+      });
+      const results = await Promise.all(promises);
+      const validSuggestions = results.filter((s): s is BulletSuggestion => s !== null);
+      if (validSuggestions.length > 0) {
+        setBulletSuggestions(validSuggestions);
+        setShowOptimizationModal(true);
+      } else {
+        showToast("info", "All bullets are already optimized for ATS!");
+      }
+    } catch (error) {
+      console.error("Failed to optimize bullets:", error);
+      showToast("error", "Failed to optimize bullets");
+    } finally {
+      setOptimizingBullets(false);
+    }
+  };
+
+  const applyBulletImprovements = (selectedSuggestions: BulletSuggestion[]) => {
+    const newEditedBullets = { ...editedBullets };
+    selectedSuggestions.forEach((suggestion) => {
+      const key = `${suggestion.roleIndex}-${suggestion.bulletIndex}`;
+      newEditedBullets[key] = suggestion.improved;
+    });
+    setEditedBullets(newEditedBullets);
+    setHasChanges(true);
+    setShowOptimizationModal(false);
+    setBulletSuggestions([]);
+    showToast("success", `Applied ${selectedSuggestions.length} bullet improvement${selectedSuggestions.length !== 1 ? "s" : ""}`);
+  };
+
+  const buildTailoredResume = (): TailoredResume | null => {
+    if (!masterResume) return null;
+    const summary = selectedSummaryIndex !== null ? summaryOptions[selectedSummaryIndex] : "";
+    const workExperience = selectedRoles.map((r) => {
+      const masterRole = masterResume.work_experience[r.roleIndex];
+      return {
+        company: masterRole.company,
+        title: masterRole.title,
+        start_date: masterRole.start_date,
+        end_date: masterRole.end_date,
+        description: r.selectedBullets.map((i) => getBulletText(r.roleIndex, i, r.bulletOptions)),
+      };
+    });
+    return {
+      contact_info: masterResume.contact_info,
+      summary,
+      work_experience: workExperience,
+      skills: selectedSkills,
+      education: masterResume.education,
+    };
+  };
+
+  const convertToResumeData = useCallback((tailored: TailoredResume, jobTitle: string): ResumeData => {
+    return {
+      contactInfo: {
+        name: tailored.contact_info.name,
+        email: tailored.contact_info.email,
+        phone: tailored.contact_info.phone,
+        location: tailored.contact_info.location,
+        linkedin: tailored.contact_info.linkedin,
+      },
+      jobTitle: jobTitle,
+      summary: tailored.summary,
+      experience: tailored.work_experience.map((exp) => ({
+        title: exp.title,
+        company: exp.company,
+        dates: `${exp.start_date} - ${exp.end_date}`,
+        description: exp.description,
+      })),
+      education: tailored.education.map((edu) => ({
+        school: edu.institution,
+        degree: edu.degree,
+        dates: edu.graduation_date,
+      })),
+      skills: tailored.skills,
+    };
+  }, []);
+
+  // Fetch preview HTML
+  useEffect(() => {
+    const fetchPreviewHtml = async () => {
+      const tailored = buildTailoredResume();
+      if (!tailored || !job) {
+        setPreviewHtml("");
+        return;
+      }
+      setLoadingPreview(true);
+      try {
+        const resumeData = convertToResumeData(tailored, job.job_title);
+        const response = await fetch("/api/resume/preview-html", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ data: resumeData, accentColor }),
+        });
+        if (response.ok) {
+          const html = await response.text();
+          setPreviewHtml(html);
+        }
+      } catch (err) {
+        console.error("Failed to fetch preview HTML:", err);
+      } finally {
+        setLoadingPreview(false);
+      }
+    };
+    const timeoutId = setTimeout(fetchPreviewHtml, 300);
+    return () => clearTimeout(timeoutId);
+  }, [selectedRoles, selectedSummaryIndex, summaryOptions, selectedSkills, accentColor, masterResume, job, editedBullets, convertToResumeData]);
+
+  const saveChanges = async () => {
+    if (!job) return;
+    setSaving(true);
+    try {
+      const tailoredResume = buildTailoredResume();
+      await fetch(`/api/jobs/${job.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify({
+          tailored_resume: JSON.stringify(tailoredResume),
+          cover_letter: coverLetter,
+          source_profile_id: selectedProfileId,
+        }),
       });
-      setStages((prev) =>
-        prev.map((s) => (s.id === stageId ? { ...s, status: newStatus } : s))
-      );
+      setHasChanges(false);
+      showToast("success", "Changes saved");
     } catch (err) {
-      console.error("Failed to update stage:", err);
-      setError("Failed to update stage status.");
+      console.error("Failed to save:", err);
+      showToast("error", "Failed to save changes");
+    } finally {
+      setSaving(false);
     }
   };
 
-  const getStageColor = (stage: InterviewStage) => {
-    switch (stage.status) {
-      case "completed":
-        return "bg-green-500 border-green-500";
-      case "scheduled":
-        return "bg-yellow-500 border-yellow-500";
-      case "rejected":
-        return "bg-red-500 border-red-500";
-      default:
-        return "bg-gray-200 border-gray-300";
+  const handleEditJob = async (data: EditJobData) => {
+    if (!job) return;
+    try {
+      // Update job details - this should NOT trigger re-analysis
+      const jobDetailsParsed = job.job_details_parsed ? JSON.parse(job.job_details_parsed) : {};
+      jobDetailsParsed.location = data.location;
+
+      await fetch(`/api/jobs/${job.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          job_title: data.job_title,
+          company_name: data.company_name,
+          job_url: data.job_url,
+          job_description: data.job_description,
+          job_details_parsed: JSON.stringify(jobDetailsParsed),
+        }),
+      });
+
+      setJob({
+        ...job,
+        job_title: data.job_title,
+        company_name: data.company_name,
+        job_url: data.job_url,
+        job_description: data.job_description,
+        job_details_parsed: JSON.stringify(jobDetailsParsed),
+      });
+      showToast("success", "Job updated");
+    } catch (err) {
+      console.error("Failed to update job:", err);
+      showToast("error", "Failed to update job");
+      throw err;
     }
   };
 
-  const getStageLabel = (type: string) => {
-    const labels: Record<string, string> = {
-      phone_screen: "Phone Screen",
-      technical: "Technical",
-      behavioral: "Behavioral",
-      hiring_manager: "Hiring Manager",
-      final: "Final Round",
-      onsite: "Onsite",
-      panel: "Panel",
-      take_home: "Take Home",
-      other: "Other",
-    };
-    return labels[type] || type;
+  const handleDeleteJob = async () => {
+    if (!job) return;
+    if (!confirm("Are you sure you want to delete this job? This cannot be undone.")) return;
+
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/jobs/${job.id}`, { method: "DELETE" });
+      if (res.ok) {
+        showToast("success", "Job deleted");
+        router.push("/applied");
+      } else {
+        showToast("error", "Failed to delete job");
+      }
+    } catch (err) {
+      console.error("Failed to delete job:", err);
+      showToast("error", "Failed to delete job");
+    } finally {
+      setDeleting(false);
+    }
   };
 
-  const formatDate = (dateStr: string | null) => {
-    if (!dateStr) return null;
-    return new Date(dateStr).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
+  const downloadResumePDF = async () => {
+    if (!job || !masterResume) return;
+    const tailoredResume = buildTailoredResume();
+    if (!tailoredResume) return;
+
+    try {
+      const resumeData = {
+        contactInfo: {
+          name: tailoredResume.contact_info.name,
+          email: tailoredResume.contact_info.email,
+          phone: tailoredResume.contact_info.phone,
+          location: tailoredResume.contact_info.location,
+          linkedin: tailoredResume.contact_info.linkedin || "",
+        },
+        jobTitle: tailoredResume.work_experience[0]?.title || job.job_title,
+        summary: tailoredResume.summary,
+        experience: tailoredResume.work_experience.map((exp) => ({
+          title: exp.title,
+          company: exp.company,
+          dates: `${exp.start_date} - ${exp.end_date}`,
+          description: exp.description,
+        })),
+        education: tailoredResume.education.map((edu) => ({
+          school: edu.institution,
+          degree: edu.degree,
+          dates: edu.graduation_date,
+          specialty: edu.field,
+        })),
+        skills: tailoredResume.skills,
+      };
+
+      const response = await fetch("/api/generate-resume-pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ data: resumeData, template: "professional", accentColor }),
+      });
+
+      if (!response.ok) throw new Error("Failed to generate PDF");
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `Resume_${job.company_name.replace(/\s+/g, "_")}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("PDF generation error:", error);
+      showToast("error", "Failed to generate PDF.");
+    }
   };
 
-  const formatDateTime = (dateStr: string | null) => {
-    if (!dateStr) return null;
-    return new Date(dateStr).toLocaleString("en-US", {
-      month: "short",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    });
+  const downloadCoverLetterPDF = async () => {
+    if (!job || !masterResume) return;
+    try {
+      const paragraphs = coverLetter.split("\n\n").filter((p) => p.trim());
+      const opening = paragraphs[0] || "";
+      const body = paragraphs.slice(1, -1).join("\n\n") || "";
+      const closing = paragraphs[paragraphs.length - 1] || "";
+
+      const coverLetterData = {
+        contactInfo: {
+          name: masterResume.contact_info.name,
+          email: masterResume.contact_info.email,
+          phone: masterResume.contact_info.phone,
+          location: masterResume.contact_info.location,
+          linkedin: masterResume.contact_info.linkedin || "",
+        },
+        companyName: job.company_name,
+        jobTitle: job.job_title,
+        opening,
+        body,
+        closing,
+      };
+
+      const response = await fetch("/api/generate-cover-letter-pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ data: coverLetterData, template: "professional", accentColor }),
+      });
+
+      if (!response.ok) throw new Error("Failed to generate PDF");
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `CoverLetter_${job.company_name.replace(/\s+/g, "_")}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Cover letter PDF error:", error);
+      showToast("error", "Failed to generate cover letter PDF.");
+    }
   };
 
   const getJobDetails = (): JobDetails | null => {
@@ -230,6 +880,11 @@ export default function JobDetailPage() {
     } catch {
       return null;
     }
+  };
+
+  const formatDate = (dateStr: string | null) => {
+    if (!dateStr) return null;
+    return new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   };
 
   if (status === "loading" || loading) {
@@ -252,370 +907,346 @@ export default function JobDetailPage() {
   }
 
   const jobDetails = getJobDetails();
-
-  // Create default stages if none exist
-  const displayStages =
-    stages.length > 0
-      ? stages
-      : [
-          { id: 0, job_id: parseInt(jobId), stage_number: 1, stage_type: "applied", stage_name: "Applied", status: job.status === "applied" ? "completed" : "pending", scheduled_at: null, completed_at: job.date_applied, notes: null },
-          { id: 0, job_id: parseInt(jobId), stage_number: 2, stage_type: "phone_screen", stage_name: "Phone Screen", status: "pending", scheduled_at: null, completed_at: null, notes: null },
-          { id: 0, job_id: parseInt(jobId), stage_number: 3, stage_type: "technical", stage_name: "Technical", status: "pending", scheduled_at: null, completed_at: null, notes: null },
-          { id: 0, job_id: parseInt(jobId), stage_number: 4, stage_type: "hiring_manager", stage_name: "Hiring Manager", status: "pending", scheduled_at: null, completed_at: null, notes: null },
-          { id: 0, job_id: parseInt(jobId), stage_number: 5, stage_type: "final", stage_name: "Final Round", status: "pending", scheduled_at: null, completed_at: null, notes: null },
-        ];
+  const currentStage = stages.find((s) => s.status === "scheduled" || s.status === "pending");
 
   return (
     <div className="min-h-screen bg-brand-gray">
       <TabsNav reviewCount={0} />
 
       <div className="pt-14 md:pt-0 md:ml-64 p-4 md:p-8">
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3 mb-4 flex items-center justify-between">
-            <span>{error}</span>
-            <button onClick={() => setError(null)} className="text-red-500 hover:text-red-700 ml-2">&times;</button>
-          </div>
-        )}
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <button
-            onClick={() => router.push("/applied")}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back to Applications
-          </button>
-
-          <button
-            onClick={togglePin}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${
-              job.pinned
-                ? "bg-yellow-50 border-yellow-300 text-yellow-700"
-                : "bg-white border-gray-300 text-gray-600 hover:bg-gray-50"
-            }`}
-          >
-            <svg
-              className="w-5 h-5"
-              fill={job.pinned ? "currentColor" : "none"}
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+        <div className="flex items-start justify-between mb-6">
+          <div className="flex-1">
+            <button
+              onClick={() => router.push("/applied")}
+              className="flex items-center gap-1 text-brand-blue hover:text-brand-blue-dark text-sm mb-3 group"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
-              />
-            </svg>
-            {job.pinned ? "Pinned" : "Pin"}
-          </button>
-        </div>
+              <svg className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Back to Applications
+            </button>
 
-        {/* Company Info Card */}
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-          <div className="flex items-start gap-6">
-            <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shrink-0">
-              <span className="text-3xl font-bold text-white">
-                {job.company_name?.charAt(0)?.toUpperCase() || "?"}
-              </span>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-1">{job.job_title}</h1>
+            <div className="text-gray-600 mb-2">
+              <span className="font-medium">{job.company_name}</span>
+              {jobDetails?.location && (
+                <>
+                  <span className="mx-2">—</span>
+                  <span>{jobDetails.location}</span>
+                </>
+              )}
             </div>
-            <div className="flex-1">
-              <h1 className="text-2xl font-bold text-gray-900">{job.company_name}</h1>
-              <p className="text-lg text-gray-600 mb-3">{job.job_title}</p>
-              <div className="flex flex-wrap gap-2">
-                {jobDetails?.location && (
-                  <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
-                    {jobDetails.location}
-                  </span>
-                )}
-                {jobDetails?.salary_range && (
-                  <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">
-                    {jobDetails.salary_range}
-                  </span>
-                )}
-                {jobDetails?.work_type && (
-                  <span className="px-3 py-1 bg-blue-100 text-brand-blue rounded-full text-sm">
-                    {jobDetails.work_type}
-                  </span>
-                )}
-                {job.date_applied && (
-                  <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm">
-                    Applied {formatDate(job.date_applied)}
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Interview Roadmap */}
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-6">Interview Roadmap</h2>
-
-          <div className="relative">
-            {/* Progress Line */}
-            <div className="absolute top-6 left-0 right-0 h-1 bg-gray-200 -z-0" />
-            <div
-              className="absolute top-6 left-0 h-1 bg-indigo-500 transition-all -z-0"
-              style={{
-                width: `${
-                  (displayStages.filter((s) => s.status === "completed").length /
-                    displayStages.length) *
-                  100
-                }%`,
-              }}
-            />
-
-            {/* Stage Nodes */}
-            <div className="relative flex justify-between">
-              {displayStages.map((stage, idx) => (
-                <div key={stage.id || idx} className="flex flex-col items-center" style={{ width: `${100 / displayStages.length}%` }}>
-                  <button
-                    onClick={() => {
-                      if (stage.id) {
-                        const nextStatus =
-                          stage.status === "pending"
-                            ? "scheduled"
-                            : stage.status === "scheduled"
-                            ? "completed"
-                            : stage.status === "completed"
-                            ? "pending"
-                            : "pending";
-                        updateStageStatus(stage.id, nextStatus);
-                      }
-                    }}
-                    className={`w-12 h-12 rounded-full border-4 flex items-center justify-center transition-all ${getStageColor(
-                      stage
-                    )} ${stage.id ? "cursor-pointer hover:scale-110" : "cursor-default"}`}
-                  >
-                    {stage.status === "completed" ? (
-                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                      </svg>
-                    ) : stage.status === "scheduled" ? (
-                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    ) : stage.status === "rejected" ? (
-                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    ) : (
-                      <span className="text-gray-400 font-medium">{idx + 1}</span>
-                    )}
-                  </button>
-
-                  <div className="mt-3 text-center">
-                    <p className="text-sm font-medium text-gray-900">
-                      {stage.stage_name || getStageLabel(stage.stage_type)}
-                    </p>
-                    {stage.scheduled_at && (
-                      <p className="text-xs text-indigo-600 mt-1">
-                        {formatDateTime(stage.scheduled_at)}
-                      </p>
-                    )}
-                    {stage.completed_at && stage.status === "completed" && (
-                      <p className="text-xs text-green-600 mt-1">
-                        {formatDate(stage.completed_at)}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-6 flex justify-center gap-6 text-sm text-gray-500">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-gray-200 border border-gray-300" />
-              <span>Pending</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-yellow-500" />
-              <span>Scheduled</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-green-500" />
-              <span>Completed</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Two Column Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          {/* Recruiter Info */}
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Recruiter</h2>
-            {job.recruiter_name || job.recruiter_email ? (
-              <div className="space-y-3">
-                {job.recruiter_name && (
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
-                      <span className="text-gray-500 font-medium">
-                        {job.recruiter_name.charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900">{job.recruiter_name}</p>
-                      {job.recruiter_title && (
-                        <p className="text-sm text-gray-500">{job.recruiter_title}</p>
-                      )}
-                    </div>
-                  </div>
-                )}
-                {job.recruiter_email && (
-                  <a
-                    href={`mailto:${job.recruiter_email}`}
-                    className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
-                    {job.recruiter_email}
-                  </a>
-                )}
-              </div>
-            ) : (
-              <p className="text-gray-500">No recruiter information available</p>
+            {job.date_applied && (
+              <p className="text-sm text-gray-500">Applied {formatDate(job.date_applied)}</p>
             )}
           </div>
 
-          {/* Quick Actions */}
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
-            <div className="space-y-3">
+          {/* Edit/Delete buttons */}
+          <div className="flex items-center gap-2">
+            {hasChanges && (
               <button
-                onClick={() => router.push(`/review?job=${jobId}`)}
-                className="w-full flex items-center gap-3 px-4 py-3 bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 transition-colors"
+                onClick={saveChanges}
+                disabled={saving}
+                className="px-4 py-2 bg-brand-gold text-gray-900 rounded-lg font-medium hover:bg-brand-gold-dark disabled:opacity-50"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                View Resume & Cover Letter
+                {saving ? "Saving..." : "Save"}
               </button>
-              <button
-                onClick={() => showToast("info", "Thank you email generation coming soon")}
-                className="w-full flex items-center gap-3 px-4 py-3 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-                Generate Thank You Email
-              </button>
-              <button
-                onClick={() => showToast("info", "Interview guide available from Applied page")}
-                className="w-full flex items-center gap-3 px-4 py-3 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                </svg>
-                View Interview Guide
-              </button>
-            </div>
+            )}
+            <button
+              onClick={() => setShowEditModal(true)}
+              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
+              title="Edit job"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
+            </button>
+            <button
+              onClick={handleDeleteJob}
+              disabled={deleting}
+              className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg"
+              title="Delete job"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
           </div>
         </div>
 
-        {/* Email Activity */}
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Email Activity</h2>
-          {emails.length > 0 ? (
-            <div className="space-y-3">
-              {emails.map((email) => (
-                <div
-                  key={email.id}
-                  className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg"
-                >
-                  <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                      email.direction === "inbound"
-                        ? "bg-blue-100 text-brand-blue"
-                        : "bg-green-100 text-green-600"
-                    }`}
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d={
-                          email.direction === "inbound"
-                            ? "M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                            : "M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-                        }
-                      />
-                    </svg>
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-gray-900">
-                      {email.subject || email.email_type.replace("_", " ")}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      {email.direction === "inbound" ? "Received" : "Sent"}{" "}
-                      {formatDateTime(email.detected_at || email.sent_at || email.created_at)}
-                    </p>
-                  </div>
-                  {email.status === "detected" && (
-                    <span className="px-2 py-1 bg-blue-100 text-brand-blue text-xs rounded-full">
-                      New
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-gray-500">No email activity yet</p>
-          )}
+        {/* Tabs */}
+        <div className="bg-white rounded-xl shadow mb-6">
+          <div className="flex border-b overflow-x-auto">
+            {[
+              { id: "resume", label: "Resume Builder" },
+              { id: "cover", label: "Cover Letter" },
+              { id: "job-details", label: "Job Details" },
+              { id: "contacts", label: "Contacts" },
+              { id: "emails", label: "Email Templates" },
+              { id: "interview-prep", label: "Interview Prep" },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as TabType)}
+                className={`px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+                  activeTab === tab.id
+                    ? "border-brand-blue text-brand-blue"
+                    : "border-transparent text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* Notes */}
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Notes</h2>
+        {/* Tab Content */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* Left Column - Tab-specific content */}
+          <div className="space-y-4">
+            {activeTab === "resume" && (
+              <>
+                {profiles.length > 1 && (
+                  <ProfileSelector
+                    profiles={profiles}
+                    selectedProfileId={selectedProfileId}
+                    onSelect={handleProfileChange}
+                    disabled={false}
+                  />
+                )}
 
-          {/* Add Note */}
-          <div className="mb-4">
-            <div className="flex gap-3">
-              <input
-                type="text"
-                value={newNote}
-                onChange={(e) => setNewNote(e.target.value)}
-                placeholder="Add a note..."
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    addNote();
-                  }
+                <SummarySection
+                  expandedSection={expandedSection}
+                  toggleSection={toggleSection}
+                  loadingSummaries={loadingSummaries}
+                  summaryOptions={summaryOptions}
+                  selectedSummaryIndex={selectedSummaryIndex}
+                  editingSummary={editingSummary}
+                  editedSummaryText={editedSummaryText}
+                  onSetEditingSummary={setEditingSummary}
+                  onSetEditedSummaryText={setEditedSummaryText}
+                  onSaveSummaryEdit={setSummaryOptions}
+                  onSelectSummary={selectSummary}
+                />
+
+                {masterResume && (
+                  <WorkExperienceSection
+                    expandedSection={expandedSection}
+                    toggleSection={toggleSection}
+                    masterResume={masterResume}
+                    selectedRoles={selectedRoles}
+                    totalSelectedBullets={totalSelectedBullets}
+                    maxTotalBullets={MAX_TOTAL_BULLETS}
+                    initialSuggestionsShown={INITIAL_SUGGESTIONS_SHOWN}
+                    expandedBulletOptions={expandedBulletOptions}
+                    editingBulletKey={editingBulletKey}
+                    editingBulletText={editingBulletText}
+                    editedBullets={editedBullets}
+                    draggedBullet={draggedBullet}
+                    dragOverIndex={dragOverIndex}
+                    getBulletText={getBulletText}
+                    onToggleBullet={toggleBullet}
+                    onStartEditingBullet={startEditingBullet}
+                    onSaveEditedBullet={saveEditedBullet}
+                    onCancelEditingBullet={cancelEditingBullet}
+                    onSetEditingBulletText={setEditingBulletText}
+                    onSetExpandedBulletOptions={setExpandedBulletOptions}
+                    onDragStart={handleDragStart}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    onDragEnd={handleDragEnd}
+                  />
+                )}
+
+                <SkillsSection
+                  expandedSection={expandedSection}
+                  toggleSection={toggleSection}
+                  loadingSkills={loadingSkills}
+                  selectedSkills={selectedSkills}
+                  skillsFromResume={skillsFromResume}
+                  skillsFromJobDescription={skillsFromJobDescription}
+                  recommendedSkills={recommendedSkills}
+                  onToggleSkill={toggleSkill}
+                />
+
+                <div className="bg-white rounded-xl shadow p-4">
+                  <h3 className="font-medium text-gray-900 mb-3">Accent Color</h3>
+                  <div className="grid grid-cols-6 gap-2">
+                    {COLOR_OPTIONS.map((c) => (
+                      <button
+                        key={c.id}
+                        onClick={() => updateColor(c.hex)}
+                        title={c.name}
+                        className={`w-8 h-8 rounded-full transition-all ${
+                          accentColor === c.hex ? "ring-2 ring-offset-2 ring-gray-400 scale-110" : "hover:scale-105"
+                        }`}
+                        style={{ backgroundColor: c.hex }}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                <ATSScoreCard
+                  score={atsScore}
+                  loading={loadingAts}
+                  onCalculate={calculateAtsScore}
+                  disabled={selectedRoles.length === 0 || !job}
+                  onOptimizeBullets={optimizeAllBullets}
+                  optimizingBullets={optimizingBullets}
+                  hasBullets={selectedRoles.some((r) => r.selectedBullets.length > 0)}
+                />
+
+                <div className="bg-white rounded-xl shadow p-4">
+                  <h3 className="font-medium text-gray-900 mb-3">Download</h3>
+                  <button
+                    onClick={downloadResumePDF}
+                    disabled={selectedSummaryIndex === null || selectedRoles.length === 0}
+                    className="w-full bg-brand-gold text-gray-900 py-2 rounded-lg text-sm font-medium hover:bg-brand-gold-dark disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Download Resume PDF
+                  </button>
+                </div>
+              </>
+            )}
+
+            {activeTab === "cover" && (
+              <>
+                <div className="bg-white rounded-xl shadow p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-medium text-gray-900">Cover Letter</h3>
+                    {!coverLetter && (
+                      <button
+                        onClick={generateCoverLetter}
+                        disabled={generatingCoverLetter}
+                        className="text-sm bg-purple-600 text-white px-4 py-1.5 rounded-lg hover:bg-purple-700 disabled:opacity-50"
+                      >
+                        {generatingCoverLetter ? "Generating..." : "Generate with AI"}
+                      </button>
+                    )}
+                  </div>
+                  <textarea
+                    value={coverLetter}
+                    onChange={(e) => {
+                      setCoverLetter(e.target.value);
+                      setHasChanges(true);
+                    }}
+                    className="w-full border border-gray-200 rounded-lg p-3 text-sm text-gray-900 resize-none focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                    rows={16}
+                    placeholder="Write or generate your cover letter..."
+                  />
+                </div>
+                <div className="bg-white rounded-xl shadow p-4">
+                  <button
+                    onClick={downloadCoverLetterPDF}
+                    disabled={!coverLetter}
+                    className="w-full bg-indigo-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Download Cover Letter PDF
+                  </button>
+                </div>
+              </>
+            )}
+
+            {activeTab === "job-details" && (
+              <JobAnalysisPanel
+                jobId={job.id}
+                companyName={job.company_name}
+                jobTitle={job.job_title}
+                jobDescription={job.job_description}
+                jobDetailsParsed={job.job_details_parsed ? JSON.parse(job.job_details_parsed) : null}
+                onJobDetailsUpdated={(jobDetails) => {
+                  setJob({ ...job, job_details_parsed: JSON.stringify(jobDetails) });
                 }}
               />
-              <button
-                onClick={addNote}
-                disabled={addingNote || !newNote.trim()}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {addingNote ? "Adding..." : "Add"}
-              </button>
-            </div>
+            )}
+
+            {activeTab === "contacts" && (
+              <ContactsTab
+                jobId={job.id}
+                companyName={job.company_name}
+                recruiterName={job.recruiter_name}
+                recruiterEmail={job.recruiter_email}
+                recruiterTitle={job.recruiter_title}
+              />
+            )}
+
+            {activeTab === "emails" && (
+              <EmailTemplatesTab
+                jobId={job.id}
+                companyName={job.company_name}
+                jobTitle={job.job_title}
+                recruiterName={job.recruiter_name}
+                recruiterEmail={job.recruiter_email}
+                interviewStage={currentStage?.stage_type}
+              />
+            )}
+
+            {activeTab === "interview-prep" && (
+              <InterviewPrepTab
+                jobId={job.id}
+                companyName={job.company_name}
+                jobTitle={job.job_title}
+                jobDescription={job.job_description}
+                existingGuide={job.interview_guide}
+              />
+            )}
           </div>
 
-          {/* Notes List */}
-          {notes.length > 0 ? (
-            <div className="space-y-3">
-              {notes.map((note) => (
-                <div key={note.id} className="p-4 bg-yellow-50 rounded-lg border border-yellow-100">
-                  <p className="text-gray-800">{note.content}</p>
-                  <p className="text-xs text-gray-500 mt-2">
-                    {formatDateTime(note.created_at)}
-                  </p>
-                </div>
-              ))}
+          {/* Right Column - Preview */}
+          <div className="bg-white rounded-xl shadow-lg overflow-hidden sticky top-8" style={{ height: "fit-content" }}>
+            <div className="bg-gray-100 px-4 py-2 border-b flex items-center justify-between">
+              <span className="text-sm font-medium text-gray-700">Live Preview</span>
+              <span className="text-xs text-gray-500">Professional template</span>
             </div>
-          ) : (
-            <p className="text-gray-500">No notes yet</p>
-          )}
+
+            <div className="overflow-auto p-4 bg-gray-100" style={{ maxHeight: "calc(100vh - 200px)" }}>
+              {(activeTab === "resume" || activeTab === "job-details" || activeTab === "contacts" || activeTab === "emails" || activeTab === "interview-prep") && (
+                <ResumePreviewPane
+                  iframeRef={iframeRef}
+                  previewHtml={previewHtml}
+                  loadingPreview={loadingPreview}
+                />
+              )}
+
+              {activeTab === "cover" && masterResume && (
+                <CoverLetterPreview
+                  contactInfo={masterResume.contact_info}
+                  coverLetter={coverLetter}
+                  accentColor={accentColor}
+                />
+              )}
+            </div>
+          </div>
         </div>
       </div>
+
+      {/* Edit Job Modal */}
+      <EditJobModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        onSave={handleEditJob}
+        initialData={{
+          job_title: job.job_title,
+          company_name: job.company_name,
+          job_url: job.job_url || "",
+          location: jobDetails?.location || "",
+          job_description: job.job_description || "",
+        }}
+      />
+
+      {/* Bullet Optimization Modal */}
+      {showOptimizationModal && bulletSuggestions.length > 0 && (
+        <BulletOptimizationModal
+          suggestions={bulletSuggestions}
+          onApply={applyBulletImprovements}
+          onClose={() => {
+            setShowOptimizationModal(false);
+            setBulletSuggestions([]);
+          }}
+        />
+      )}
     </div>
   );
 }

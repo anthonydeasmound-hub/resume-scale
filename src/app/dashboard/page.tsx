@@ -76,6 +76,22 @@ interface Stats {
   review_count: number;
 }
 
+interface CareerGoal {
+  name: string;
+  targetTitle: string;
+  targetDate: string;
+  salaryMin: number;
+  salaryMax: number;
+}
+
+interface PipelineStats {
+  bookmarked: number;
+  applied: number;
+  interviewing: number;
+  negotiating: number;
+  total: number;
+}
+
 export default function DashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -98,6 +114,26 @@ export default function DashboardPage() {
   const [jobDescription, setJobDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [jobError, setJobError] = useState("");
+
+  // Career Goal state
+  const [careerGoal, setCareerGoal] = useState<CareerGoal>({
+    name: "My Job Search",
+    targetTitle: "",
+    targetDate: "",
+    salaryMin: 0,
+    salaryMax: 0,
+  });
+  const [showGoalModal, setShowGoalModal] = useState(false);
+  const [editingGoal, setEditingGoal] = useState<CareerGoal | null>(null);
+
+  // Pipeline stats
+  const [pipelineStats, setPipelineStats] = useState<PipelineStats>({
+    bookmarked: 0,
+    applied: 0,
+    interviewing: 0,
+    negotiating: 0,
+    total: 0,
+  });
 
   const previewScale = 0.48;
 
@@ -201,12 +237,51 @@ export default function DashboardPage() {
     }
   }, []);
 
+  const fetchCareerGoal = useCallback(async () => {
+    // Load from localStorage for now (can be moved to API later)
+    const saved = localStorage.getItem("careerGoal");
+    if (saved) {
+      try {
+        setCareerGoal(JSON.parse(saved));
+      } catch {
+        // ignore parse errors
+      }
+    }
+  }, []);
+
+  const saveCareerGoal = (goal: CareerGoal) => {
+    setCareerGoal(goal);
+    localStorage.setItem("careerGoal", JSON.stringify(goal));
+    setShowGoalModal(false);
+  };
+
   const fetchUnreviewedJobs = useCallback(async () => {
     try {
       const res = await fetch("/api/jobs");
       if (res.ok) {
         const jobs: Job[] = await res.json();
         setUnreviewedJobs(jobs.filter((j) => j.reviewed === 0 && j.tailored_resume != null));
+
+        // Calculate pipeline stats
+        const stats: PipelineStats = {
+          bookmarked: 0,
+          applied: 0,
+          interviewing: 0,
+          negotiating: 0,
+          total: jobs.length,
+        };
+        for (const job of jobs) {
+          if (job.status === "bookmarked" || job.status === "review" || job.status === "draft") {
+            stats.bookmarked++;
+          } else if (job.status === "applied") {
+            stats.applied++;
+          } else if (job.status === "interviewing" || job.status === "interview") {
+            stats.interviewing++;
+          } else if (job.status === "negotiating" || job.status === "offer") {
+            stats.negotiating++;
+          }
+        }
+        setPipelineStats(stats);
 
         // Extract interviews scheduled this week
         const now = new Date();
@@ -276,6 +351,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (session) {
+      fetchCareerGoal();
       Promise.all([fetchSetupStatus(), fetchResumePreview(), fetchStats()]).then(
         ([setupData]) => {
           setLoading(false);
@@ -286,7 +362,7 @@ export default function DashboardPage() {
         }
       );
     }
-  }, [session, fetchSetupStatus, fetchResumePreview, fetchStats, fetchUnreviewedJobs, autoCheckEmails]);
+  }, [session, fetchSetupStatus, fetchResumePreview, fetchStats, fetchUnreviewedJobs, autoCheckEmails, fetchCareerGoal]);
 
   const handleJobSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -369,7 +445,7 @@ export default function DashboardPage() {
         </div>
 
         <div className="flex flex-col md:flex-row gap-8">
-          {/* Left Column - Resume Preview */}
+          {/* Left Column - Resume Preview Only */}
           <div className="w-full md:w-[400px] md:shrink-0">
             {hasResume && resumeData ? (
               <div>
@@ -432,7 +508,46 @@ export default function DashboardPage() {
           </div>
 
           {/* Right Column */}
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 space-y-6">
+            {/* Career Goal Section - Always visible */}
+            <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-brand-blue">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Next Career Goal: <span className="text-brand-blue">{careerGoal.name}</span>
+                </h2>
+                <button
+                  onClick={() => {
+                    setEditingGoal(careerGoal);
+                    setShowGoalModal(true);
+                  }}
+                  className="flex items-center gap-1 text-sm text-brand-blue hover:text-brand-blue-dark"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                  Edit Goals
+                </button>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <p className="text-xs text-gray-500 uppercase tracking-wide">Target Title</p>
+                  <p className="font-medium text-gray-900">{careerGoal.targetTitle || "Not set"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase tracking-wide">Target Date</p>
+                  <p className="font-medium text-gray-900">{careerGoal.targetDate || "Not set"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase tracking-wide">Target Salary</p>
+                  <p className="font-medium text-gray-900">
+                    {careerGoal.salaryMin || careerGoal.salaryMax
+                      ? `$${careerGoal.salaryMin.toLocaleString()} - $${careerGoal.salaryMax.toLocaleString()}`
+                      : "Not set"}
+                  </p>
+                </div>
+              </div>
+            </div>
+
             {!setupComplete ? (
               /* Getting Started Checklist */
               <div className="bg-white rounded-xl shadow-lg p-6">
@@ -561,6 +676,82 @@ export default function DashboardPage() {
             ) : (
               /* Post-Setup Content */
               <div className="space-y-6">
+                {/* Job Search Pipeline */}
+                <div className="bg-white rounded-xl shadow-lg p-6">
+                  <h2 className="text-lg font-semibold text-gray-900 mb-1">Job Search Pipeline</h2>
+                  <p className="text-sm text-gray-500 mb-4">
+                    {pipelineStats.total} job{pipelineStats.total !== 1 ? "s" : ""} tracked
+                  </p>
+                  <div className="space-y-4">
+                    {[
+                      { label: "Bookmarked", count: pipelineStats.bookmarked, color: "bg-brand-blue" },
+                      { label: "Applied", count: pipelineStats.applied, color: "bg-green-500" },
+                      { label: "Interviewing", count: pipelineStats.interviewing, color: "bg-purple-500" },
+                      { label: "Negotiating", count: pipelineStats.negotiating, color: "bg-brand-gold" },
+                    ].map((stage) => {
+                      const pct = pipelineStats.total > 0 ? Math.round((stage.count / pipelineStats.total) * 100) : 0;
+                      return (
+                        <div key={stage.label} className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-gray-700">{stage.label}</span>
+                              <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">
+                                {pct}%
+                              </span>
+                            </div>
+                            <span className="text-sm font-semibold text-brand-blue">{stage.count}</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div
+                              className={`${stage.color} h-2 rounded-full transition-all duration-300`}
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Weekly Calendar */}
+                <div className="bg-white rounded-xl shadow-lg p-6">
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4">This Week</h2>
+                  <div className="grid grid-cols-7 gap-1">
+                    {weekDays.map((day, i) => {
+                      const date = new Date(weekStart);
+                      date.setDate(weekStart.getDate() + i);
+                      const isToday = date.toDateString() === now.toDateString();
+                      const dayInterviews = weekInterviews.filter(
+                        (iv) => iv.date.toDateString() === date.toDateString()
+                      );
+                      return (
+                        <div
+                          key={day}
+                          className={`text-center p-2 rounded-lg ${isToday ? "bg-brand-blue-light ring-1 ring-blue-200" : ""}`}
+                        >
+                          <div className="text-xs font-medium text-gray-500">{day}</div>
+                          <div className={`text-sm font-semibold ${isToday ? "text-brand-blue" : "text-gray-900"}`}>
+                            {date.getDate()}
+                          </div>
+                          {dayInterviews.map((iv, j) => (
+                            <button
+                              key={j}
+                              onClick={() => router.push(`/applied`)}
+                              className="mt-1 w-full text-[10px] bg-blue-100 text-brand-blue rounded px-1 py-0.5 truncate hover:bg-blue-200 transition-colors"
+                              title={`${iv.stage} - ${iv.job.company_name}`}
+                            >
+                              {iv.stage}
+                            </button>
+                          ))}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {weekInterviews.length === 0 && (
+                    <p className="text-sm text-gray-500 mt-3">No interviews scheduled this week.</p>
+                  )}
+                </div>
+
                 {/* Resumes to Review */}
                 <div className="bg-white rounded-xl shadow-lg p-6">
                   <h2 className="text-lg font-semibold text-gray-900 mb-4">Resumes to Review</h2>
@@ -623,50 +814,95 @@ export default function DashboardPage() {
                     </p>
                   )}
                 </div>
-
-                {/* Weekly Calendar */}
-                <div className="bg-white rounded-xl shadow-lg p-6">
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">This Week</h2>
-                  <div className="grid grid-cols-7 gap-1">
-                    {weekDays.map((day, i) => {
-                      const date = new Date(weekStart);
-                      date.setDate(weekStart.getDate() + i);
-                      const isToday = date.toDateString() === now.toDateString();
-                      const dayInterviews = weekInterviews.filter(
-                        (iv) => iv.date.toDateString() === date.toDateString()
-                      );
-                      return (
-                        <div
-                          key={day}
-                          className={`text-center p-2 rounded-lg ${isToday ? "bg-brand-blue-light ring-1 ring-blue-200" : ""}`}
-                        >
-                          <div className="text-xs font-medium text-gray-500">{day}</div>
-                          <div className={`text-sm font-semibold ${isToday ? "text-brand-blue" : "text-gray-900"}`}>
-                            {date.getDate()}
-                          </div>
-                          {dayInterviews.map((iv, j) => (
-                            <button
-                              key={j}
-                              onClick={() => router.push(`/applied`)}
-                              className="mt-1 w-full text-[10px] bg-blue-100 text-brand-blue rounded px-1 py-0.5 truncate hover:bg-blue-200 transition-colors"
-                              title={`${iv.stage} - ${iv.job.company_name}`}
-                            >
-                              {iv.stage}
-                            </button>
-                          ))}
-                        </div>
-                      );
-                    })}
-                  </div>
-                  {weekInterviews.length === 0 && (
-                    <p className="text-sm text-gray-500 mt-3">No interviews scheduled this week.</p>
-                  )}
-                </div>
               </div>
             )}
           </div>
         </div>
       </div>
+
+      {/* Career Goal Edit Modal */}
+      {showGoalModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Edit Career Goal</h3>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (editingGoal) saveCareerGoal(editingGoal);
+              }}
+              className="space-y-4"
+            >
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Goal Name</label>
+                <input
+                  type="text"
+                  value={editingGoal?.name || ""}
+                  onChange={(e) => setEditingGoal((g) => g ? { ...g, name: e.target.value } : null)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue text-gray-900"
+                  placeholder="e.g., A fresh start"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Target Title</label>
+                <input
+                  type="text"
+                  value={editingGoal?.targetTitle || ""}
+                  onChange={(e) => setEditingGoal((g) => g ? { ...g, targetTitle: e.target.value } : null)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue text-gray-900"
+                  placeholder="e.g., Account Executive"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Target Date</label>
+                <input
+                  type="text"
+                  value={editingGoal?.targetDate || ""}
+                  onChange={(e) => setEditingGoal((g) => g ? { ...g, targetDate: e.target.value } : null)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue text-gray-900"
+                  placeholder="e.g., March 2026"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Min Salary</label>
+                  <input
+                    type="number"
+                    value={editingGoal?.salaryMin || ""}
+                    onChange={(e) => setEditingGoal((g) => g ? { ...g, salaryMin: parseInt(e.target.value) || 0 } : null)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue text-gray-900"
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Max Salary</label>
+                  <input
+                    type="number"
+                    value={editingGoal?.salaryMax || ""}
+                    onChange={(e) => setEditingGoal((g) => g ? { ...g, salaryMax: parseInt(e.target.value) || 0 } : null)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue text-gray-900"
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowGoalModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 bg-brand-blue text-white rounded-lg hover:bg-brand-blue-dark transition-colors"
+                >
+                  Save
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

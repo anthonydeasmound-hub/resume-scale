@@ -594,6 +594,18 @@ body {
   color: #991b1b;
 }
 
+.message.warning {
+  display: block;
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.message.info {
+  display: block;
+  background: #dbeafe;
+  color: #1e40af;
+}
+
 /* Modal */
 .modal-overlay {
   position: fixed;

@@ -23,6 +23,7 @@ interface JobAnalysisPanelProps {
   jobTitle: string;
   jobDescription: string | null;
   jobDetailsParsed: JobDetailsParsed | null;
+  onJobDetailsUpdated?: (jobDetails: JobDetailsParsed) => void;
 }
 
 export default function JobAnalysisPanel({
@@ -31,6 +32,7 @@ export default function JobAnalysisPanel({
   jobTitle,
   jobDescription,
   jobDetailsParsed: initialJobDetails,
+  onJobDetailsUpdated,
 }: JobAnalysisPanelProps) {
   const [analysis, setAnalysis] = useState<JobAnalysis | null>(null);
   const [jobDetailsParsed, setJobDetailsParsed] = useState<JobDetailsParsed | null>(initialJobDetails);
@@ -74,6 +76,8 @@ export default function JobAnalysisPanel({
       // Update job details if returned (re-parsing adds new fields)
       if (data.jobDetails) {
         setJobDetailsParsed(data.jobDetails);
+        // Notify parent to update its state (for JobHeader salary/location display)
+        onJobDetailsUpdated?.(data.jobDetails);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to regenerate");
