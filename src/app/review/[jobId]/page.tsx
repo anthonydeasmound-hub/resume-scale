@@ -42,6 +42,7 @@ export default function JobReviewPage() {
   // Apply tab state
   const [applicationUrl, setApplicationUrl] = useState("");
   const [savingUrl, setSavingUrl] = useState(false);
+  const [hasContactWithEmail, setHasContactWithEmail] = useState(false);
 
   // Edit/Delete modal state
   const [showEditModal, setShowEditModal] = useState(false);
@@ -163,6 +164,19 @@ export default function JobReviewPage() {
     }
   };
 
+  const fetchContacts = async (id: number) => {
+    try {
+      const response = await fetch(`/api/jobs/${id}/contacts`);
+      if (response.ok) {
+        const contacts = await response.json();
+        const hasEmail = contacts.some((c: { email: string | null }) => c.email);
+        setHasContactWithEmail(hasEmail);
+      }
+    } catch (err) {
+      console.error("Failed to fetch contacts:", err);
+    }
+  };
+
   // Fetch master resume when profile is selected or job is loaded
   useEffect(() => {
     if (selectedProfileId !== null) {
@@ -192,6 +206,9 @@ export default function JobReviewPage() {
         if (data.source_profile_id) {
           setSelectedProfileId(data.source_profile_id);
         }
+
+        // Check if there are contacts with emails
+        fetchContacts(data.id);
       } else {
         router.push("/review");
       }
@@ -1322,9 +1339,12 @@ export default function JobReviewPage() {
           <div className="space-y-4">
             {/* Workflow Progress */}
             <WorkflowProgress
+              jobId={job.id}
               activeTab={activeTab}
               hasResume={Boolean(job.tailored_resume)}
               hasCoverLetter={Boolean(job.cover_letter)}
+              hasContact={hasContactWithEmail}
+              hasApplicationUrl={Boolean(applicationUrl)}
               status={job.status}
               onStageClick={handleWorkflowStageClick}
               onCloseJob={handleCloseJob}
