@@ -7,7 +7,7 @@ interface ProgressIndicatorProps {
 
 export default function ProgressIndicator({ stepLabels, currentStepNumber }: ProgressIndicatorProps) {
   return (
-    <div className="flex items-center mb-6 overflow-x-auto pb-2">
+    <div className="flex items-center mb-6 overflow-x-auto pt-2 pb-2">
       {stepLabels.map((label, idx) => {
         const stepNum = idx + 1;
         const isComplete = currentStepNumber > stepNum;

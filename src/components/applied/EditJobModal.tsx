@@ -71,7 +71,7 @@ export default function EditJobModal({
               type="text"
               value={formData.job_title}
               onChange={(e) => setFormData({ ...formData, job_title: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-transparent text-gray-900"
               required
             />
           </div>
@@ -84,7 +84,7 @@ export default function EditJobModal({
               type="text"
               value={formData.company_name}
               onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-transparent text-gray-900"
               required
             />
           </div>
@@ -98,7 +98,7 @@ export default function EditJobModal({
               value={formData.job_url}
               onChange={(e) => setFormData({ ...formData, job_url: e.target.value })}
               placeholder="https://..."
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-transparent text-gray-900"
             />
           </div>
 
@@ -111,7 +111,7 @@ export default function EditJobModal({
               value={formData.location}
               onChange={(e) => setFormData({ ...formData, location: e.target.value })}
               placeholder="e.g., San Francisco, CA or Remote"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-transparent text-gray-900"
             />
           </div>
 
@@ -123,7 +123,7 @@ export default function EditJobModal({
               value={formData.job_description}
               onChange={(e) => setFormData({ ...formData, job_description: e.target.value })}
               rows={8}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-transparent resize-none"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-transparent resize-none text-gray-900"
               placeholder="Paste the full job description here..."
             />
             <p className="text-xs text-gray-500 mt-1">

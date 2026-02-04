@@ -8,6 +8,7 @@ interface EntryStepProps {
   setEditableData: (data: LinkedInData) => void;
   sessionUserName?: string | null;
   sessionUserEmail?: string | null;
+  sessionUserImage?: string | null;
 }
 
 export default function EntryStep({
@@ -16,6 +17,7 @@ export default function EntryStep({
   setEditableData,
   sessionUserName,
   sessionUserEmail,
+  sessionUserImage,
 }: EntryStepProps) {
   return (
     <div className="bg-white rounded-xl shadow-lg p-8">
@@ -83,6 +85,7 @@ export default function EntryStep({
               certifications: [],
               languages: [],
               honors: [],
+              profile_picture_url: sessionUserImage || undefined,
             });
             setStep("template");
           }}

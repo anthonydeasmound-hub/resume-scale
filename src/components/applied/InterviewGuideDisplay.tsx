@@ -109,6 +109,7 @@ export default function InterviewGuideDisplay({ jobId, guide, generatedAt, onGen
         </div>
       </div>
 
+      {guide.interviewRounds && guide.interviewRounds.length > 0 && (
       <div>
         <h4 className="font-medium text-gray-900 mb-3">Interview Rounds</h4>
         <div className="space-y-2">
@@ -147,6 +148,7 @@ export default function InterviewGuideDisplay({ jobId, guide, generatedAt, onGen
           ))}
         </div>
       </div>
+      )}
 
       <div>
         <h4 className="font-medium text-gray-900 mb-3">Questions to Ask</h4>

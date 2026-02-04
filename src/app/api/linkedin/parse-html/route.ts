@@ -169,12 +169,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Clean the LinkedIn URL to only include the base profile URL
-    // e.g., https://www.linkedin.com/in/username/opportunities/... -> https://www.linkedin.com/in/username/
+    // Clean the LinkedIn URL to only include the base profile URL (without trailing slash)
+    // e.g., https://www.linkedin.com/in/username/opportunities/... -> https://www.linkedin.com/in/username
     if (profile_url && profile_url.includes("/in/")) {
       const linkedinMatch = profile_url.match(/(https?:\/\/(?:www\.)?linkedin\.com\/in\/[^\/\?]+)/i);
       if (linkedinMatch) {
-        profile_url = linkedinMatch[1] + "/";
+        profile_url = linkedinMatch[1];
         console.log("[parse-html] Cleaned LinkedIn URL:", profile_url);
       }
     }

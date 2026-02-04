@@ -12,6 +12,15 @@ export interface TrackerJob {
   created_at: string;
   date_applied: string | null;
   job_details_parsed: string | null;
+  excitement_level?: number | null;
+  follow_up?: {
+    email_1_scheduled?: string | null;
+    email_1_sent_at?: string | null;
+    email_2_scheduled?: string | null;
+    email_2_sent_at?: string | null;
+    email_3_scheduled?: string | null;
+    email_3_sent_at?: string | null;
+  } | null;
 }
 
 type SortField = "job_title" | "company_name" | "status" | "created_at" | "date_applied";
@@ -22,6 +31,7 @@ interface JobTrackerTableProps {
   selectedIds: Set<number>;
   onSelectionChange: (ids: Set<number>) => void;
   onStatusChange: (jobId: number, newStatus: PipelineStatus) => Promise<void>;
+  onExcitementChange?: (jobId: number, level: number) => Promise<void>;
 }
 
 const STATUS_OPTIONS: { value: PipelineStatus; label: string; color: string }[] = [
@@ -43,9 +53,93 @@ function getLocationFromJob(job: TrackerJob): string {
   }
 }
 
+function getSalaryFromJob(job: TrackerJob): string {
+  if (!job.job_details_parsed) return "--";
+  try {
+    const parsed = JSON.parse(job.job_details_parsed);
+    return parsed.salary_range || "--";
+  } catch {
+    return "--";
+  }
+}
+
+function getNextFollowUp(job: TrackerJob): { date: string | null; label: string } {
+  if (!job.follow_up) return { date: null, label: "Add date" };
+
+  const now = new Date();
+  const scheduledDates: { date: Date; label: string }[] = [];
+
+  // Check each email slot for scheduled but not sent
+  if (job.follow_up.email_1_scheduled && !job.follow_up.email_1_sent_at) {
+    scheduledDates.push({ date: new Date(job.follow_up.email_1_scheduled), label: "1st" });
+  }
+  if (job.follow_up.email_2_scheduled && !job.follow_up.email_2_sent_at) {
+    scheduledDates.push({ date: new Date(job.follow_up.email_2_scheduled), label: "2nd" });
+  }
+  if (job.follow_up.email_3_scheduled && !job.follow_up.email_3_sent_at) {
+    scheduledDates.push({ date: new Date(job.follow_up.email_3_scheduled), label: "3rd" });
+  }
+
+  // Find the next upcoming date
+  const upcoming = scheduledDates
+    .filter(d => d.date >= now)
+    .sort((a, b) => a.date.getTime() - b.date.getTime())[0];
+
+  if (upcoming) {
+    return { date: upcoming.date.toLocaleDateString(), label: upcoming.date.toLocaleDateString() };
+  }
+
+  return { date: null, label: "Add date" };
+}
+
 function getStatusConfig(status: string) {
   const pipelineStatus = mapStatusToPipeline(status);
   return STATUS_OPTIONS.find((s) => s.value === pipelineStatus) || STATUS_OPTIONS[0];
+}
+
+function StarRating({
+  level,
+  max = 5,
+  onChange
+}: {
+  level: number;
+  max?: number;
+  onChange?: (newLevel: number) => void;
+}) {
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+
+  // Show hover preview or actual level
+  const displayLevel = hoverIndex !== null ? hoverIndex : level;
+
+  return (
+    <div
+      className="flex items-center gap-0.5"
+      onMouseLeave={() => setHoverIndex(null)}
+    >
+      {Array.from({ length: max }).map((_, i) => (
+        <button
+          key={i}
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onChange?.(i + 1);
+          }}
+          onMouseEnter={() => setHoverIndex(i + 1)}
+          className={`w-4 h-4 transition-colors ${
+            i < displayLevel ? "text-amber-400" : "text-gray-200 hover:text-amber-200"
+          }`}
+        >
+          <svg
+            fill="currentColor"
+            viewBox="0 0 20 20"
+            className="w-full h-full"
+          >
+            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+          </svg>
+        </button>
+      ))}
+    </div>
+  );
 }
 
 export default function JobTrackerTable({
@@ -53,6 +147,7 @@ export default function JobTrackerTable({
   selectedIds,
   onSelectionChange,
   onStatusChange,
+  onExcitementChange,
 }: JobTrackerTableProps) {
   const router = useRouter();
   const [sortField, setSortField] = useState<SortField>("created_at");
@@ -197,6 +292,11 @@ export default function JobTrackerTable({
               </th>
               <th className="px-4 py-3 text-left">
                 <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  Salary
+                </span>
+              </th>
+              <th className="px-4 py-3 text-left">
+                <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
                   Location
                 </span>
               </th>
@@ -227,6 +327,16 @@ export default function JobTrackerTable({
                   <SortIcon field="date_applied" />
                 </button>
               </th>
+              <th className="px-4 py-3 text-left">
+                <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  Follow Up
+                </span>
+              </th>
+              <th className="px-4 py-3 text-left">
+                <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  Interest
+                </span>
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -255,6 +365,7 @@ export default function JobTrackerTable({
                     <span className="font-medium text-gray-900">{job.job_title}</span>
                   </td>
                   <td className="px-4 py-3 text-gray-600">{job.company_name}</td>
+                  <td className="px-4 py-3 text-gray-500 text-sm">{getSalaryFromJob(job)}</td>
                   <td className="px-4 py-3 text-gray-500 text-sm">{getLocationFromJob(job)}</td>
                   <td className="px-4 py-3 relative">
                     <div className="relative">
@@ -293,6 +404,22 @@ export default function JobTrackerTable({
                   </td>
                   <td className="px-4 py-3 text-gray-500 text-sm">
                     {job.date_applied ? new Date(job.date_applied).toLocaleDateString() : "--"}
+                  </td>
+                  <td className="px-4 py-3 text-sm">
+                    {(() => {
+                      const followUp = getNextFollowUp(job);
+                      return followUp.date ? (
+                        <span className="text-gray-500">{followUp.label}</span>
+                      ) : (
+                        <span className="text-gray-400 italic">Add date</span>
+                      );
+                    })()}
+                  </td>
+                  <td className="px-4 py-3">
+                    <StarRating
+                      level={job.excitement_level || 0}
+                      onChange={(level) => onExcitementChange?.(job.id, level)}
+                    />
                   </td>
                 </tr>
               );

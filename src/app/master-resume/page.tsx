@@ -647,7 +647,7 @@ export default function MasterResumePage() {
     return (
       <div className="min-h-screen bg-brand-gray">
         <TabsNav />
-        <div className="pt-14 md:pt-0 md:ml-64 p-4 md:p-8">
+        <div className="pt-14 md:pt-6 md:ml-64 p-4 md:p-8">
           <MasterResumeSkeleton />
         </div>
       </div>
@@ -658,7 +658,7 @@ export default function MasterResumePage() {
     <div className="min-h-screen bg-brand-gray">
       <TabsNav />
 
-      <div className="pt-14 md:pt-0 md:ml-64 p-4 md:p-8">
+      <div className="pt-14 md:pt-6 md:ml-64 p-4 md:p-8">
         {/* Profile Switcher */}
         {profiles.length > 0 && currentProfileId && (
           <ProfileSwitcher

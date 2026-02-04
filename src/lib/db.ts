@@ -140,6 +140,57 @@ export interface JobAnalysis {
   coverageScore: number;
 }
 
+// Prep card for bite-sized study items
+export interface PrepCard {
+  id: string;
+  type: "question" | "tip" | "talking_point" | "star_story";
+  front: string;  // Question or prompt
+  back: string;   // Answer framework or tip
+  category?: string;
+}
+
+// Interview stage with flexible typing
+export interface InterviewStagePrep {
+  id: string;
+  name: string;
+  type: string;  // Flexible - can be "phone_screen", "sales_demo", "case_study", etc.
+  duration: string;
+  description: string;
+  prepCards: PrepCard[];
+  tips: string[];
+}
+
+export interface InterviewGuide {
+  // Role detection (new format)
+  detectedRoleType?: string;  // "sales", "engineering", "product", "marketing", "operations", "executive", "other"
+  processExplanation?: string;  // Why these stages were suggested
+
+  // Company research
+  companyResearch: {
+    overview: string;
+    recentNews: string[];
+    culture: string;
+    competitors: string[];
+  };
+
+  // Flexible interview stages (new format)
+  suggestedStages?: InterviewStagePrep[];
+
+  // Legacy: Fixed interview rounds (old format - for backward compatibility)
+  interviewRounds?: InterviewRound[];
+
+  // Questions to ask, organized by when to ask them
+  questionsToAsk: {
+    category: string;
+    questions: string[];
+    bestAskedDuring?: string;  // Which stage to ask these (new format)
+  }[];
+
+  // General tips
+  generalTips: string[];
+}
+
+// Legacy support - keep old interface for backward compatibility
 export interface InterviewRound {
   round: number;
   type: "phone_screen" | "technical" | "behavioral" | "hiring_manager" | "final";
@@ -153,18 +204,6 @@ export interface InterviewRound {
     result: string;
   }[];
   tips: string[];
-}
-
-export interface InterviewGuide {
-  companyResearch: {
-    overview: string;
-    recentNews: string[];
-    culture: string;
-    competitors: string[];
-  };
-  interviewRounds: InterviewRound[];
-  questionsToAsk: { category: string; questions: string[] }[];
-  generalTips: string[];
 }
 
 export type StageType =

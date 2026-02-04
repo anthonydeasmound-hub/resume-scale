@@ -53,11 +53,11 @@ interface ResumeContent {
 
 // Common tech keywords and skills
 const TECH_SKILLS = new Set([
-  'javascript', 'typescript', 'python', 'java', 'c++', 'c#', 'ruby', 'go', 'rust', 'php', 'swift', 'kotlin',
+  'javascript', 'typescript', 'python', 'java', 'c++', 'c#', 'ruby', 'rust', 'php', 'swift', 'kotlin',
   'react', 'angular', 'vue', 'node', 'express', 'django', 'flask', 'spring', 'rails', 'laravel', 'next.js', 'nextjs',
   'sql', 'mysql', 'postgresql', 'mongodb', 'redis', 'elasticsearch', 'dynamodb', 'cassandra',
   'aws', 'azure', 'gcp', 'docker', 'kubernetes', 'terraform', 'jenkins', 'ci/cd', 'git',
-  'html', 'css', 'sass', 'less', 'tailwind', 'bootstrap',
+  'html', 'css', 'sass', 'tailwind', 'bootstrap',
   'rest', 'graphql', 'grpc', 'api', 'microservices',
   'agile', 'scrum', 'kanban', 'jira', 'confluence',
   'machine learning', 'deep learning', 'tensorflow', 'pytorch', 'nlp', 'computer vision',
@@ -66,6 +66,16 @@ const TECH_SKILLS = new Set([
   'salesforce', 'hubspot', 'marketo', 'sap', 'oracle',
   'excel', 'powerpoint', 'word', 'microsoft office', 'google workspace',
 ]);
+
+// Ambiguous skills that are also common English words
+// These only match if supporting context phrases are found in the text
+const AMBIGUOUS_SKILLS: Record<string, string[]> = {
+  'go': ['golang', 'go programming', 'go language', 'go developer', 'written in go', 'go sdk', 'go api'],
+  'less': ['less css', 'less preprocessor', 'sass/less', 'less/sass', 'less stylesheet', 'css less'],
+  'rust': ['rust programming', 'rust language', 'rust developer', 'written in rust', 'rust sdk'],
+  'r': ['r programming', 'r studio', 'rstudio', 'r language', 'r statistical', 'cran'],
+  'c': ['c programming', 'c language', 'c developer', 'written in c', 'ansi c', 'c/c++'],
+};
 
 // Common soft skills
 const SOFT_SKILLS = new Set([
@@ -149,11 +159,25 @@ function extractHardSkills(text: string): string[] {
   const normalized = text.toLowerCase();
   const found: string[] = [];
 
+  // Check standard tech skills (unambiguous)
   TECH_SKILLS.forEach(skill => {
     // Check for word boundaries
     const regex = new RegExp(`\\b${skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
     if (regex.test(normalized)) {
       found.push(skill);
+    }
+  });
+
+  // Check ambiguous skills - only match if context phrases are present
+  Object.entries(AMBIGUOUS_SKILLS).forEach(([skill, contextPhrases]) => {
+    // First check if the skill word exists at all
+    const skillRegex = new RegExp(`\\b${skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+    if (skillRegex.test(normalized)) {
+      // Now check if any context phrase is present
+      const hasContext = contextPhrases.some(phrase => normalized.includes(phrase.toLowerCase()));
+      if (hasContext) {
+        found.push(skill);
+      }
     }
   });
 

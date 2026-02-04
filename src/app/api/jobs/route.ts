@@ -94,6 +94,7 @@ export async function GET(request: NextRequest) {
       // Batch-fetch related data instead of N+1 queries
       let stagesMap: Map<number, Record<string, unknown>[]> | null = null;
       let emailsMap: Map<number, Record<string, unknown>[]> | null = null;
+      let followUpsMap: Map<number, Record<string, unknown>> | null = null;
 
       if (include.includes("stages")) {
         const placeholders = jobIds.map((_, i) => `$${i + 1}`).join(",");
@@ -125,10 +126,24 @@ export async function GET(request: NextRequest) {
         }
       }
 
+      if (include.includes("follow_ups")) {
+        const placeholders = jobIds.map((_, i) => `$${i + 1}`).join(",");
+        const allFollowUps = await queryAll<Record<string, unknown>>(`
+          SELECT * FROM job_follow_ups
+          WHERE job_id IN (${placeholders})
+        `, jobIds);
+        followUpsMap = new Map();
+        for (const followUp of allFollowUps) {
+          const jid = followUp.job_id as number;
+          followUpsMap.set(jid, followUp);
+        }
+      }
+
       const jobsWithRelations = jobs.map((job) => {
         const jid = job.id as number;
         if (stagesMap) job.interview_stages = stagesMap.get(jid) || [];
         if (emailsMap) job.email_actions = emailsMap.get(jid) || [];
+        if (followUpsMap) job.follow_up = followUpsMap.get(jid) || null;
         return job;
       });
 

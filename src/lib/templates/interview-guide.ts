@@ -6,7 +6,8 @@ export function generateInterviewGuideHTML(
   companyName: string,
   accentColor: string = "#3D5A80"
 ): string {
-  const roundsHTML = guide.interviewRounds.map((round: InterviewRound) => {
+  const rounds = guide.interviewRounds || [];
+  const roundsHTML = rounds.map((round: InterviewRound) => {
     const roundTypeLabels: Record<string, string> = {
       phone_screen: "Phone Screen",
       technical: "Technical Interview",

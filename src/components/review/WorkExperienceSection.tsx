@@ -107,10 +107,20 @@ export default function WorkExperienceSection({
                   .map((bullet, idx) => ({ bullet, idx }))
                   .filter(({ idx }) => !selectedRole.selectedBullets.includes(idx));
 
+                const displayTitle = selectedRole.customTitle || role.title;
+                const hasCustomTitle = !!selectedRole.customTitle;
+
                 return (
                   <div key={`role-${selectedRole.roleIndex}-${roleMapIndex}`} className="rounded-lg border border-blue-500">
                     <div className="px-3 py-2 bg-brand-blue-light border-b border-brand-blue">
-                      <div className="font-medium text-gray-900">{role.title}</div>
+                      <div className="font-medium text-gray-900 flex items-center gap-2">
+                        {displayTitle}
+                        {hasCustomTitle && (
+                          <span className="text-xs px-1.5 py-0.5 rounded bg-green-100 text-green-600">
+                            Optimized
+                          </span>
+                        )}
+                      </div>
                       <div className="text-sm text-gray-500">{role.company} | {role.start_date} - {role.end_date}</div>
                     </div>
 

@@ -392,7 +392,7 @@ export default function DashboardPage() {
     return (
       <div className="min-h-screen bg-brand-gray">
         <TabsNav />
-        <div className="pt-14 md:pt-0 md:ml-64 p-4 md:p-8">
+        <div className="pt-14 md:pt-6 md:ml-64 p-4 md:p-8">
           <DashboardSkeleton />
         </div>
       </div>
@@ -413,7 +413,7 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-brand-gray">
       <TabsNav reviewCount={stats?.review_count || 0} />
 
-      <div className="pt-14 md:pt-0 md:ml-64 p-4 md:p-8">
+      <div className="pt-14 md:pt-6 md:ml-64 p-4 md:p-8">
         {/* Promo Banner */}
         <div className="bg-gray-900 rounded-xl p-5 mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <p className="text-white font-semibold text-lg">

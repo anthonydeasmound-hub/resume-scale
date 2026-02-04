@@ -30,38 +30,29 @@ interface Task {
 }
 
 const STAGES: Stage[] = [
-  { id: "bookmarked", label: "Bookmarked", tab: "resume" },
-  { id: "applying", label: "Applying", tab: "resume" },
-  { id: "applied", label: "Applied", tab: "apply" },
-  { id: "interviewing", label: "Interviewing", tab: "interview-prep", status: "interviewing" },
-  { id: "negotiating", label: "Negotiating", tab: null, status: "negotiating" },
+  { id: "resume", label: "Resume", tab: "resume" },
+  { id: "cover", label: "Cover Letter", tab: "cover" },
+  { id: "apply", label: "Apply", tab: "apply" },
+  { id: "interview", label: "Interview", tab: "interview-prep", status: "interviewing" },
   { id: "accepted", label: "Accepted", tab: null, status: "accepted" },
 ];
 
 const STAGE_TASKS: Record<string, Task[]> = {
-  bookmarked: [
-    { id: "review_job", label: "Review job requirements", tip: "Check the job description to understand what they're looking for" },
-    { id: "rate_interest", label: "Rate your interest level", tip: "Use the stars to prioritize which jobs to focus on" },
-    { id: "check_skills", label: "Check skill alignment", tip: "Compare your skills to the required qualifications" },
-  ],
-  applying: [
+  resume: [
     { id: "generate_resume", label: "Generate tailored resume", tip: "Customize your resume to highlight relevant experience" },
+  ],
+  cover: [
     { id: "generate_cover", label: "Generate cover letter", tip: "Create a compelling cover letter that tells your story" },
+  ],
+  apply: [
     { id: "find_contact", label: "Find recruiter or hiring manager", tip: "Having a contact improves your chances of getting noticed" },
     { id: "add_url", label: "Add application URL", tip: "Save the job posting link so you can easily apply" },
-  ],
-  applied: [
     { id: "submit_app", label: "Submit your application", tip: "Use the Apply button to submit and track your application" },
-    { id: "setup_followups", label: "Set up follow-up emails", tip: "Automated follow-ups keep you top of mind" },
   ],
-  interviewing: [
+  interview: [
     { id: "review_guide", label: "Review interview guide", tip: "Prepare answers to common questions for this role" },
     { id: "add_calendar", label: "Add interview to calendar", tip: "Block time and set reminders for your interview" },
     { id: "practice", label: "Practice common questions", tip: "Rehearse your answers out loud to build confidence" },
-  ],
-  negotiating: [
-    { id: "research_salary", label: "Research salary data", tip: "Know the market rate for this position and location" },
-    { id: "prepare_points", label: "Prepare negotiation talking points", tip: "List your achievements and unique value to justify your ask" },
   ],
   accepted: [],
 };
@@ -75,23 +66,27 @@ const CLOSE_REASONS = [
 ];
 
 function getCurrentStageIndex(status: string, hasResume: boolean, hasCoverLetter: boolean): number {
+  // Stages: 0=Resume, 1=Cover Letter, 2=Apply, 3=Interview, 4=Accepted
   const statusMap: Record<string, number> = {
     bookmarked: 0,
-    review: 1,
-    draft: 1,
-    applied: 2,
+    review: 0,
+    draft: 0,
+    applied: 3,
     interviewing: 3,
-    negotiating: 4,
-    accepted: 5,
+    negotiating: 4, // Maps to Accepted now
+    accepted: 4,
   };
 
-  const statusIndex = statusMap[status] ?? 0;
+  const baseIndex = statusMap[status] ?? 0;
 
-  if (statusIndex < 1 && (hasResume || hasCoverLetter)) {
-    return 1;
+  // If we haven't applied yet, determine stage based on what's been completed
+  if (baseIndex < 3) {
+    if (hasCoverLetter) return 2; // Move to Apply stage
+    if (hasResume) return 1; // Move to Cover Letter stage
+    return 0; // Stay on Resume stage
   }
 
-  return statusIndex;
+  return baseIndex;
 }
 
 function getTaskStorageKey(jobId: number) {
@@ -107,11 +102,14 @@ function loadCompletedTasks(jobId: number): Set<string> {
 function saveCompletedTasks(jobId: number, tasks: Set<string>) {
   if (typeof window === "undefined") return;
   localStorage.setItem(getTaskStorageKey(jobId), JSON.stringify([...tasks]));
+  // Dispatch custom event for same-tab updates (syncs with ChecklistTab)
+  window.dispatchEvent(new CustomEvent("checklist-updated"));
 }
 
-// SVG Chevron Component
+// CSS Chevron Component with flexible width
 function ChevronSegment({
   label,
+  index,
   isFirst,
   isLast,
   isCompleted,
@@ -120,6 +118,7 @@ function ChevronSegment({
   onClick,
 }: {
   label: string;
+  index: number;
   isFirst: boolean;
   isLast: boolean;
   isCompleted: boolean;
@@ -127,103 +126,55 @@ function ChevronSegment({
   isClickable: boolean;
   onClick: () => void;
 }) {
-  const width = 100;
-  const height = 36;
-  const arrowWidth = 10;
+  // Colors: Completed = dark blue, Current = light blue, Future = gray
+  const bgColor = isCompleted
+    ? "bg-[#3D5A80]"
+    : isCurrent
+    ? "bg-blue-100"
+    : "bg-gray-100";
 
-  // Colors - completed is darkest, current is slightly lighter, future is gray
-  const fillColor = isCompleted ? "#3D5A80" : isCurrent ? "#5A7A9A" : "#e5e7eb";
-  const textColor = isCompleted || isCurrent ? "white" : "#6b7280";
+  const textColor = isCompleted
+    ? "text-white"
+    : isCurrent
+    ? "text-[#3D5A80]"
+    : "text-gray-500";
 
-  // Build the SVG path
-  let path: string;
-
-  if (isFirst) {
-    // First segment: rounded left, arrow right
-    path = `
-      M 4 0
-      L ${width - arrowWidth} 0
-      L ${width} ${height / 2}
-      L ${width - arrowWidth} ${height}
-      L 4 ${height}
-      Q 0 ${height} 0 ${height - 4}
-      L 0 4
-      Q 0 0 4 0
-      Z
-    `;
-  } else if (isLast) {
-    // Last segment: notch left, rounded right
-    path = `
-      M 0 0
-      L ${width - 4} 0
-      Q ${width} 0 ${width} 4
-      L ${width} ${height - 4}
-      Q ${width} ${height} ${width - 4} ${height}
-      L 0 ${height}
-      L ${arrowWidth} ${height / 2}
-      Z
-    `;
-  } else {
-    // Middle segment: notch left, arrow right
-    path = `
-      M 0 0
-      L ${width - arrowWidth} 0
-      L ${width} ${height / 2}
-      L ${width - arrowWidth} ${height}
-      L 0 ${height}
-      L ${arrowWidth} ${height / 2}
-      Z
-    `;
-  }
-
-  // Shorter labels for compact display
-  const shortLabel = label === "Bookmarked" ? "Saved"
-    : label === "Interviewing" ? "Interview"
-    : label === "Negotiating" ? "Negotiate"
-    : label;
+  // Clip paths for chevron shape
+  // First segment: flat left, arrow right
+  // Middle segments: notch left, arrow right
+  // Last segment: notch left, flat right
+  const clipPath = isFirst
+    ? "polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%)"
+    : isLast
+    ? "polygon(0 0, 100% 0, 100% 100%, 0 100%, 12px 50%)"
+    : "polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%, 12px 50%)";
 
   return (
     <button
       onClick={onClick}
       disabled={!isClickable}
-      className={`relative flex-shrink-0 ${isClickable ? "cursor-pointer hover:opacity-90" : "cursor-not-allowed opacity-60"}`}
-      style={{ marginLeft: isFirst ? 0 : -1 }}
+      className={`
+        relative h-9 flex items-center justify-center gap-1.5
+        px-4 ${isFirst ? "pl-3" : "pl-5"} ${isLast ? "pr-3" : "pr-4"}
+        ${bgColor} ${textColor}
+        text-xs font-medium whitespace-nowrap
+        transition-all duration-150
+        ${isClickable ? "cursor-pointer hover:brightness-95" : "cursor-default"}
+        ${!isClickable && !isCompleted && !isCurrent ? "opacity-60" : ""}
+      `}
+      style={{
+        clipPath,
+        marginLeft: isFirst ? 0 : -6,
+        zIndex: index + 1, // Later segments on top for proper click targeting
+      }}
     >
-      <svg
-        width={width}
-        height={height}
-        viewBox={`0 0 ${width} ${height}`}
-        className="block"
-      >
-        <path d={path} fill={fillColor} />
-
-        {/* Checkmark for completed stages */}
-        {isCompleted && (
-          <g transform={`translate(${isFirst ? 12 : 18}, ${height / 2 - 5})`}>
-            <polyline
-              points="0,5 3,8 10,1"
-              fill="none"
-              stroke={textColor}
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </g>
-        )}
-
-        {/* Label */}
-        <text
-          x={isFirst ? (isCompleted ? 28 : 12) : (isCompleted ? 34 : 18)}
-          y={height / 2}
-          dy="0.35em"
-          fill={textColor}
-          fontSize="11"
-          fontWeight="500"
-          fontFamily="system-ui, -apple-system, sans-serif"
-        >
-          {shortLabel}
-        </text>
-      </svg>
+      {/* Checkmark for completed stages */}
+      {isCompleted && (
+        <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+      )}
+      <span>{label}</span>
     </button>
   );
 }
@@ -251,6 +202,19 @@ export default function WorkflowProgress({
 
   useEffect(() => {
     setCompletedTasks(loadCompletedTasks(jobId));
+  }, [jobId]);
+
+  // Listen for storage changes from other components (e.g., ChecklistTab)
+  useEffect(() => {
+    const handleCustomEvent = () => {
+      setCompletedTasks(loadCompletedTasks(jobId));
+    };
+
+    window.addEventListener("checklist-updated", handleCustomEvent);
+
+    return () => {
+      window.removeEventListener("checklist-updated", handleCustomEvent);
+    };
   }, [jobId]);
 
   useEffect(() => {
@@ -296,15 +260,48 @@ export default function WorkflowProgress({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleStageClick = (stage: Stage, index: number) => {
-    if (index <= currentStageIndex || index === currentStageIndex + 1) {
-      if (stage.tab) {
-        onStageClick(stage.tab);
-      } else if (stage.status) {
-        onStageClick(null, stage.status);
-      }
+  const handleStageClick = (stage: Stage) => {
+    // Trigger confetti when Apply stage is clicked
+    if (stage.id === "apply" && typeof window !== "undefined") {
+      import("canvas-confetti").then((confettiModule) => {
+        const confetti = confettiModule.default;
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 },
+        });
+      });
+    }
+
+    // All stages are clickable
+    if (stage.tab) {
+      onStageClick(stage.tab);
+    } else if (stage.status) {
+      onStageClick(null, stage.status);
     }
   };
+
+  // Explicit mapping of activeTab to stage index for highlighting
+  const TAB_TO_STAGE_INDEX: Record<string, number> = {
+    "resume": 0,
+    "cover": 1,
+    "apply": 2,
+    "interview-prep": 3,
+  };
+
+  // Determine which stage to highlight based on active tab
+  const getActiveStageIndex = (): number => {
+    // Accepted status takes priority - always show Accepted stage as active
+    if (status === "negotiating" || status === "accepted") return 4;
+
+    // Direct tab mapping
+    if (activeTab in TAB_TO_STAGE_INDEX) {
+      return TAB_TO_STAGE_INDEX[activeTab];
+    }
+    // For other tabs (job-details, contacts, emails), use workflow progress
+    return currentStageIndex;
+  };
+  const activeStageIndex = getActiveStageIndex();
 
   const toggleTask = (taskId: string) => {
     const newCompleted = new Set(completedTasks);
@@ -317,20 +314,26 @@ export default function WorkflowProgress({
     saveCompletedTasks(jobId, newCompleted);
   };
 
-  const completedCount = currentTasks.filter(t => completedTasks.has(t.id)).length;
-  const completionPercent = currentTasks.length > 0
-    ? Math.round((completedCount / currentTasks.length) * 100)
+  // Use active stage (what user is viewing) for Guidance section
+  const activeStage = STAGES[activeStageIndex];
+  const activeTasks = STAGE_TASKS[activeStage.id] || [];
+
+  const completedCount = activeTasks.filter(t => completedTasks.has(t.id)).length;
+  const completionPercent = activeTasks.length > 0
+    ? Math.round((completedCount / activeTasks.length) * 100)
     : 100;
 
   return (
     <div className="space-y-3">
-      {/* Progress Bar with SVG Chevrons */}
-      <div className="flex items-center gap-3">
-        <div className="flex items-center">
+      {/* Progress Bar with CSS Chevrons */}
+      <div className="flex items-center gap-4">
+        <div className="flex items-center relative">
           {STAGES.map((stage, index) => {
-            const isCompleted = index < currentStageIndex;
-            const isCurrent = index === currentStageIndex;
-            const isClickable = index <= currentStageIndex + 1;
+            // Stages to the left of active tab are "completed" (full blue)
+            // Active tab is "current" (light blue)
+            // Stages to the right are future (gray)
+            const isCompleted = index < activeStageIndex;
+            const isCurrent = index === activeStageIndex;
             const isFirst = index === 0;
             const isLast = index === STAGES.length - 1;
 
@@ -338,12 +341,13 @@ export default function WorkflowProgress({
               <ChevronSegment
                 key={stage.id}
                 label={stage.label}
+                index={index}
                 isFirst={isFirst}
                 isLast={isLast}
                 isCompleted={isCompleted}
                 isCurrent={isCurrent}
-                isClickable={isClickable}
-                onClick={() => handleStageClick(stage, index)}
+                isClickable={true}
+                onClick={() => handleStageClick(stage)}
               />
             );
           })}
@@ -380,7 +384,7 @@ export default function WorkflowProgress({
       </div>
 
       {/* Guidance Section */}
-      {currentTasks.length > 0 && (
+      {activeTasks.length > 0 && (
         <div className="bg-white rounded-xl shadow border border-gray-100 overflow-hidden">
           {/* Guidance Header */}
           <button
@@ -394,7 +398,7 @@ export default function WorkflowProgress({
               <span className="font-medium text-gray-700">Guidance</span>
               <span className="text-gray-400 mx-1">&gt;</span>
               <span className="text-gray-600">
-                {currentStage.label} Steps: {completionPercent}% Complete
+                {activeStage.label} Steps: {completionPercent}% Complete
               </span>
             </div>
             <svg
@@ -413,7 +417,7 @@ export default function WorkflowProgress({
               <div className="flex gap-6">
                 {/* Task Checklist */}
                 <div className="space-y-1 flex-shrink-0 min-w-[280px]">
-                  {currentTasks.map((task) => {
+                  {activeTasks.map((task) => {
                     const isChecked = completedTasks.has(task.id);
                     const isSelected = selectedTask === task.id;
 
@@ -456,7 +460,7 @@ export default function WorkflowProgress({
                 {selectedTask && (
                   <div className="flex-1 pl-6 border-l border-gray-200 flex items-start pt-2">
                     <ul className="list-disc list-inside space-y-1 text-sm text-gray-600">
-                      <li>{currentTasks.find(t => t.id === selectedTask)?.tip}</li>
+                      <li>{activeTasks.find(t => t.id === selectedTask)?.tip}</li>
                     </ul>
                   </div>
                 )}

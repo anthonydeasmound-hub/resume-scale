@@ -32,7 +32,7 @@ export default function ReviewPage() {
 
   const fetchJobs = async () => {
     try {
-      const response = await fetch("/api/jobs");
+      const response = await fetch("/api/jobs?include=follow_ups");
       if (response.ok) {
         const data = await response.json();
         // Filter out archived jobs
@@ -71,6 +71,27 @@ export default function ReviewPage() {
       }
     } catch (err) {
       console.error("Failed to update status:", err);
+    }
+  };
+
+  const handleExcitementChange = async (jobId: number, level: number) => {
+    try {
+      const response = await fetch(`/api/jobs/${jobId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ excitement_level: level }),
+      });
+
+      if (response.ok) {
+        // Update local state
+        setJobs((prev) =>
+          prev.map((job) =>
+            job.id === jobId ? { ...job, excitement_level: level } : job
+          )
+        );
+      }
+    } catch (err) {
+      console.error("Failed to update excitement level:", err);
     }
   };
 
@@ -160,6 +181,7 @@ export default function ReviewPage() {
           selectedIds={selectedIds}
           onSelectionChange={setSelectedIds}
           onStatusChange={handleStatusChange}
+          onExcitementChange={handleExcitementChange}
         />
       </div>
 

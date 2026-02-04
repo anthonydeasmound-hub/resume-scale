@@ -146,7 +146,18 @@ Return as JSON in this exact format:
       throw new Error("Failed to parse AI response");
     }
 
-    const emails = JSON.parse(jsonMatch[0]);
+    // Clean up the JSON string - handle unescaped control characters
+    let jsonStr = jsonMatch[0];
+    // Replace actual newlines within string values with escaped newlines
+    // This regex finds content between quotes and escapes newlines within
+    jsonStr = jsonStr.replace(/"([^"]*(?:\\.[^"]*)*)"/g, (match) => {
+      return match
+        .replace(/\n/g, '\\n')
+        .replace(/\r/g, '\\r')
+        .replace(/\t/g, '\\t');
+    });
+
+    const emails = JSON.parse(jsonStr);
 
     return NextResponse.json({
       emails,

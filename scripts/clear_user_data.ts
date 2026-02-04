@@ -25,24 +25,34 @@ async function clearUserData(email: string) {
 
   if (jobIds.length > 0) {
     const placeholders = jobIds.map((_, i) => `$${i + 1}`).join(",");
-    
+
     // Delete job-related data first (child tables)
+    await execute(`DELETE FROM job_follow_ups WHERE job_id IN (${placeholders})`, jobIds);
+    console.log("Deleted job_follow_ups");
+
+    await execute(`DELETE FROM job_contacts WHERE job_id IN (${placeholders})`, jobIds);
+    console.log("Deleted job_contacts");
+
     await execute(`DELETE FROM calendar_events WHERE job_id IN (${placeholders})`, jobIds);
     console.log("Deleted calendar_events");
-    
+
     await execute(`DELETE FROM email_actions WHERE job_id IN (${placeholders})`, jobIds);
     console.log("Deleted email_actions");
-    
+
     await execute(`DELETE FROM interview_stages WHERE job_id IN (${placeholders})`, jobIds);
     console.log("Deleted interview_stages");
-    
+
     await execute(`DELETE FROM job_notes WHERE job_id IN (${placeholders})`, jobIds);
     console.log("Deleted job_notes");
-    
+
     // Delete jobs
     await execute("DELETE FROM job_applications WHERE user_id = $1", [userId]);
     console.log("Deleted job_applications");
   }
+
+  // Delete email templates
+  await execute("DELETE FROM email_templates WHERE user_id = $1", [userId]);
+  console.log("Deleted email_templates");
 
   // Delete resumes
   await execute("DELETE FROM resumes WHERE user_id = $1", [userId]);

@@ -90,6 +90,7 @@ export interface SelectedRole {
   aiBullets: string[];
   bulletOptions: string[];
   loadingBullets: boolean;
+  customTitle?: string; // Optimized job title for ATS matching
 }
 
 export interface ResumeReviewResult {

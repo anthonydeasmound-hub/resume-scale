@@ -6,7 +6,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { ResumeData } from "@/types/resume";
 import TabsNav from "@/components/TabsNav";
 import JobAnalysisPanel from "@/components/review/JobAnalysisPanel";
-import ATSScoreCard from "@/components/review/ATSScoreCard";
+import ATSDashboard from "@/components/review/ATSDashboard";
 import { ATSScore } from "@/lib/ats-scorer";
 import { ReviewSkeleton } from "@/components/Skeleton";
 import { showToast } from "@/components/Toast";
@@ -23,9 +23,14 @@ import SkillsSection from "@/components/review/SkillsSection";
 import CoverLetterPreview from "@/components/review/CoverLetterPreview";
 import ResumePreviewPane from "@/components/review/ResumePreviewPane";
 import BulletOptimizationModal, { BulletSuggestion } from "@/components/review/BulletOptimizationModal";
+import TitleOptimizationModal, { TitleSuggestion } from "@/components/review/TitleOptimizationModal";
 import JobHeader from "@/components/review/JobHeader";
 import WorkflowProgress from "@/components/review/WorkflowProgress";
 import ApplyTabContent from "@/components/review/ApplyTabContent";
+import SecondaryTabBar, { SecondaryTab } from "@/components/review/SecondaryTabBar";
+import NotesTab from "@/components/review/NotesTab";
+import JobInfoTab from "@/components/review/JobInfoTab";
+import ChecklistTab from "@/components/review/ChecklistTab";
 import { JobStatus } from "@/components/review/types";
 
 export default function JobReviewPage() {
@@ -38,6 +43,26 @@ export default function JobReviewPage() {
   const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"resume" | "cover" | "apply" | "job-details" | "contacts" | "emails" | "interview-prep">("resume");
+  const [secondaryTab, setSecondaryTab] = useState<SecondaryTab>("preview");
+  const prevActiveTabRef = useRef(activeTab);
+
+  // When activeTab changes, ensure secondaryTab is valid
+  // Only run when activeTab changes, not when secondaryTab changes (to allow manual tab switching)
+  useEffect(() => {
+    if (prevActiveTabRef.current === activeTab) {
+      return; // Only run when activeTab actually changed
+    }
+    prevActiveTabRef.current = activeTab;
+
+    const showPreviewTab = activeTab === "resume" || activeTab === "cover";
+    if (!showPreviewTab && secondaryTab === "preview") {
+      // Preview tab is hidden, switch to job-info
+      setSecondaryTab("job-info");
+    } else if (showPreviewTab && secondaryTab !== "preview") {
+      // Coming back to resume/cover, switch to preview
+      setSecondaryTab("preview");
+    }
+  }, [activeTab, secondaryTab]);
 
   // Apply tab state
   const [applicationUrl, setApplicationUrl] = useState("");
@@ -113,6 +138,12 @@ export default function JobReviewPage() {
   const [optimizingBullets, setOptimizingBullets] = useState(false);
   const [bulletSuggestions, setBulletSuggestions] = useState<BulletSuggestion[]>([]);
   const [showOptimizationModal, setShowOptimizationModal] = useState(false);
+
+  // ATS Dashboard actions
+  const [addingAllSkills, setAddingAllSkills] = useState(false);
+  const [optimizingTitles, setOptimizingTitles] = useState(false);
+  const [titleSuggestions, setTitleSuggestions] = useState<TitleSuggestion[]>([]);
+  const [showTitleModal, setShowTitleModal] = useState(false);
 
   useEffect(() => {
     document.title = "ResumeGenie - ATS Optimizer";
@@ -735,6 +766,103 @@ export default function JobReviewPage() {
     setHasChanges(true);
   };
 
+  // Add a skill from ATS dashboard and expand skills section
+  const addSkillFromATS = (skill: string) => {
+    if (!selectedSkills.includes(skill)) {
+      setSelectedSkills((prev) => [...prev, skill]);
+      setHasChanges(true);
+      setExpandedSection("skills");
+      showToast("success", `Added "${skill}" to your skills`);
+    }
+  };
+
+  // Add all missing skills from ATS dashboard
+  const addAllSkillsFromATS = (skills: string[]) => {
+    setAddingAllSkills(true);
+    const newSkills = skills.filter((skill) => !selectedSkills.includes(skill));
+    if (newSkills.length > 0) {
+      setSelectedSkills((prev) => [...prev, ...newSkills]);
+      setHasChanges(true);
+      setExpandedSection("skills");
+      showToast("success", `Added ${newSkills.length} skills to your resume`);
+    } else {
+      showToast("info", "All skills already added");
+    }
+    setAddingAllSkills(false);
+  };
+
+  // Generate optimized job title suggestions
+  const optimizeTitlesForATS = async () => {
+    if (!job || !masterResume || selectedRoles.length === 0) return;
+
+    setOptimizingTitles(true);
+
+    try {
+      // Collect roles for title optimization
+      const roles = selectedRoles.map((role) => {
+        const masterRole = masterResume.work_experience[role.roleIndex];
+        return {
+          roleIndex: role.roleIndex,
+          currentTitle: masterRole.title,
+          company: masterRole.company,
+        };
+      });
+
+      const response = await fetch("/api/ai/suggest-titles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          roles,
+          targetJobTitle: job.job_title,
+          targetJobDescription: job.job_description,
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed to get title suggestions");
+
+      const data = await response.json();
+
+      if (data.suggestions && data.suggestions.length > 0) {
+        setTitleSuggestions(data.suggestions);
+        setShowTitleModal(true);
+      } else {
+        showToast("info", "Your job titles already align well with this position");
+      }
+    } catch (error) {
+      console.error("Title optimization error:", error);
+      showToast("error", "Failed to generate title suggestions");
+    } finally {
+      setOptimizingTitles(false);
+    }
+  };
+
+  // Apply title updates to selected roles
+  const applyTitleUpdates = (suggestions: TitleSuggestion[]) => {
+    if (!masterResume) return;
+
+    // Create updated roles with new titles
+    const updatedRoles = selectedRoles.map((role) => {
+      const titleUpdate = suggestions.find((s) => s.roleIndex === role.roleIndex);
+      if (titleUpdate) {
+        return {
+          ...role,
+          customTitle: titleUpdate.suggestedTitle,
+        };
+      }
+      return role;
+    });
+
+    setSelectedRoles(updatedRoles);
+    setHasChanges(true);
+    showToast("success", `Updated ${suggestions.length} job title${suggestions.length !== 1 ? "s" : ""}`);
+    setShowTitleModal(false);
+  };
+
+  // Scroll to and expand a section
+  const scrollToSection = (section: "summary" | "experience" | "skills") => {
+    setExpandedSection(section);
+  };
+
   const selectSummary = (index: number) => {
     setSelectedSummaryIndex(index);
     setHasChanges(true);
@@ -927,7 +1055,7 @@ export default function JobReviewPage() {
       const masterRole = masterResume.work_experience[r.roleIndex];
       return {
         company: masterRole.company,
-        title: masterRole.title,
+        title: r.customTitle || masterRole.title, // Use optimized title if available
         start_date: masterRole.start_date,
         end_date: masterRole.end_date,
         description: r.selectedBullets.map((i) => getBulletText(r.roleIndex, i, r.bulletOptions)),
@@ -1334,7 +1462,7 @@ export default function JobReviewPage() {
           deleting={deleting}
         />
 
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid gap-6 lg:grid-cols-[1fr_560px]">
           {/* Left side - Accordions */}
           <div className="space-y-4">
             {/* Workflow Progress */}
@@ -1350,6 +1478,14 @@ export default function JobReviewPage() {
               onCloseJob={handleCloseJob}
             />
 
+            {/* Secondary Tab Bar */}
+            <SecondaryTabBar
+              activeTab={secondaryTab}
+              onTabChange={setSecondaryTab}
+              showPreviewTab={activeTab === "resume" || activeTab === "cover"}
+            />
+
+            {/* Resume Editor - shown when clicking Resume stage */}
             {activeTab === "resume" && (
               <>
                 {/* Profile Selector */}
@@ -1362,6 +1498,24 @@ export default function JobReviewPage() {
                   />
                 )}
 
+                {/* ATS Dashboard - Primary focus */}
+                <ATSDashboard
+                  score={atsScore}
+                  loading={loadingAts}
+                  onCalculate={calculateAtsScore}
+                  disabled={selectedRoles.length === 0 || !job}
+                  onOptimizeBullets={optimizeAllBullets}
+                  optimizingBullets={optimizingBullets}
+                  hasBullets={selectedRoles.some(r => r.selectedBullets.length > 0)}
+                  onAddSkill={addSkillFromATS}
+                  onAddAllSkills={addAllSkillsFromATS}
+                  addingAllSkills={addingAllSkills}
+                  onOptimizeTitles={optimizeTitlesForATS}
+                  optimizingTitles={optimizingTitles}
+                  onScrollToSection={scrollToSection}
+                />
+
+                {/* Resume Sections */}
                 <SummarySection
                   expandedSection={expandedSection}
                   toggleSection={toggleSection}
@@ -1418,16 +1572,6 @@ export default function JobReviewPage() {
                   onToggleSkill={toggleSkill}
                 />
 
-                {/* ATS Compatibility Score */}
-                <ATSScoreCard
-                  score={atsScore}
-                  loading={loadingAts}
-                  onCalculate={calculateAtsScore}
-                  disabled={selectedRoles.length === 0 || !job}
-                  onOptimizeBullets={optimizeAllBullets}
-                  optimizingBullets={optimizingBullets}
-                  hasBullets={selectedRoles.some(r => r.selectedBullets.length > 0)}
-                />
 
 
                 {/* Download Buttons */}
@@ -1534,62 +1678,85 @@ export default function JobReviewPage() {
               />
             )}
 
-            {activeTab === "contacts" && job && (
-              <ContactsTab
-                jobId={job.id}
-                companyName={job.company_name}
-                recruiterName={job.recruiter_name}
-                recruiterEmail={job.recruiter_email}
-                recruiterTitle={job.recruiter_title}
-              />
-            )}
-
-            {activeTab === "emails" && job && (
-              <EmailTemplatesTab
-                jobId={job.id}
-                companyName={job.company_name}
-                jobTitle={job.job_title}
-                recruiterName={job.recruiter_name}
-                recruiterEmail={job.recruiter_email}
-                interviewStage={stages.find(s => s.status === "scheduled" || s.status === "pending")?.stage_type}
-              />
-            )}
-
-            {activeTab === "interview-prep" && job && (
-              <InterviewPrepTab
-                jobId={job.id}
-                companyName={job.company_name}
-                jobTitle={job.job_title}
-                jobDescription={job.job_description}
-                existingGuide={job.interview_guide}
-              />
-            )}
           </div>
 
-          {/* Right side - Live Preview */}
+          {/* Right side - Context-Aware Panel */}
           <div className="bg-white rounded-xl shadow-lg overflow-hidden sticky top-8" style={{ height: "fit-content" }}>
-            <div className="bg-gray-100 px-4 py-2 border-b flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-700">Live Preview</span>
-              <span className="text-xs text-gray-500">Professional template</span>
-            </div>
+            {/* Show Live Preview when Preview tab is selected */}
+            {secondaryTab === "preview" ? (
+              <>
+                <div className="bg-gray-100 px-4 py-2 border-b flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-700">Live Preview</span>
+                  <span className="text-xs text-gray-500">Professional template</span>
+                </div>
+                <div className="overflow-auto p-4 bg-gray-100" style={{ maxHeight: "calc(100vh - 200px)" }}>
+                  {activeTab === "cover" && masterResume ? (
+                    <CoverLetterPreview
+                      contactInfo={masterResume.contact_info}
+                      coverLetter={coverLetter}
+                      accentColor={accentColor}
+                    />
+                  ) : (
+                    <ResumePreviewPane
+                      iframeRef={iframeRef}
+                      previewHtml={previewHtml}
+                      loadingPreview={loadingPreview}
+                    />
+                  )}
+                </div>
+              </>
+            ) : (
+              /* Show secondary tab content in right panel for other views */
+              <div className="overflow-auto" style={{ maxHeight: "calc(100vh - 200px)" }}>
+                {secondaryTab === "job-info" && job && (
+                  <JobInfoTab
+                    jobTitle={job.job_title}
+                    companyName={job.company_name}
+                    jobUrl={job.job_url}
+                    jobDescription={job.job_description}
+                    jobDetailsParsed={job.job_details_parsed ? JSON.parse(job.job_details_parsed) : null}
+                    createdAt={job.created_at}
+                    onEdit={() => setShowEditModal(true)}
+                  />
+                )}
 
-            <div className="overflow-auto p-4 bg-gray-100" style={{ maxHeight: "calc(100vh - 200px)" }}>
-              {(activeTab === "resume" || activeTab === "apply" || activeTab === "job-details" || activeTab === "contacts" || activeTab === "emails" || activeTab === "interview-prep") && (
-                <ResumePreviewPane
-                  iframeRef={iframeRef}
-                  previewHtml={previewHtml}
-                  loadingPreview={loadingPreview}
-                />
-              )}
+                {secondaryTab === "notes" && job && (
+                  <NotesTab jobId={job.id} />
+                )}
 
-              {activeTab === "cover" && masterResume && (
-                <CoverLetterPreview
-                  contactInfo={masterResume.contact_info}
-                  coverLetter={coverLetter}
-                  accentColor={accentColor}
-                />
-              )}
-            </div>
+                {secondaryTab === "contacts" && job && (
+                  <ContactsTab
+                    jobId={job.id}
+                    companyName={job.company_name}
+                    recruiterName={job.recruiter_name}
+                    recruiterEmail={job.recruiter_email}
+                    recruiterTitle={job.recruiter_title}
+                  />
+                )}
+
+                {secondaryTab === "emails" && job && (
+                  <EmailTemplatesTab
+                    jobId={job.id}
+                    companyName={job.company_name}
+                    jobTitle={job.job_title}
+                    recruiterName={job.recruiter_name}
+                    recruiterEmail={job.recruiter_email}
+                    interviewStage={stages.find(s => s.status === "scheduled" || s.status === "pending")?.stage_type}
+                  />
+                )}
+
+                {secondaryTab === "checklist" && job && (
+                  <ChecklistTab
+                    jobId={job.id}
+                    hasResume={Boolean(job.tailored_resume)}
+                    hasCoverLetter={Boolean(job.cover_letter)}
+                    hasContact={hasContactWithEmail}
+                    hasApplicationUrl={Boolean(applicationUrl)}
+                    status={job.status}
+                  />
+                )}
+              </div>
+            )}
           </div>
 
                   </div>
@@ -1604,6 +1771,20 @@ export default function JobReviewPage() {
             setShowOptimizationModal(false);
             setBulletSuggestions([]);
           }}
+        />
+      )}
+
+      {/* Title Optimization Modal */}
+      {job && (
+        <TitleOptimizationModal
+          isOpen={showTitleModal}
+          onClose={() => {
+            setShowTitleModal(false);
+            setTitleSuggestions([]);
+          }}
+          suggestions={titleSuggestions}
+          onApply={applyTitleUpdates}
+          targetJobTitle={job.job_title}
         />
       )}
 

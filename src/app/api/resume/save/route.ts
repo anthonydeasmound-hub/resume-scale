@@ -85,15 +85,33 @@ async function processBase64Photo(dataUrl: string, identifier: string): Promise<
   }
 }
 
-// Helper function to download LinkedIn photo and upload to Vercel Blob
-async function processLinkedInPhoto(photoUrl: string, userId: number): Promise<string | null> {
-  // Check if it's a LinkedIn CDN URL
-  if (!photoUrl.includes('licdn.com') && !photoUrl.includes('linkedin.com')) {
-    return photoUrl; // Not a LinkedIn URL, return as-is
+// Helper function to download OAuth/LinkedIn photo and upload to Vercel Blob
+async function processExternalPhoto(photoUrl: string, userId: number): Promise<string | null> {
+  // Check if it's an external URL that needs to be downloaded and stored
+  const externalDomains = [
+    'licdn.com',           // LinkedIn CDN
+    'linkedin.com',        // LinkedIn
+    'googleusercontent.com', // Google OAuth profile photos
+    'lh3.googleusercontent.com', // Google user content
+    'platform-lookaside.fbsbx.com', // Facebook
+    'graph.facebook.com',  // Facebook Graph API
+  ];
+
+  const isExternalUrl = externalDomains.some(domain => photoUrl.includes(domain));
+
+  if (!isExternalUrl) {
+    // Check if it's already a Vercel Blob URL (already processed)
+    if (photoUrl.includes('vercel-storage.com') || photoUrl.includes('blob.vercel-storage.com')) {
+      return photoUrl; // Already a blob URL, return as-is
+    }
+    // Unknown URL, try to process it anyway
+    if (!photoUrl.startsWith('http')) {
+      return photoUrl; // Not a URL, return as-is
+    }
   }
 
   try {
-    console.log("[resume/save] Downloading LinkedIn photo:", photoUrl.substring(0, 100));
+    console.log("[resume/save] Downloading external photo:", photoUrl.substring(0, 100));
 
     // Download the image
     const response = await fetch(photoUrl, {
@@ -104,7 +122,7 @@ async function processLinkedInPhoto(photoUrl: string, userId: number): Promise<s
     });
 
     if (!response.ok) {
-      console.error("[resume/save] Failed to download LinkedIn photo:", response.status);
+      console.error("[resume/save] Failed to download external photo:", response.status);
       return null;
     }
 
@@ -132,10 +150,10 @@ async function processLinkedInPhoto(photoUrl: string, userId: number): Promise<s
       contentType,
     });
 
-    console.log("[resume/save] Uploaded LinkedIn photo to Vercel Blob:", blob.url);
+    console.log("[resume/save] Uploaded external photo to Vercel Blob:", blob.url);
     return blob.url;
   } catch (error) {
-    console.error("[resume/save] Error processing LinkedIn photo:", error);
+    console.error("[resume/save] Error processing external photo:", error);
     return null;
   }
 }
@@ -198,11 +216,16 @@ export async function POST(request: NextRequest) {
       user = { id: result.rows[0].id as number };
     }
 
-    // Process LinkedIn photo if provided - download and upload to Vercel Blob
+    // Process external photo URLs (OAuth, LinkedIn) - download and upload to Vercel Blob
     let finalPhotoPath = profile_photo_path || null;
-    if (profile_photo_path && (profile_photo_path.includes('licdn.com') || profile_photo_path.includes('linkedin.com'))) {
-      const processedUrl = await processLinkedInPhoto(profile_photo_path, user.id);
-      finalPhotoPath = processedUrl;
+    if (profile_photo_path && profile_photo_path.startsWith('http')) {
+      // Check if it's an external URL that needs processing (not already a blob URL)
+      const needsProcessing = !profile_photo_path.includes('vercel-storage.com') &&
+                               !profile_photo_path.includes('blob.vercel-storage.com');
+      if (needsProcessing) {
+        const processedUrl = await processExternalPhoto(profile_photo_path, user.id);
+        finalPhotoPath = processedUrl;
+      }
     }
 
     // Check if resume exists - either by profile_id or primary profile

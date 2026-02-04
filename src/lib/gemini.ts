@@ -843,14 +843,14 @@ export async function generateInterviewGuide(
     .filter(b => /\d+%|\$[\d.,]+[KMB]?|\d+\+/.test(b))
     .slice(0, 6);
 
-  const prompt = `Create a comprehensive interview preparation guide for this candidate.
+  const prompt = `Create a personalized interview preparation guide. IMPORTANT: Analyze the role type and create a REALISTIC interview process - NOT a generic 5-round structure.
 
 COMPANY: ${companyName}
 ABOUT THE COMPANY: ${companyContext}
 
 JOB TITLE: ${jobTitle}
 JOB DESCRIPTION:
-${jobDescription.slice(0, 2000)}
+${jobDescription.slice(0, 2500)}
 
 ${jobDetails ? `
 KEY REQUIREMENTS:
@@ -865,67 +865,92 @@ CANDIDATE BACKGROUND:
 • Skills: ${resume.skills.slice(0, 10).join(', ')}
 • Education: ${resume.education[0]?.degree} from ${resume.education[0]?.institution}
 
-TOP ACHIEVEMENTS (for STAR answers):
+TOP ACHIEVEMENTS (for STAR stories):
 ${achievementBullets.map((b, i) => `${i + 1}. ${b}`).join('\n')}
 
-Generate a comprehensive interview guide with:
+INSTRUCTIONS:
 
-1. COMPANY RESEARCH:
-   - Brief company overview (2-3 sentences)
-   - 3 recent news items or developments (can be general industry trends if specific news unknown)
-   - Company culture summary (1-2 sentences based on job description tone)
-   - 3-4 key competitors
+1. DETECT THE ROLE TYPE: Analyze the job title and description to determine the role category:
+   - "sales" (AE, SDR, Account Manager, Sales Director)
+   - "engineering" (Software Engineer, DevOps, Data Engineer)
+   - "product" (Product Manager, Product Owner)
+   - "design" (UX Designer, Product Designer)
+   - "marketing" (Marketing Manager, Growth, Content)
+   - "data" (Data Scientist, Analyst, ML Engineer)
+   - "operations" (Operations Manager, Project Manager)
+   - "executive" (VP, Director, C-level)
+   - "other" (anything else)
 
-2. INTERVIEW ROUNDS (create 5 rounds):
-   Round 1: Phone Screen (30 min) - Initial HR/recruiter call
-   Round 2: Technical/Skills Assessment (45-60 min) - Role-specific evaluation
-   Round 3: Behavioral Interview (45 min) - Culture fit and soft skills
-   Round 4: Hiring Manager Interview (45-60 min) - Deep dive with future manager
-   Round 5: Final Round (30-45 min) - Executive or panel
+2. CREATE REALISTIC INTERVIEW STAGES based on role type:
+   - Sales roles: Often include discovery calls, mock demos/pitches, role plays
+   - Engineering: Usually have coding challenges, system design, technical deep-dives
+   - Product: Case studies, product sense questions, metrics discussions
+   - Design: Portfolio reviews, design challenges, critique sessions
+   - Executive: Multiple stakeholder meetings, board presentations
 
-   For each round include:
-   - 4-5 likely questions specific to that round type
-   - 2 STAR-format answer frameworks using the candidate's ACTUAL achievements above
-   - 3 specific tips for that round
+   Create 2-5 stages that ACTUALLY match what this company/role would have. Don't pad with unnecessary stages.
 
-3. QUESTIONS TO ASK (organize by category):
-   - About the Role (3 questions)
-   - About the Team (3 questions)
-   - About Growth (2 questions)
-   - About Company Culture (2 questions)
+3. For EACH stage, create 3-5 PREP CARDS - bite-sized study items:
+   - "question" type: Interview questions with answer frameworks
+   - "tip" type: Specific actionable tips
+   - "talking_point" type: Key points to mention
+   - "star_story" type: STAR-format answers using candidate's ACTUAL achievements
 
-4. GENERAL TIPS (5-6 tips specific to this role/company)
+4. COMPANY RESEARCH: Brief but actionable intel about the company.
 
-Return ONLY valid JSON matching this structure:
+5. QUESTIONS TO ASK: Smart questions organized by which stage to ask them.
+
+Return ONLY valid JSON matching this EXACT structure:
 {
+  "detectedRoleType": "sales|engineering|product|design|marketing|data|operations|executive|other",
+  "processExplanation": "Brief explanation of why this interview process is typical for this role/company (1-2 sentences)",
   "companyResearch": {
-    "overview": "string",
-    "recentNews": ["news1", "news2", "news3"],
-    "culture": "string",
-    "competitors": ["comp1", "comp2", "comp3"]
+    "overview": "2-3 sentence company overview",
+    "recentNews": ["Recent development 1", "Recent development 2"],
+    "culture": "1-2 sentence culture summary based on job posting tone",
+    "competitors": ["Competitor 1", "Competitor 2", "Competitor 3"]
   },
-  "interviewRounds": [
+  "suggestedStages": [
     {
-      "round": 1,
+      "id": "stage-1",
+      "name": "Recruiter Screen",
       "type": "phone_screen",
-      "typicalDuration": "30 minutes",
-      "likelyQuestions": ["q1", "q2", "q3", "q4"],
-      "starAnswers": [
+      "duration": "30 min",
+      "description": "Initial call with recruiter to discuss background and role fit",
+      "prepCards": [
         {
-          "question": "Tell me about a time when...",
-          "situation": "Context from candidate's background",
-          "task": "What needed to be done",
-          "action": "Specific actions taken",
-          "result": "Measurable outcome"
+          "id": "card-1-1",
+          "type": "question",
+          "front": "Tell me about yourself",
+          "back": "Framework: Current role → Key achievement → Why this role/company",
+          "category": "intro"
+        },
+        {
+          "id": "card-1-2",
+          "type": "star_story",
+          "front": "Tell me about a time you exceeded goals",
+          "back": "S: [situation from candidate's background]\\nT: [task]\\nA: [action]\\nR: [result with metrics]",
+          "category": "behavioral"
+        },
+        {
+          "id": "card-1-3",
+          "type": "tip",
+          "front": "Key tip for this stage",
+          "back": "Detailed actionable advice",
+          "category": "preparation"
         }
       ],
-      "tips": ["tip1", "tip2", "tip3"]
+      "tips": ["Specific tip 1", "Specific tip 2"]
     }
   ],
   "questionsToAsk": [
-    { "category": "About the Role", "questions": ["q1", "q2", "q3"] }
+    {
+      "category": "About the Role",
+      "questions": ["Question 1", "Question 2"],
+      "bestAskedDuring": "Hiring Manager"
+    }
   ],
-  "generalTips": ["tip1", "tip2", "tip3", "tip4", "tip5"]
+  "generalTips": ["Tip specific to this role/company 1", "Tip 2", "Tip 3"]
 }`;
 
   try {
@@ -942,28 +967,249 @@ Return ONLY valid JSON matching this structure:
     return JSON.parse(cleanedResponse);
   } catch (error) {
     console.error("Failed to generate interview guide:", error);
+    // Return a sensible fallback with the new structure
     return {
+      detectedRoleType: "other",
+      processExplanation: "Standard interview process for this role.",
       companyResearch: {
         overview: `${companyName} is hiring for the ${jobTitle} position.`,
         recentNews: [],
-        culture: "Company culture details not available.",
+        culture: "Research the company culture before your interview.",
         competitors: [],
       },
-      interviewRounds: [
+      suggestedStages: [
         {
-          round: 1,
+          id: "stage-1",
+          name: "Initial Screen",
           type: "phone_screen",
-          typicalDuration: "30 minutes",
-          likelyQuestions: ["Tell me about yourself", "Why are you interested in this role?"],
-          starAnswers: [],
-          tips: ["Research the company", "Prepare questions to ask"],
+          duration: "30 min",
+          description: "Initial conversation with recruiter or hiring manager",
+          prepCards: [
+            {
+              id: "card-1-1",
+              type: "question" as const,
+              front: "Tell me about yourself",
+              back: "Framework: Current role → Key achievement → Why this opportunity",
+              category: "intro",
+            },
+            {
+              id: "card-1-2",
+              type: "question" as const,
+              front: "Why are you interested in this role?",
+              back: "Connect your experience to the job requirements, mention specific aspects of the company that excite you",
+              category: "motivation",
+            },
+          ],
+          tips: ["Research the company thoroughly", "Prepare 2-3 questions to ask"],
+        },
+        {
+          id: "stage-2",
+          name: "Hiring Manager Interview",
+          type: "hiring_manager",
+          duration: "45-60 min",
+          description: "Deep dive into your experience with your potential manager",
+          prepCards: [
+            {
+              id: "card-2-1",
+              type: "question" as const,
+              front: "Walk me through a challenging project",
+              back: "Use STAR format: Situation, Task, Action, Result with metrics",
+              category: "behavioral",
+            },
+          ],
+          tips: ["Prepare specific examples", "Show enthusiasm for the role"],
         },
       ],
       questionsToAsk: [
-        { category: "About the Role", questions: ["What does success look like in this role?"] },
+        {
+          category: "About the Role",
+          questions: ["What does success look like in the first 90 days?", "What are the biggest challenges facing the team?"],
+          bestAskedDuring: "Hiring Manager Interview",
+        },
       ],
-      generalTips: ["Research the company thoroughly", "Prepare specific examples from your experience"],
+      generalTips: [
+        "Research the company and recent news",
+        "Prepare specific examples from your experience",
+        "Have thoughtful questions ready for each interviewer",
+      ],
     };
+  }
+}
+
+// Generate prep content for a single interview stage
+export async function generateStageContent(
+  stageName: string,
+  stageType: string,
+  jobDescription: string,
+  jobTitle: string,
+  companyName: string,
+  resume: ParsedResume,
+  roleType?: string
+): Promise<{
+  description: string;
+  duration: string;
+  prepCards: Array<{
+    id: string;
+    type: "question" | "tip" | "talking_point" | "star_story";
+    front: string;
+    back: string;
+    category?: string;
+  }>;
+  tips: string[];
+}> {
+  // Extract user's top achievements for STAR answers
+  const allBullets = resume.work_experience.flatMap(exp => exp.description || []);
+  const achievementBullets = allBullets
+    .filter(b => /\d+%|\$[\d.,]+[KMB]?|\d+\+/.test(b))
+    .slice(0, 4);
+
+  const prompt = `Generate interview prep content for a specific interview stage.
+
+STAGE: ${stageName} (${stageType})
+ROLE TYPE: ${roleType || "general"}
+JOB: ${jobTitle} at ${companyName}
+
+JOB DESCRIPTION (excerpt):
+${jobDescription.slice(0, 1500)}
+
+CANDIDATE'S TOP ACHIEVEMENTS:
+${achievementBullets.map((b, i) => `${i + 1}. ${b}`).join('\n')}
+CANDIDATE SKILLS: ${resume.skills.slice(0, 8).join(', ')}
+
+Generate content specifically for this "${stageName}" interview stage. Include:
+1. A brief description of what to expect (1-2 sentences)
+2. Typical duration
+3. 3-5 prep cards (mix of questions, tips, and STAR stories using the candidate's actual achievements)
+4. 2-3 specific tips for this stage
+
+Return ONLY valid JSON:
+{
+  "description": "What to expect in this stage",
+  "duration": "30-45 min",
+  "prepCards": [
+    {
+      "id": "card-1",
+      "type": "question",
+      "front": "The interview question",
+      "back": "Framework or approach to answer",
+      "category": "behavioral"
+    },
+    {
+      "id": "card-2",
+      "type": "star_story",
+      "front": "Tell me about a time when...",
+      "back": "S: [situation]\\nT: [task]\\nA: [action]\\nR: [result]",
+      "category": "behavioral"
+    }
+  ],
+  "tips": ["Tip 1", "Tip 2"]
+}`;
+
+  try {
+    const response = await callAI(prompt);
+    const cleanedResponse = response
+      .replace(/```json\n?/g, "")
+      .replace(/```\n?/g, "")
+      .trim();
+
+    const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
+    const result = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(cleanedResponse);
+
+    // Ensure IDs are unique
+    const timestamp = Date.now();
+    result.prepCards = result.prepCards.map((card: { id: string }, idx: number) => ({
+      ...card,
+      id: `${stageType}-${timestamp}-${idx}`,
+    }));
+
+    return result;
+  } catch (error) {
+    console.error("Failed to generate stage content:", error);
+    return {
+      description: `${stageName} interview stage`,
+      duration: "45 min",
+      prepCards: [
+        {
+          id: `${stageType}-${Date.now()}-0`,
+          type: "question" as const,
+          front: "Tell me about yourself",
+          back: "Framework: Current role → Key achievement → Why this role",
+          category: "intro",
+        },
+      ],
+      tips: ["Research the company", "Prepare specific examples"],
+    };
+  }
+}
+
+// Generate additional prep cards for an existing stage
+export async function generateMorePrepCards(
+  stageName: string,
+  stageType: string,
+  cardType: "question" | "star_story" | "tip",
+  jobTitle: string,
+  companyName: string,
+  resume: ParsedResume,
+  existingCards: string[] // fronts of existing cards to avoid duplicates
+): Promise<Array<{
+  id: string;
+  type: "question" | "tip" | "talking_point" | "star_story";
+  front: string;
+  back: string;
+  category?: string;
+}>> {
+  const allBullets = resume.work_experience.flatMap(exp => exp.description || []);
+  const achievementBullets = allBullets
+    .filter(b => /\d+%|\$[\d.,]+[KMB]?|\d+\+/.test(b))
+    .slice(0, 4);
+
+  const cardTypePrompts: Record<string, string> = {
+    question: "interview questions with answer frameworks",
+    star_story: "STAR-format behavioral questions with answer frameworks using the candidate's actual achievements",
+    tip: "actionable tips and advice",
+  };
+
+  const prompt = `Generate 3 NEW ${cardTypePrompts[cardType]} for a "${stageName}" interview stage.
+
+JOB: ${jobTitle} at ${companyName}
+STAGE TYPE: ${stageType}
+
+${cardType === "star_story" ? `CANDIDATE'S ACHIEVEMENTS TO USE:
+${achievementBullets.map((b, i) => `${i + 1}. ${b}`).join('\n')}` : ''}
+
+EXISTING CARDS (do NOT repeat these):
+${existingCards.slice(0, 5).map(c => `- ${c}`).join('\n')}
+
+Return ONLY valid JSON array:
+[
+  {
+    "id": "new-1",
+    "type": "${cardType}",
+    "front": "${cardType === 'tip' ? 'The tip title' : 'The question'}",
+    "back": "${cardType === 'tip' ? 'Detailed advice' : 'Answer framework'}",
+    "category": "relevant_category"
+  }
+]`;
+
+  try {
+    const response = await callAI(prompt);
+    const cleanedResponse = response
+      .replace(/```json\n?/g, "")
+      .replace(/```\n?/g, "")
+      .trim();
+
+    const jsonMatch = cleanedResponse.match(/\[[\s\S]*\]/);
+    const result = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(cleanedResponse);
+
+    // Ensure IDs are unique
+    const timestamp = Date.now();
+    return result.map((card: { id: string }, idx: number) => ({
+      ...card,
+      id: `${stageType}-${timestamp}-${idx}`,
+    }));
+  } catch (error) {
+    console.error("Failed to generate more prep cards:", error);
+    return [];
   }
 }
 

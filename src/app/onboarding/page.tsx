@@ -544,9 +544,13 @@ function OnboardingContent() {
         processedData.certifications = processedData.certifications || [];
         processedData.languages = processedData.languages || [];
         processedData.honors = processedData.honors || [];
+        // Use OAuth profile photo as fallback if LinkedIn doesn't provide one
+        if (!processedData.profile_picture_url && session?.user?.image) {
+          processedData.profile_picture_url = session.user.image;
+        }
         setEditableData(processedData);
 
-        // Auto-enable photo option if LinkedIn photo was imported
+        // Auto-enable photo option if we have a profile photo (LinkedIn or OAuth)
         if (processedData.profile_picture_url) {
           setTemplateOptions(prev => ({ ...prev, showPhoto: true }));
         }
@@ -670,8 +674,8 @@ function OnboardingContent() {
         certifications: [],
         languages: [],
         honors: [],
-        // Include extracted photo from PDF if available
-        profile_picture_url: extractedPhotoUrl,
+        // Include extracted photo from PDF, or fall back to OAuth profile photo
+        profile_picture_url: extractedPhotoUrl || session?.user?.image || undefined,
       };
 
       // Process work experience (sort by date, remove duplicates)
@@ -883,6 +887,7 @@ function OnboardingContent() {
             setEditableData={setEditableData}
             sessionUserName={session?.user?.name}
             sessionUserEmail={session?.user?.email}
+            sessionUserImage={session?.user?.image}
           />
         )}
 

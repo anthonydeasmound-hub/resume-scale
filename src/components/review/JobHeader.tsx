@@ -83,7 +83,7 @@ export default function JobHeader({
       </button>
 
       {/* Main header content */}
-      <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
         {/* Left side - Job info */}
         <div className="flex-1 min-w-0">
           {/* Job title */}
@@ -92,7 +92,7 @@ export default function JobHeader({
           </h1>
 
           {/* Company and location */}
-          <div className="text-gray-600 mb-2">
+          <div className="text-gray-600 mb-1">
             <span className="font-medium">{job.company_name}</span>
             {jobDetails?.location && (
               <>
@@ -103,7 +103,7 @@ export default function JobHeader({
           </div>
 
           {/* Saved time and source */}
-          <div className="text-sm text-gray-500 mb-2">
+          <div className="text-sm text-gray-500">
             Saved {relativeTime}
             {domain && (
               <>
@@ -112,9 +112,12 @@ export default function JobHeader({
               </>
             )}
           </div>
+        </div>
 
+        {/* Right side - Salary, Stars, and Actions */}
+        <div className="flex flex-col items-start md:items-end gap-1 md:flex-shrink-0">
           {/* Salary range */}
-          <div className="text-lg font-semibold text-gray-900 mb-3">
+          <div className="text-xl font-semibold text-gray-900">
             {jobDetails?.salary_range ? (
               <>
                 {jobDetails.salary_range}
@@ -130,42 +133,38 @@ export default function JobHeader({
             )}
           </div>
 
-          {/* Interest rating */}
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-500">Interest:</span>
-            <div className="flex items-center gap-0.5">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <button
-                  key={star}
-                  onClick={() => onExcitementChange(job.excitement_level === star ? null : star)}
-                  className="p-0.5 hover:scale-110 transition-transform"
-                  title={`${star} star${star === 1 ? "" : "s"} interest`}
+          {/* Interest rating - no label, just stars */}
+          <div className="flex items-center gap-0.5">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <button
+                key={star}
+                onClick={() => onExcitementChange(job.excitement_level === star ? null : star)}
+                className="p-0.5 hover:scale-110 transition-transform"
+                title={`${star} star${star === 1 ? "" : "s"} interest`}
+              >
+                <svg
+                  className={`w-5 h-5 ${
+                    job.excitement_level && star <= job.excitement_level
+                      ? "text-yellow-400 fill-yellow-400"
+                      : "text-gray-300"
+                  }`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
                 >
-                  <svg
-                    className={`w-5 h-5 ${
-                      job.excitement_level && star <= job.excitement_level
-                        ? "text-yellow-400 fill-yellow-400"
-                        : "text-gray-300"
-                    }`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
-                    />
-                  </svg>
-                </button>
-              ))}
-            </div>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
+                  />
+                </svg>
+              </button>
+            ))}
           </div>
-        </div>
 
-        {/* Right side - Action buttons */}
-        <div className="flex flex-wrap items-center gap-2 lg:flex-shrink-0">
+          {/* Action buttons */}
+          <div className="flex items-center gap-2 mt-1">
           {hasChanges && (
             <button
               onClick={onSave}
@@ -198,6 +197,7 @@ export default function JobHeader({
               </svg>
             </button>
           )}
+          </div>
         </div>
       </div>
     </div>

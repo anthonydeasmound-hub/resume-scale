@@ -779,7 +779,7 @@ export default function ApplyTabContent({
                                         })
                                       }
                                       disabled={status === "sent"}
-                                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue disabled:bg-gray-100"
+                                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-blue disabled:bg-gray-100"
                                     />
                                   </div>
                                   <div>
@@ -794,7 +794,7 @@ export default function ApplyTabContent({
                                       }
                                       disabled={status === "sent"}
                                       rows={6}
-                                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue disabled:bg-gray-100 resize-none"
+                                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-blue disabled:bg-gray-100 resize-none"
                                     />
                                   </div>
 
@@ -808,7 +808,7 @@ export default function ApplyTabContent({
                                             value={newTemplateName}
                                             onChange={(e) => setNewTemplateName(e.target.value)}
                                             placeholder="Template name..."
-                                            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                                            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-blue"
                                           />
                                           <button
                                             onClick={() => saveAsTemplate(emailNum)}
