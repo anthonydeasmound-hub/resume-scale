@@ -221,9 +221,6 @@ export default function WorkExperienceSection({
                                                 Edited
                                               </span>
                                             )}
-                                            <span className={`text-xs px-1.5 py-0.5 rounded ${isFromMaster ? "bg-blue-100 text-brand-blue" : "bg-purple-100 text-purple-600"}`}>
-                                              {isFromMaster ? "Resume" : "AI"}
-                                            </span>
                                             <button
                                               onClick={(e) => { e.stopPropagation(); onStartEditingBullet(selectedRole.roleIndex, bulletIdx, bulletText); }}
                                               className="p-1 text-gray-500 hover:text-brand-blue hover:bg-brand-blue-light rounded"
@@ -293,9 +290,6 @@ export default function WorkExperienceSection({
                                                 </svg>
                                               </button>
                                               <span className="text-gray-700 flex-1">{bullet}</span>
-                                              <span className={`text-xs px-1.5 py-0.5 rounded ${isFromMaster ? "bg-gray-100 text-gray-500" : "bg-purple-50 text-purple-500"}`}>
-                                                {isFromMaster ? "Resume" : "AI"}
-                                              </span>
                                             </div>
                                           </div>
                                         );
